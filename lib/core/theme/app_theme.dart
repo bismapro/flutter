@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 
 class AppTheme {
-  static const Color primaryBlue = Color(0xFF6366F1);
-  static const Color lightBlue = Color(0xFFE0E7FF);
-  static const Color backgroundColor = Color(0xFFF8FAFC);
+  static const Color primaryGreen = Color(0xFF26A69A); // Teal green
+  static const Color primaryBlue = Color(0xFF3F51B5); // Islamic blue
+  static const Color lightGreen = Color(0xFFE0F2F1);
+  static const Color lightBlue = Color(0xFFE8EAF6);
+  static const Color backgroundColor = Color(0xFFF5F7FA);
   static const Color cardColor = Colors.white;
-  static const Color textPrimary = Color(0xFF1E293B);
-  static const Color textSecondary = Color(0xFF64748B);
-  static const Color borderColor = Color(0xFFE2E8F0);
+  static const Color textPrimary = Color(0xFF2E3A47);
+  static const Color textSecondary = Color(0xFF6B7280);
+  static const Color borderColor = Color(0xFFE5E7EB);
+  static const Color accentGold = Color(0xFFFFB74D);
 
   static ThemeData get lightTheme {
     return ThemeData(
       colorScheme: ColorScheme.fromSeed(
-        seedColor: primaryBlue,
-        primary: primaryBlue,
+        seedColor: primaryGreen,
+        primary: primaryGreen,
         surface: cardColor,
         background: backgroundColor,
       ),
@@ -21,7 +24,7 @@ class AppTheme {
       fontFamily: 'SF Pro Display',
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          backgroundColor: primaryBlue,
+          backgroundColor: primaryGreen,
           foregroundColor: Colors.white,
           elevation: 0,
           padding: const EdgeInsets.symmetric(vertical: 16),

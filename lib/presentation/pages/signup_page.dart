@@ -9,6 +9,7 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
+  final _nameController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
@@ -23,24 +24,48 @@ class _SignupPageState extends State<SignupPage> {
           padding: const EdgeInsets.all(24.0),
           child: Column(
             children: [
+              Row(
+                children: [
+                  IconButton(
+                    onPressed: () => Navigator.pop(context),
+                    icon: Icon(Icons.arrow_back, color: AppTheme.textPrimary),
+                  ),
+                ],
+              ),
+              
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const SizedBox(height: 40),
-                      // Header
+                      const SizedBox(height: 20),
+                      
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryGreen,
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Icon(
+                          Icons.mosque,
+                          size: 40,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      
                       const Text(
-                        'Sign up',
+                        'Create Account',
                         style: TextStyle(
-                          fontSize: 32,
+                          fontSize: 28,
                           fontWeight: FontWeight.bold,
                           color: AppTheme.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 8),
                       const Text(
-                        'Enter your details below & free sign up',
+                        'Join our Islamic community today',
                         style: TextStyle(
                           fontSize: 16,
                           color: AppTheme.textSecondary,
@@ -48,124 +73,108 @@ class _SignupPageState extends State<SignupPage> {
                       ),
                       const SizedBox(height: 40),
 
-                      // Email Field
-                      const Text(
-                        'Email',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
+                      Container(
+                        padding: const EdgeInsets.all(24),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          hintText: 'Enter your email',
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Password Field
-                      const Text(
-                        'Password',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        decoration: InputDecoration(
-                          hintText: 'Enter your password',
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isPasswordVisible
-                                  ? Icons.visibility_off
-                                  : Icons.visibility,
-                              color: AppTheme.textSecondary,
-                            ),
-                            onPressed: () {
-                              setState(() {
-                                _isPasswordVisible = !_isPasswordVisible;
-                              });
-                            },
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-
-                      // Terms and Conditions
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Checkbox(
-                            value: _agreeTerms,
-                            onChanged: (value) {
-                              setState(() {
-                                _agreeTerms = value ?? false;
-                              });
-                            },
-                            activeColor: AppTheme.primaryBlue,
-                            materialTapTargetSize:
-                                MaterialTapTargetSize.shrinkWrap,
-                          ),
-                          const SizedBox(width: 8),
-                          const Expanded(
-                            child: Text(
-                              'By creating an account you have to agree with our terms & condition.',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppTheme.textSecondary,
-                                height: 1.4,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text('Full Name'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _nameController,
+                              decoration: const InputDecoration(
+                                hintText: 'Enter your full name',
                               ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 32),
+                            const SizedBox(height: 20),
 
-                      // Create Account Button
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _agreeTerms
-                              ? () {
-                                  Navigator.pushReplacementNamed(
-                                    context,
-                                    '/home',
-                                  );
-                                }
-                              : null,
-                          child: const Text('Create Account'),
+                            const Text('Email'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _emailController,
+                              decoration: const InputDecoration(
+                                hintText: 'Enter your email',
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            const Text('Password'),
+                            const SizedBox(height: 8),
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: !_isPasswordVisible,
+                              decoration: InputDecoration(
+                                hintText: 'Create password',
+                                suffixIcon: IconButton(
+                                  icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility),
+                                  onPressed: () {
+                                    setState(() {
+                                      _isPasswordVisible = !_isPasswordVisible;
+                                    });
+                                  },
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+
+                            Row(
+                              children: [
+                                Checkbox(
+                                  value: _agreeTerms,
+                                  onChanged: (value) {
+                                    setState(() {
+                                      _agreeTerms = value ?? false;
+                                    });
+                                  },
+                                ),
+                                const Expanded(
+                                  child: Text('I agree to Terms & Conditions'),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 24),
+
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: _agreeTerms ? () {
+                                  Navigator.pushReplacementNamed(context, '/home');
+                                } : null,
+                                child: const Text('Create Account'),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+
+                            SizedBox(
+                              width: double.infinity,
+                              child: OutlinedButton.icon(
+                                onPressed: () {
+                                  Navigator.pushReplacementNamed(context, '/home');
+                                },
+                                icon: const Icon(Icons.g_mobiledata),
+                                label: const Text('Continue with Google'),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-
-                      // Already have account
+                      
+                      const SizedBox(height: 32),
+                      
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Text(
-                            "Already have an account? ",
-                            style: TextStyle(
-                              color: AppTheme.textSecondary,
-                              fontSize: 14,
-                            ),
-                          ),
+                          const Text("Already have an account? "),
                           GestureDetector(
-                            onTap: () {
-                              Navigator.pushNamed(context, '/login');
-                            },
-                            child: const Text(
-                              'Login',
+                            onTap: () => Navigator.pop(context),
+                            child: Text(
+                              'Sign in',
                               style: TextStyle(
-                                color: AppTheme.primaryBlue,
-                                fontSize: 14,
+                                color: AppTheme.primaryGreen,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -185,6 +194,7 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   void dispose() {
+    _nameController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();

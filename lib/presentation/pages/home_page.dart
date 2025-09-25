@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
         onPressed: () {
           Navigator.pushNamed(context, '/qibla-compass');
         },
-        backgroundColor: AppTheme.primaryBlue,
+        backgroundColor: AppTheme.primaryGreen,
         child: const Icon(Icons.explore, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -91,11 +91,7 @@ class HomeTabContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF4DD0E1), Color(0xFF26A69A)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
+          color: AppTheme.primaryGreen,
       ),
       child: SafeArea(
         child: Stack(
