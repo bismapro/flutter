@@ -68,7 +68,8 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
 
     if (permission == LocationPermission.deniedForever) {
       setState(() {
-        _status = 'Izin lokasi ditolak secara permanen. Silakan aktifkan di pengaturan.';
+        _status =
+            'Izin lokasi ditolak secara permanen. Silakan aktifkan di pengaturan.';
         _isLoading = false;
       });
       return;
@@ -109,12 +110,13 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
     double dLon = lon2 - lon1;
 
     double y = math.sin(dLon) * math.cos(lat2);
-    double x = math.cos(lat1) * math.sin(lat2) - 
-               math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
+    double x =
+        math.cos(lat1) * math.sin(lat2) -
+        math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
 
     double bearing = math.atan2(y, x);
     double qiblaBearing = _radianToDegree(bearing);
-    
+
     // Normalize to 0-360 degrees
     qiblaBearing = (qiblaBearing + 360) % 360;
 
@@ -140,10 +142,7 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
       appBar: AppBar(
         title: const Text(
           'Kompas Kiblat',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: AppTheme.primaryGreen,
         foregroundColor: Colors.white,
@@ -166,9 +165,7 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(
-              color: AppTheme.primaryGreen,
-            ),
+            const CircularProgressIndicator(color: AppTheme.primaryGreen),
             const SizedBox(height: 24),
             Text(
               _status,
@@ -190,11 +187,7 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(
-                Icons.location_off,
-                size: 80,
-                color: Colors.grey.shade400,
-              ),
+              Icon(Icons.location_off, size: 80, color: Colors.grey.shade400),
               const SizedBox(height: 24),
               Text(
                 _status,
@@ -213,7 +206,10 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryGreen,
                   foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                 ),
               ),
             ],
@@ -224,11 +220,7 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
 
     return SingleChildScrollView(
       child: Column(
-        children: [
-          _buildLocationInfo(),
-          _buildCompass(),
-          _buildInstructions(),
-        ],
+        children: [_buildLocationInfo(), _buildCompass(), _buildInstructions()],
       ),
     );
   }
@@ -319,19 +311,17 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
                 ],
               ),
             ),
-            
+
             // Qibla direction arrow
             Transform.rotate(
               angle: _qiblaDirection * math.pi / 180,
               child: Container(
                 width: 200,
                 height: 200,
-                child: CustomPaint(
-                  painter: QiblaArrowPainter(),
-                ),
+                child: CustomPaint(painter: QiblaArrowPainter()),
               ),
             ),
-            
+
             // Center dot
             Container(
               width: 16,
@@ -348,7 +338,7 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
                 ],
               ),
             ),
-            
+
             // Kaaba icon
             Transform.rotate(
               angle: _qiblaDirection * math.pi / 180,
@@ -367,10 +357,7 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
                       ),
                     ],
                   ),
-                  child: const Text(
-                    '',
-                    style: TextStyle(fontSize: 20),
-                  ),
+                  child: const Text('', style: TextStyle(fontSize: 20)),
                 ),
               ),
             ),
@@ -424,17 +411,11 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
             decoration: BoxDecoration(
               color: AppTheme.primaryGreen.withOpacity(0.1),
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: AppTheme.primaryGreen.withOpacity(0.3),
-              ),
+              border: Border.all(color: AppTheme.primaryGreen.withOpacity(0.3)),
             ),
             child: const Row(
               children: [
-                Icon(
-                  Icons.info,
-                  color: AppTheme.primaryGreen,
-                  size: 20,
-                ),
+                Icon(Icons.info, color: AppTheme.primaryGreen, size: 20),
                 SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -463,7 +444,7 @@ class QiblaArrowPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
 
     final center = Offset(size.width / 2, size.height / 2);
-    
+
     // Draw arrow pointing to Qibla
     final path = Path();
     path.moveTo(center.dx, center.dy - 60); // Top point
@@ -479,7 +460,7 @@ class QiblaArrowPainter extends CustomPainter {
     final shadowPaint = Paint()
       ..color = Colors.black.withOpacity(0.2)
       ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
-    
+
     canvas.drawPath(path, shadowPaint);
     canvas.drawPath(path, paint);
   }

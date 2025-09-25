@@ -90,9 +90,7 @@ class HomeTabContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: const BoxDecoration(
-          color: AppTheme.primaryGreen,
-      ),
+      decoration: const BoxDecoration(color: AppTheme.primaryGreen),
       child: SafeArea(
         child: Stack(
           children: [
@@ -144,7 +142,7 @@ class HomeTabContent extends StatelessWidget {
                       ],
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Next Prayer Time
                     const Text(
                       '04:41',
@@ -156,29 +154,51 @@ class HomeTabContent extends StatelessWidget {
                     ),
                     const Text(
                       'Fajr 3 hour 9 min left',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 16),
                     ),
                     const SizedBox(height: 32),
-                    
+
                     // Prayer Times Row
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                       children: [
-                        _buildPrayerTimeWidget('Fajr', '04:41', Icons.nightlight_round, true),
-                        _buildPrayerTimeWidget('Dzuhr', '12:00', Icons.wb_sunny, false),
-                        _buildPrayerTimeWidget('Asr', '15:14', Icons.wb_sunny_outlined, false),
-                        _buildPrayerTimeWidget('Maghrib', '18:02', Icons.brightness_3, false),
-                        _buildPrayerTimeWidget('Isha', '19:11', Icons.nights_stay, false),
+                        _buildPrayerTimeWidget(
+                          'Fajr',
+                          '04:41',
+                          Icons.nightlight_round,
+                          true,
+                        ),
+                        _buildPrayerTimeWidget(
+                          'Dzuhr',
+                          '12:00',
+                          Icons.wb_sunny,
+                          false,
+                        ),
+                        _buildPrayerTimeWidget(
+                          'Asr',
+                          '15:14',
+                          Icons.wb_sunny_outlined,
+                          false,
+                        ),
+                        _buildPrayerTimeWidget(
+                          'Maghrib',
+                          '18:02',
+                          Icons.brightness_3,
+                          false,
+                        ),
+                        _buildPrayerTimeWidget(
+                          'Isha',
+                          '19:11',
+                          Icons.nights_stay,
+                          false,
+                        ),
                       ],
                     ),
                   ],
                 ),
               ),
             ),
-            
+
             // Scrollable White Section
             DraggableScrollableSheet(
               initialChildSize: 0.45, // Start at 45% of screen height
@@ -207,174 +227,215 @@ class HomeTabContent extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                    // Handle bar
-                    Center(
-                      child: Container(
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    
-                    // All Features
-                    const Text(
-                      'All Features',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Features Grid - Scrollable
-                    SizedBox(
-                      height: 120,
-                      child: ListView(
-                        scrollDirection: Axis.horizontal,
-                        children: [
-                          _buildFeatureCard(Icons.menu_book, 'Quran', const Color(0xFF4DD0E1), onTap: () {
-                            Navigator.pushNamed(context, '/quran');
-                          }),
-                          const SizedBox(width: 12),
-                          _buildFeatureCard(Icons.volume_up, 'Adzan', const Color(0xFF4DD0E1)),
-                          const SizedBox(width: 12),
-                          _buildFeatureCard(Icons.explore, 'Qibla', const Color(0xFF4DD0E1), onTap: () {
-                            Navigator.pushNamed(context, '/qibla-compass');
-                          }),
-                          const SizedBox(width: 12),
-                          _buildFeatureCard(Icons.favorite, 'Donation', const Color(0xFF4DD0E1)),
-                          const SizedBox(width: 12),
-                          _buildFeatureCard(Icons.apps, 'All', const Color(0xFF4DD0E1)),
-                          const SizedBox(width: 12),
-                          _buildFeatureCard(Icons.mosque, 'Masjid', const Color(0xFF4DD0E1)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    
-                    // Ngaji Online Section
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Ngaji Online',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.black87,
-                          ),
-                        ),
-                        TextButton(
-                          onPressed: () {},
-                          child: const Text(
-                            'See All',
-                            style: TextStyle(
-                              color: Color(0xFF4DD0E1),
-                              fontWeight: FontWeight.w600,
+                          // Handle bar
+                          Center(
+                            child: Container(
+                              width: 40,
+                              height: 4,
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade300,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Live Stream Card
-                    Container(
-                      height: 200,
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(12),
-                        image: const DecorationImage(
-                          image: NetworkImage('https://picsum.photos/400/200?random=1'),
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      child: Stack(
-                        children: [
-                          // Gradient overlay
+                          const SizedBox(height: 24),
+
+                          // All Features
+                          const Text(
+                            'All Features',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Features Grid - Scrollable
+                          SizedBox(
+                            height: 120,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              children: [
+                                _buildFeatureCard(
+                                  Icons.menu_book,
+                                  'Quran',
+                                  const Color(0xFF4DD0E1),
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/quran');
+                                  },
+                                ),
+                                const SizedBox(width: 12),
+                                _buildFeatureCard(
+                                  Icons.volume_up,
+                                  'Adzan',
+                                  const Color(0xFF4DD0E1),
+                                ),
+                                const SizedBox(width: 12),
+                                _buildFeatureCard(
+                                  Icons.explore,
+                                  'Qibla',
+                                  const Color(0xFF4DD0E1),
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/qibla-compass',
+                                    );
+                                  },
+                                ),
+                                const SizedBox(width: 12),
+                                _buildFeatureCard(
+                                  Icons.favorite,
+                                  'Donation',
+                                  const Color(0xFF4DD0E1),
+                                ),
+                                const SizedBox(width: 12),
+                                _buildFeatureCard(
+                                  Icons.apps,
+                                  'All',
+                                  const Color(0xFF4DD0E1),
+                                ),
+                                const SizedBox(width: 12),
+                                _buildFeatureCard(
+                                  Icons.mosque,
+                                  'Masjid',
+                                  const Color(0xFF4DD0E1),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+
+                          // Ngaji Online Section
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Ngaji Online',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () {},
+                                child: const Text(
+                                  'See All',
+                                  style: TextStyle(
+                                    color: Color(0xFF4DD0E1),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Live Stream Card
                           Container(
+                            height: 200,
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(12),
-                              gradient: LinearGradient(
-                                colors: [
-                                  Colors.black.withOpacity(0.3),
-                                  Colors.transparent,
-                                  Colors.black.withOpacity(0.7),
-                                ],
-                                begin: Alignment.topCenter,
-                                end: Alignment.bottomCenter,
-                              ),
-                            ),
-                          ),
-                          // Live badge
-                          Positioned(
-                            top: 12,
-                            right: 12,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.red,
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: const Text(
-                                'LIVE',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
+                              image: const DecorationImage(
+                                image: NetworkImage(
+                                  'https://picsum.photos/400/200?random=1',
                                 ),
+                                fit: BoxFit.cover,
                               ),
                             ),
-                          ),
-                          // Viewers count
-                          Positioned(
-                            bottom: 12,
-                            left: 12,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withOpacity(0.6),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: const Text(
-                                '3.6K viewers',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 12,
+                            child: Stack(
+                              children: [
+                                // Gradient overlay
+                                Container(
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(12),
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        Colors.black.withOpacity(0.3),
+                                        Colors.transparent,
+                                        Colors.black.withOpacity(0.7),
+                                      ],
+                                      begin: Alignment.topCenter,
+                                      end: Alignment.bottomCenter,
+                                    ),
+                                  ),
                                 ),
-                              ),
+                                // Live badge
+                                Positioned(
+                                  top: 12,
+                                  right: 12,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.red,
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text(
+                                      'LIVE',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                                // Viewers count
+                                Positioned(
+                                  bottom: 12,
+                                  left: 12,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withOpacity(0.6),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Text(
+                                      '3.6K viewers',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    
-                    // Latest Articles Section
-                    const Text(
-                      'Artikel Terbaru',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.black87,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // Articles List
-                    ...List.generate(3, (index) => _buildArticleCard(
-                      title: _getArticleTitle(index),
-                      summary: _getArticleSummary(index),
-                      imageUrl: 'https://picsum.photos/80/80?random=${index + 2}',
-                      date: _getArticleDate(index),
-                    )),
-                    
-                    // Extra spacing for bottom navigation
-                    const SizedBox(height: 100),
+                          const SizedBox(height: 32),
+
+                          // Latest Articles Section
+                          const Text(
+                            'Artikel Terbaru',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Articles List
+                          ...List.generate(
+                            3,
+                            (index) => _buildArticleCard(
+                              title: _getArticleTitle(index),
+                              summary: _getArticleSummary(index),
+                              imageUrl:
+                                  'https://picsum.photos/80/80?random=${index + 2}',
+                              date: _getArticleDate(index),
+                            ),
+                          ),
+
+                          // Extra spacing for bottom navigation
+                          const SizedBox(height: 100),
                         ],
                       ),
                     ),
@@ -388,20 +449,23 @@ class HomeTabContent extends StatelessWidget {
     );
   }
 
-  Widget _buildPrayerTimeWidget(String name, String time, IconData icon, bool isActive) {
+  Widget _buildPrayerTimeWidget(
+    String name,
+    String time,
+    IconData icon,
+    bool isActive,
+  ) {
     return Column(
       children: [
         Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: isActive ? Colors.white.withOpacity(0.2) : Colors.transparent,
+            color: isActive
+                ? Colors.white.withOpacity(0.2)
+                : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),
-          child: Icon(
-            icon,
-            color: Colors.white,
-            size: 20,
-          ),
+          child: Icon(icon, color: Colors.white, size: 20),
         ),
         const SizedBox(height: 4),
         Text(
@@ -424,7 +488,12 @@ class HomeTabContent extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureCard(IconData icon, String title, Color color, {VoidCallback? onTap}) {
+  Widget _buildFeatureCard(
+    IconData icon,
+    String title,
+    Color color, {
+    VoidCallback? onTap,
+  }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -438,11 +507,7 @@ class HomeTabContent extends StatelessWidget {
                 color: color,
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(
-                icon,
-                color: Colors.white,
-                size: 24,
-              ),
+              child: Icon(icon, color: Colors.white, size: 24),
             ),
             const SizedBox(height: 8),
             Text(
@@ -517,20 +582,14 @@ class HomeTabContent extends StatelessWidget {
                 const SizedBox(height: 4),
                 Text(
                   summary,
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.grey.shade600,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
                 Text(
                   date,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey.shade500,
-                  ),
+                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
                 ),
               ],
             ),
@@ -566,8 +625,6 @@ class HomeTabContent extends StatelessWidget {
     ];
     return dates[index % dates.length];
   }
-
-
 }
 
 class PremiumTabContent extends StatelessWidget {
@@ -598,7 +655,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
 
   final List<String> _categories = [
     'Semua',
-    'Ibadah', 
+    'Ibadah',
     'Akhlak',
     'Sejarah',
     'Ramadhan',
@@ -609,7 +666,8 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
   final List<Map<String, dynamic>> _allArticles = [
     {
       'title': 'Keutamaan Membaca Al-Quran di Bulan Ramadhan',
-      'summary': 'Membaca Al-Quran di bulan Ramadhan memiliki pahala yang berlipat ganda. Simak penjelasan lengkapnya dalam artikel ini.',
+      'summary':
+          'Membaca Al-Quran di bulan Ramadhan memiliki pahala yang berlipat ganda. Simak penjelasan lengkapnya dalam artikel ini.',
       'category': 'Ramadhan',
       'date': '2 hari yang lalu',
       'readTime': '5 min',
@@ -617,7 +675,8 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
     },
     {
       'title': 'Doa-Doa yang Dianjurkan Dibaca Setelah Sholat',
-      'summary': 'Setelah sholat, dianjurkan untuk membaca doa-doa tertentu untuk mendapatkan keberkahan dan perlindungan Allah SWT.',
+      'summary':
+          'Setelah sholat, dianjurkan untuk membaca doa-doa tertentu untuk mendapatkan keberkahan dan perlindungan Allah SWT.',
       'category': 'Doa',
       'date': '3 hari yang lalu',
       'readTime': '7 min',
@@ -625,7 +684,8 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
     },
     {
       'title': 'Amalan-Amalan Sunnah di Malam Lailatul Qadr',
-      'summary': 'Lailatul Qadr adalah malam yang lebih baik dari seribu bulan. Berikut amalan yang dianjurkan dilakukan.',
+      'summary':
+          'Lailatul Qadr adalah malam yang lebih baik dari seribu bulan. Berikut amalan yang dianjurkan dilakukan.',
       'category': 'Ibadah',
       'date': '5 hari yang lalu',
       'readTime': '6 min',
@@ -633,7 +693,8 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
     },
     {
       'title': 'Sejarah Turunnya Ayat Pertama Al-Quran',
-      'summary': 'Kisah turunnya wahyu pertama kepada Nabi Muhammad SAW di Gua Hira yang mengubah sejarah umat manusia.',
+      'summary':
+          'Kisah turunnya wahyu pertama kepada Nabi Muhammad SAW di Gua Hira yang mengubah sejarah umat manusia.',
       'category': 'Sejarah',
       'date': '1 minggu yang lalu',
       'readTime': '8 min',
@@ -641,7 +702,8 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
     },
     {
       'title': 'Pentingnya Menjaga Akhlak dalam Kehidupan Sehari-hari',
-      'summary': 'Akhlak yang baik adalah cerminan keimanan seseorang. Pelajari cara menjaga akhlak dalam berinteraksi.',
+      'summary':
+          'Akhlak yang baik adalah cerminan keimanan seseorang. Pelajari cara menjaga akhlak dalam berinteraksi.',
       'category': 'Akhlak',
       'date': '1 minggu yang lalu',
       'readTime': '4 min',
@@ -649,7 +711,8 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
     },
     {
       'title': 'Makna dan Hikmah Surah Al-Fatihah',
-      'summary': 'Surah Al-Fatihah adalah induk dari Al-Quran. Pelajari makna dan hikmah yang terkandung di dalamnya.',
+      'summary':
+          'Surah Al-Fatihah adalah induk dari Al-Quran. Pelajari makna dan hikmah yang terkandung di dalamnya.',
       'category': 'Al-Quran',
       'date': '2 minggu yang lalu',
       'readTime': '10 min',
@@ -657,7 +720,8 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
     },
     {
       'title': 'Adab Masuk dan Keluar Masjid',
-      'summary': 'Islam mengajarkan adab yang baik dalam setiap aspek kehidupan, termasuk ketika masuk dan keluar masjid.',
+      'summary':
+          'Islam mengajarkan adab yang baik dalam setiap aspek kehidupan, termasuk ketika masuk dan keluar masjid.',
       'category': 'Ibadah',
       'date': '2 minggu yang lalu',
       'readTime': '3 min',
@@ -665,7 +729,8 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
     },
     {
       'title': 'Doa Berbuka Puasa dan Adabnya',
-      'summary': 'Ketika berbuka puasa, ada doa khusus yang dianjurkan untuk dibaca beserta adab-adab yang perlu diperhatikan.',
+      'summary':
+          'Ketika berbuka puasa, ada doa khusus yang dianjurkan untuk dibaca beserta adab-adab yang perlu diperhatikan.',
       'category': 'Ramadhan',
       'date': '3 minggu yang lalu',
       'readTime': '5 min',
@@ -675,10 +740,13 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
 
   List<Map<String, dynamic>> get _filteredArticles {
     return _allArticles.where((article) {
-      final matchesCategory = _selectedCategory == 'Semua' || article['category'] == _selectedCategory;
-      final matchesSearch = _searchQuery.isEmpty || 
-                           article['title'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                           article['summary'].toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesCategory =
+          _selectedCategory == 'Semua' ||
+          article['category'] == _selectedCategory;
+      final matchesSearch =
+          _searchQuery.isEmpty ||
+          article['title'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          article['summary'].toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     }).toList();
   }
@@ -713,7 +781,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Search Bar
                   Container(
                     decoration: BoxDecoration(
@@ -736,10 +804,16 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                       },
                       decoration: InputDecoration(
                         hintText: 'Cari artikel...',
-                        prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppTheme.textSecondary,
+                        ),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: AppTheme.textSecondary,
+                                ),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() {
@@ -749,12 +823,15 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Category Filter
                   SizedBox(
                     height: 40,
@@ -764,9 +841,11 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                       itemBuilder: (context, index) {
                         final category = _categories[index];
                         final isSelected = category == _selectedCategory;
-                        
+
                         return Padding(
-                          padding: EdgeInsets.only(right: index == _categories.length - 1 ? 0 : 12),
+                          padding: EdgeInsets.only(
+                            right: index == _categories.length - 1 ? 0 : 12,
+                          ),
                           child: GestureDetector(
                             onTap: () {
                               setState(() {
@@ -774,19 +853,30 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                               });
                             },
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
                               decoration: BoxDecoration(
-                                color: isSelected ? AppTheme.primaryBlue : Colors.white,
+                                color: isSelected
+                                    ? AppTheme.primaryBlue
+                                    : Colors.white,
                                 borderRadius: BorderRadius.circular(20),
                                 border: Border.all(
-                                  color: isSelected ? AppTheme.primaryBlue : AppTheme.borderColor,
+                                  color: isSelected
+                                      ? AppTheme.primaryBlue
+                                      : AppTheme.borderColor,
                                 ),
                               ),
                               child: Text(
                                 category,
                                 style: TextStyle(
-                                  color: isSelected ? Colors.white : AppTheme.textPrimary,
-                                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppTheme.textPrimary,
+                                  fontWeight: isSelected
+                                      ? FontWeight.w600
+                                      : FontWeight.w500,
                                   fontSize: 14,
                                 ),
                               ),
@@ -799,7 +889,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                 ],
               ),
             ),
-            
+
             // Articles List
             Expanded(
               child: _filteredArticles.isEmpty
@@ -885,7 +975,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
               },
             ),
           ),
-          
+
           // Article Content
           Padding(
             padding: const EdgeInsets.all(16),
@@ -894,7 +984,10 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
               children: [
                 // Category Badge
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: AppTheme.primaryBlue.withOpacity(0.1),
                     borderRadius: BorderRadius.circular(6),
@@ -909,7 +1002,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Title
                 Text(
                   article['title'],
@@ -923,7 +1016,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 8),
-                
+
                 // Summary
                 Text(
                   article['summary'],
@@ -936,7 +1029,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
-                
+
                 // Meta Info
                 Row(
                   children: [
@@ -1001,12 +1094,10 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'Semua';
   String _searchQuery = '';
-  
+
   // Simulated current user
   final String _currentUserId = 'user_123';
   final String _currentUserName = 'Muhammad Ahmad';
-
-
 
   List<Map<String, dynamic>> _communityPosts = [];
 
@@ -1021,7 +1112,8 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
       {
         'id': 'post_1',
         'title': 'Pengalaman Pertama Umrah di Bulan Ramadhan',
-        'content': 'Alhamdulillah, saya baru saja pulang dari umrah. Subhanallah, betapa berbedanya suasana Masjidil Haram di bulan Ramadhan.\n\n"Dan berikan kabar gembira kepada orang-orang yang berbuat baik" - QS. Al-Baqarah: 155\n\nBeberapa tips untuk teman-teman yang ingin umrah:\n• Persiapkan fisik dan mental jauh-jauh hari\n• Pelajari doa-doa dan manasik umrah\n• Bawa obat-obatan pribadi\n• Siapkan mental untuk antrian yang panjang\n\nSemoga bermanfaat!',
+        'content':
+            'Alhamdulillah, saya baru saja pulang dari umrah. Subhanallah, betapa berbedanya suasana Masjidil Haram di bulan Ramadhan.\n\n"Dan berikan kabar gembira kepada orang-orang yang berbuat baik" - QS. Al-Baqarah: 155\n\nBeberapa tips untuk teman-teman yang ingin umrah:\n• Persiapkan fisik dan mental jauh-jauh hari\n• Pelajari doa-doa dan manasik umrah\n• Bawa obat-obatan pribadi\n• Siapkan mental untuk antrian yang panjang\n\nSemoga bermanfaat!',
         'category': 'Sharing',
         'authorId': 'user_456',
         'authorName': 'Siti Aminah',
@@ -1032,22 +1124,25 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
           {
             'id': 'comment_1',
             'authorName': 'Ahmad Fauzi',
-            'content': 'Masya Allah, pengalaman yang luar biasa. Semoga Allah mudahkan saya juga bisa kesana.',
+            'content':
+                'Masya Allah, pengalaman yang luar biasa. Semoga Allah mudahkan saya juga bisa kesana.',
             'date': '1 jam yang lalu',
           },
           {
-            'id': 'comment_2', 
+            'id': 'comment_2',
             'authorName': 'Fatimah',
-            'content': 'Barakallahu fiik atas sharingnya. Bisa cerita lebih detail tentang persiapannya?',
+            'content':
+                'Barakallahu fiik atas sharingnya. Bisa cerita lebih detail tentang persiapannya?',
             'date': '45 menit yang lalu',
-          }
+          },
         ],
         'imageUrl': 'https://picsum.photos/400/250?random=1',
       },
       {
         'id': 'post_2',
         'title': 'Bagaimana Cara Khusyuk dalam Sholat?',
-        'content': 'Assalamualaikum, saya ingin bertanya kepada teman-teman. Bagaimana cara agar bisa lebih khusyuk dalam sholat? Sering kali pikiran saya kemana-mana saat sholat.\n\nMohon sharing pengalaman dari teman-teman 🙏',
+        'content':
+            'Assalamualaikum, saya ingin bertanya kepada teman-teman. Bagaimana cara agar bisa lebih khusyuk dalam sholat? Sering kali pikiran saya kemana-mana saat sholat.\n\nMohon sharing pengalaman dari teman-teman 🙏',
         'category': 'Pertanyaan',
         'authorId': 'user_789',
         'authorName': 'Abdullah',
@@ -1058,16 +1153,18 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
           {
             'id': 'comment_3',
             'authorName': 'Ustadz Mahmud',
-            'content': 'Wa alaykumus salam. Salah satu caranya adalah dengan memahami makna bacaan sholat dan fokus pada dzikir.',
+            'content':
+                'Wa alaykumus salam. Salah satu caranya adalah dengan memahami makna bacaan sholat dan fokus pada dzikir.',
             'date': '4 jam yang lalu',
-          }
+          },
         ],
         'imageUrl': null,
       },
       {
         'id': 'post_3',
         'title': 'Event Kajian Rutin Masjid Al-Barokah',
-        'content': 'Bismillah, kami mengundang teman-teman untuk menghadiri kajian rutin setiap Jumat malam di Masjid Al-Barokah.\n\nTema kali ini: "Menggali Hikmah dari Surah Al-Kahf"\n\nDetail Acara:\n• Waktu: Setiap Jumat, 20:00 - 21:30 WIB\n• Tempat: Masjid Al-Barokah, Jl. Raya No. 123\n• Pemateri: Ustadz Ahmad Hidayat\n• Free untuk umum\n\n"Dan bacakanlah apa yang diwahyukan kepadamu yaitu Kitab Tuhanmu" - QS. Al-Kahf: 27\n\nJazakumullahu khairan',
+        'content':
+            'Bismillah, kami mengundang teman-teman untuk menghadiri kajian rutin setiap Jumat malam di Masjid Al-Barokah.\n\nTema kali ini: "Menggali Hikmah dari Surah Al-Kahf"\n\nDetail Acara:\n• Waktu: Setiap Jumat, 20:00 - 21:30 WIB\n• Tempat: Masjid Al-Barokah, Jl. Raya No. 123\n• Pemateri: Ustadz Ahmad Hidayat\n• Free untuk umum\n\n"Dan bacakanlah apa yang diwahyukan kepadamu yaitu Kitab Tuhanmu" - QS. Al-Kahf: 27\n\nJazakumullahu khairan',
         'category': 'Event',
         'authorId': _currentUserId,
         'authorName': _currentUserName,
@@ -1082,10 +1179,12 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
 
   List<Map<String, dynamic>> get _filteredPosts {
     return _communityPosts.where((post) {
-      final matchesCategory = _selectedCategory == 'Semua' || post['category'] == _selectedCategory;
-      final matchesSearch = _searchQuery.isEmpty || 
-                           post['title'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-                           post['content'].toLowerCase().contains(_searchQuery.toLowerCase());
+      final matchesCategory =
+          _selectedCategory == 'Semua' || post['category'] == _selectedCategory;
+      final matchesSearch =
+          _searchQuery.isEmpty ||
+          post['title'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
+          post['content'].toLowerCase().contains(_searchQuery.toLowerCase());
       return matchesCategory && matchesSearch;
     }).toList();
   }
@@ -1115,7 +1214,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                 maxLines: 2,
               ),
               const SizedBox(height: 16),
-              
+
               Expanded(
                 child: TextField(
                   controller: contentController,
@@ -1141,7 +1240,8 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (titleController.text.isNotEmpty && contentController.text.isNotEmpty) {
+              if (titleController.text.isNotEmpty &&
+                  contentController.text.isNotEmpty) {
                 setState(() {
                   _communityPosts.insert(0, {
                     'id': 'post_${DateTime.now().millisecondsSinceEpoch}',
@@ -1167,17 +1267,15 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
     );
   }
 
-
-
-
-
   void _toggleLike(String postId) {
     setState(() {
-      final postIndex = _communityPosts.indexWhere((post) => post['id'] == postId);
+      final postIndex = _communityPosts.indexWhere(
+        (post) => post['id'] == postId,
+      );
       if (postIndex != -1) {
         final post = _communityPosts[postIndex];
         final likedBy = List<String>.from(post['likedBy']);
-        
+
         if (likedBy.contains(_currentUserId)) {
           likedBy.remove(_currentUserId);
           post['likes']--;
@@ -1185,7 +1283,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
           likedBy.add(_currentUserId);
           post['likes']++;
         }
-        
+
         post['likedBy'] = likedBy;
       }
     });
@@ -1219,7 +1317,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
 
   void _showCommentsDialog(Map<String, dynamic> post) {
     final commentController = TextEditingController();
-    
+
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
@@ -1238,13 +1336,11 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                   ),
                 ),
                 const Divider(),
-                
+
                 // Comments List
                 Expanded(
                   child: post['comments'].isEmpty
-                      ? const Center(
-                          child: Text('Belum ada komentar'),
-                        )
+                      ? const Center(child: Text('Belum ada komentar'))
                       : ListView.builder(
                           itemCount: post['comments'].length,
                           itemBuilder: (context, index) {
@@ -1289,9 +1385,9 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                           },
                         ),
                 ),
-                
+
                 const Divider(),
-                
+
                 // Add Comment
                 Row(
                   children: [
@@ -1311,7 +1407,8 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                         if (commentController.text.isNotEmpty) {
                           setDialogState(() {
                             post['comments'].add({
-                              'id': 'comment_${DateTime.now().millisecondsSinceEpoch}',
+                              'id':
+                                  'comment_${DateTime.now().millisecondsSinceEpoch}',
                               'authorName': _currentUserName,
                               'content': commentController.text,
                               'date': 'Baru saja',
@@ -1363,7 +1460,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
+
                   // Search Bar
                   Container(
                     decoration: BoxDecoration(
@@ -1386,10 +1483,16 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                       },
                       decoration: InputDecoration(
                         hintText: 'Cari diskusi...',
-                        prefixIcon: const Icon(Icons.search, color: AppTheme.textSecondary),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: AppTheme.textSecondary,
+                        ),
                         suffixIcon: _searchQuery.isNotEmpty
                             ? IconButton(
-                                icon: const Icon(Icons.clear, color: AppTheme.textSecondary),
+                                icon: const Icon(
+                                  Icons.clear,
+                                  color: AppTheme.textSecondary,
+                                ),
                                 onPressed: () {
                                   _searchController.clear();
                                   setState(() {
@@ -1399,14 +1502,17 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                               )
                             : null,
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 16,
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            
+
             // Posts List
             Expanded(
               child: _filteredPosts.isEmpty
@@ -1462,7 +1568,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
   Widget _buildPostCard(Map<String, dynamic> post) {
     final isLiked = (post['likedBy'] as List).contains(_currentUserId);
     final isMyPost = post['authorId'] == _currentUserId;
-    
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -1536,7 +1642,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
               ],
             ),
           ),
-          
+
           // Category Badge
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1557,7 +1663,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Post Content
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1588,7 +1694,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
               ],
             ),
           ),
-          
+
           // Post Image
           if (post['imageUrl'] != null) ...[
             const SizedBox(height: 12),
@@ -1606,14 +1712,18 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                       width: double.infinity,
                       height: 200,
                       color: Colors.grey.shade200,
-                      child: const Icon(Icons.image, size: 48, color: Colors.grey),
+                      child: const Icon(
+                        Icons.image,
+                        size: 48,
+                        color: Colors.grey,
+                      ),
                     );
                   },
                 ),
               ),
             ),
           ],
-          
+
           // Action Buttons
           Padding(
             padding: const EdgeInsets.all(16),
@@ -1641,7 +1751,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                   ),
                 ),
                 const SizedBox(width: 24),
-                
+
                 // Comment Button
                 GestureDetector(
                   onTap: () => _showCommentsDialog(post),
@@ -1663,9 +1773,9 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                     ],
                   ),
                 ),
-                
+
                 const Spacer(),
-                
+
                 // Share Button
                 Icon(
                   Icons.share_outlined,

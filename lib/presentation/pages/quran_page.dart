@@ -53,8 +53,10 @@ class _QuranPageState extends State<QuranPage> {
       } else {
         _filteredSurahs = _surahs.where((surah) {
           return surah.name.toLowerCase().contains(query.toLowerCase()) ||
-                 surah.englishName.toLowerCase().contains(query.toLowerCase()) ||
-                 surah.englishNameTranslation.toLowerCase().contains(query.toLowerCase());
+              surah.englishName.toLowerCase().contains(query.toLowerCase()) ||
+              surah.englishNameTranslation.toLowerCase().contains(
+                query.toLowerCase(),
+              );
         }).toList();
       }
     });
@@ -67,10 +69,7 @@ class _QuranPageState extends State<QuranPage> {
       appBar: AppBar(
         title: const Text(
           'Al-Quran',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.white,
-          ),
+          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
         ),
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
@@ -86,14 +85,20 @@ class _QuranPageState extends State<QuranPage> {
               onChanged: _filterSurahs,
               decoration: InputDecoration(
                 hintText: 'Cari surat...',
-                prefixIcon: const Icon(Icons.search, color: AppTheme.primaryBlue),
+                prefixIcon: const Icon(
+                  Icons.search,
+                  color: AppTheme.primaryBlue,
+                ),
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
               ),
             ),
           ),
@@ -107,23 +112,23 @@ class _QuranPageState extends State<QuranPage> {
                     ),
                   )
                 : _filteredSurahs.isEmpty
-                    ? const Center(
-                        child: Text(
-                          'Tidak ada surat yang ditemukan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: AppTheme.textSecondary,
-                          ),
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        itemCount: _filteredSurahs.length,
-                        itemBuilder: (context, index) {
-                          final surah = _filteredSurahs[index];
-                          return _buildSurahCard(surah);
-                        },
+                ? const Center(
+                    child: Text(
+                      'Tidak ada surat yang ditemukan',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppTheme.textSecondary,
                       ),
+                    ),
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    itemCount: _filteredSurahs.length,
+                    itemBuilder: (context, index) {
+                      final surah = _filteredSurahs[index];
+                      return _buildSurahCard(surah);
+                    },
+                  ),
           ),
         ],
       ),
@@ -146,11 +151,7 @@ class _QuranPageState extends State<QuranPage> {
       ),
       child: InkWell(
         onTap: () {
-          Navigator.pushNamed(
-            context,
-            AppRoutes.surahDetail,
-            arguments: surah,
-          );
+          Navigator.pushNamed(context, AppRoutes.surahDetail, arguments: surah);
         },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
@@ -176,9 +177,9 @@ class _QuranPageState extends State<QuranPage> {
                   ),
                 ),
               ),
-              
+
               const SizedBox(width: 16),
-              
+
               // Surah Info
               Expanded(
                 child: Column(
@@ -196,7 +197,7 @@ class _QuranPageState extends State<QuranPage> {
                       ),
                     ),
                     const SizedBox(height: 4),
-                    
+
                     // English Name
                     Text(
                       surah.englishName,
@@ -206,7 +207,7 @@ class _QuranPageState extends State<QuranPage> {
                       ),
                     ),
                     const SizedBox(height: 2),
-                    
+
                     // Translation
                     Text(
                       surah.englishNameTranslation,
@@ -219,7 +220,7 @@ class _QuranPageState extends State<QuranPage> {
                   ],
                 ),
               ),
-              
+
               // Ayahs Count and Revelation Type
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
@@ -233,19 +234,24 @@ class _QuranPageState extends State<QuranPage> {
                   ),
                   const SizedBox(height: 4),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: surah.revelationType == 'Meccan' 
+                      color: surah.revelationType == 'Meccan'
                           ? AppTheme.primaryBlue.withOpacity(0.1)
                           : AppTheme.primaryGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      surah.revelationType == 'Meccan' ? 'Makkiyyah' : 'Madaniyyah',
+                      surah.revelationType == 'Meccan'
+                          ? 'Makkiyyah'
+                          : 'Madaniyyah',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: surah.revelationType == 'Meccan' 
+                        color: surah.revelationType == 'Meccan'
                             ? AppTheme.primaryBlue
                             : AppTheme.primaryGreen,
                       ),
@@ -253,9 +259,9 @@ class _QuranPageState extends State<QuranPage> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(width: 8),
-              
+
               // Arrow Icon
               const Icon(
                 Icons.arrow_forward_ios,

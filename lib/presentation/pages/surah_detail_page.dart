@@ -26,7 +26,9 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
 
   Future<void> _loadSurahData() async {
     try {
-      final data = await QuranService.getSurahWithTranslation(widget.surah.number);
+      final data = await QuranService.getSurahWithTranslation(
+        widget.surah.number,
+      );
       setState(() {
         _surahData = data['surah'];
         _translationData = data['translation'];
@@ -69,30 +71,30 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                 _showTranslation = !_showTranslation;
               });
             },
-            icon: Icon(_showTranslation ? Icons.translate : Icons.translate_outlined),
-            tooltip: _showTranslation ? 'Sembunyikan Terjemahan' : 'Tampilkan Terjemahan',
+            icon: Icon(
+              _showTranslation ? Icons.translate : Icons.translate_outlined,
+            ),
+            tooltip: _showTranslation
+                ? 'Sembunyikan Terjemahan'
+                : 'Tampilkan Terjemahan',
           ),
         ],
       ),
       body: _isLoading
           ? const Center(
-              child: CircularProgressIndicator(
-                color: AppTheme.primaryBlue,
-              ),
+              child: CircularProgressIndicator(color: AppTheme.primaryBlue),
             )
           : Column(
               children: [
                 // Surah Header
                 _buildSurahHeader(),
-                
+
                 // Bismillah (except for At-Taubah)
                 if (widget.surah.number != 9 && widget.surah.number != 1)
                   _buildBismillah(),
-                
+
                 // Ayahs List
-                Expanded(
-                  child: _buildAyahsList(),
-                ),
+                Expanded(child: _buildAyahsList()),
               ],
             ),
     );
@@ -106,10 +108,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [
-            AppTheme.primaryBlue,
-            AppTheme.primaryBlue.withOpacity(0.8),
-          ],
+          colors: [AppTheme.primaryBlue, AppTheme.primaryBlue.withOpacity(0.8)],
         ),
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
@@ -140,7 +139,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
             ),
           ),
           const SizedBox(height: 8),
-          
+
           // English Name
           Text(
             widget.surah.englishName,
@@ -151,7 +150,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
             ),
           ),
           const SizedBox(height: 4),
-          
+
           // Translation
           Text(
             widget.surah.englishNameTranslation,
@@ -162,14 +161,19 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
             ),
           ),
           const SizedBox(height: 12),
-          
+
           // Info Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
             children: [
-              _buildInfoItem('${widget.surah.numberOfAyahs} Ayat', Icons.format_list_numbered),
               _buildInfoItem(
-                widget.surah.revelationType == 'Meccan' ? 'Makkiyyah' : 'Madaniyyah',
+                '${widget.surah.numberOfAyahs} Ayat',
+                Icons.format_list_numbered,
+              ),
+              _buildInfoItem(
+                widget.surah.revelationType == 'Meccan'
+                    ? 'Makkiyyah'
+                    : 'Madaniyyah',
                 Icons.location_on,
               ),
               _buildInfoItem('No. ${widget.surah.number}', Icons.tag),
@@ -260,7 +264,11 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
     );
   }
 
-  Widget _buildAyahCard(Map<String, dynamic> ayah, Map<String, dynamic> translation, int ayahNumber) {
+  Widget _buildAyahCard(
+    Map<String, dynamic> ayah,
+    Map<String, dynamic> translation,
+    int ayahNumber,
+  ) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
@@ -323,18 +331,15 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Arabic Text
           Container(
             padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Colors.grey.shade50,
-                  Colors.grey.shade100,
-                ],
+                colors: [Colors.grey.shade50, Colors.grey.shade100],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
@@ -354,10 +359,10 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
               textDirection: TextDirection.rtl,
             ),
           ),
-          
+
           if (_showTranslation) ...[
             const SizedBox(height: 16),
-            
+
             // Translation
             Container(
               padding: const EdgeInsets.all(16),
@@ -369,7 +374,9 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.2)),
+                border: Border.all(
+                  color: AppTheme.primaryBlue.withOpacity(0.2),
+                ),
               ),
               child: Text(
                 translation['text'],
