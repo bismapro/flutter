@@ -1132,35 +1132,34 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
           ),
         ),
         actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Batal'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (titleController.text.isNotEmpty && contentController.text.isNotEmpty) {
-                  setState(() {
-                    _communityPosts.insert(0, {
-                      'id': 'post_${DateTime.now().millisecondsSinceEpoch}',
-                      'title': titleController.text,
-                      'content': contentController.text,
-                      'category': 'Diskusi',
-                      'authorId': _currentUserId,
-                      'authorName': _currentUserName,
-                      'date': 'Baru saja',
-                      'likes': 0,
-                      'likedBy': [],
-                      'comments': [],
-                      'imageUrl': null,
-                    });
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (titleController.text.isNotEmpty && contentController.text.isNotEmpty) {
+                setState(() {
+                  _communityPosts.insert(0, {
+                    'id': 'post_${DateTime.now().millisecondsSinceEpoch}',
+                    'title': titleController.text,
+                    'content': contentController.text,
+                    'category': 'Diskusi',
+                    'authorId': _currentUserId,
+                    'authorName': _currentUserName,
+                    'date': 'Baru saja',
+                    'likes': 0,
+                    'likedBy': [],
+                    'comments': [],
+                    'imageUrl': null,
                   });
-                  Navigator.pop(context);
-                }
-              },
-              child: const Text('Post'),
-            ),
-          ],
-        ),
+                });
+                Navigator.pop(context);
+              }
+            },
+            child: const Text('Post'),
+          ),
+        ],
       ),
     );
   }
