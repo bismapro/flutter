@@ -27,7 +27,7 @@ class _HomePageState extends State<HomePage> {
         onPressed: () {
           Navigator.pushNamed(context, '/qibla-compass');
         },
-        backgroundColor: AppTheme.primaryGreen,
+        backgroundColor: AppTheme.primaryBlue,
         child: const Icon(Icons.explore, color: Colors.white),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
@@ -237,11 +237,15 @@ class HomeTabContent extends StatelessWidget {
                       child: ListView(
                         scrollDirection: Axis.horizontal,
                         children: [
-                          _buildFeatureCard(Icons.menu_book, 'Quran', const Color(0xFF4DD0E1)),
+                          _buildFeatureCard(Icons.menu_book, 'Quran', const Color(0xFF4DD0E1), onTap: () {
+                            Navigator.pushNamed(context, '/quran');
+                          }),
                           const SizedBox(width: 12),
                           _buildFeatureCard(Icons.volume_up, 'Adzan', const Color(0xFF4DD0E1)),
                           const SizedBox(width: 12),
-                          _buildFeatureCard(Icons.explore, 'Qibla', const Color(0xFF4DD0E1)),
+                          _buildFeatureCard(Icons.explore, 'Qibla', const Color(0xFF4DD0E1), onTap: () {
+                            Navigator.pushNamed(context, '/qibla-compass');
+                          }),
                           const SizedBox(width: 12),
                           _buildFeatureCard(Icons.favorite, 'Donation', const Color(0xFF4DD0E1)),
                           const SizedBox(width: 12),
@@ -420,35 +424,38 @@ class HomeTabContent extends StatelessWidget {
     );
   }
 
-  Widget _buildFeatureCard(IconData icon, String title, Color color) {
-    return Container(
-      width: 80,
-      child: Column(
-        children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: color,
-              borderRadius: BorderRadius.circular(12),
+  Widget _buildFeatureCard(IconData icon, String title, Color color, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 80,
+        child: Column(
+          children: [
+            Container(
+              width: 60,
+              height: 60,
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 24,
+              ),
             ),
-            child: Icon(
-              icon,
-              color: Colors.white,
-              size: 24,
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+              textAlign: TextAlign.center,
             ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -479,15 +486,15 @@ class HomeTabContent extends StatelessWidget {
             borderRadius: BorderRadius.circular(8),
             child: Image.network(
               imageUrl,
-              width: 80,
-              height: 80,
+              width: 120,
+              height: 100,
               fit: BoxFit.cover,
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  width: 80,
-                  height: 80,
+                  width: 120,
+                  height: 100,
                   color: Colors.grey.shade200,
-                  child: const Icon(Icons.image, color: Colors.grey),
+                  child: const Icon(Icons.image, color: Colors.grey, size: 40),
                 );
               },
             ),

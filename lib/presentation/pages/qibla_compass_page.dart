@@ -1,4 +1,5 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'dart:math' as math;
 import '../../core/theme/app_theme.dart';
 
@@ -9,25 +10,127 @@ class QiblaCompassPage extends StatefulWidget {
   State<QiblaCompassPage> createState() => _QiblaCompassPageState();
 }
 
-class _QiblaCompassPageState extends State<QiblaCompassPage>
-    with TickerProviderStateMixin {
-  late AnimationController _animationController;
-  double _qiblaDirection = 285.0; // Example: 285 degrees to Mecca
+class _QiblaCompassPageState extends State<QiblaCompassPage> {
+  bool _hasPermission = false;
+  Position? _currentPosition;
+  double _qiblaDirection = 0;
+  bool _isLoading = true;
+  String _status = 'Memuat...';
+
+  // Kaaba coordinates (Mecca, Saudi Arabia)
+  static const double _kaabaLatitude = 21.422487;
+  static const double _kaabaLongitude = 39.826206;
 
   @override
   void initState() {
     super.initState();
-    _animationController = AnimationController(
-      duration: const Duration(milliseconds: 500),
-      vsync: this,
-    );
-    _animationController.repeat();
+    _initializeCompass();
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    super.dispose();
+  Future<void> _initializeCompass() async {
+    try {
+      await _checkLocationPermissions();
+      if (_hasPermission) {
+        await _getCurrentLocation();
+        if (_currentPosition != null) {
+          _calculateQiblaDirection();
+        }
+      }
+    } catch (e) {
+      setState(() {
+        _status = 'Error: ';
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _checkLocationPermissions() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      setState(() {
+        _status = 'Layanan lokasi tidak aktif. Silakan aktifkan GPS.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+      if (permission == LocationPermission.denied) {
+        setState(() {
+          _status = 'Izin lokasi ditolak.';
+          _isLoading = false;
+        });
+        return;
+      }
+    }
+
+    if (permission == LocationPermission.deniedForever) {
+      setState(() {
+        _status = 'Izin lokasi ditolak secara permanen. Silakan aktifkan di pengaturan.';
+        _isLoading = false;
+      });
+      return;
+    }
+
+    setState(() {
+      _hasPermission = true;
+      _status = 'Mendapatkan lokasi...';
+    });
+  }
+
+  Future<void> _getCurrentLocation() async {
+    try {
+      Position position = await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+
+      setState(() {
+        _currentPosition = position;
+        _status = 'Menghitung arah Kiblat...';
+      });
+    } catch (e) {
+      setState(() {
+        _status = 'Gagal mendapatkan lokasi: ';
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _calculateQiblaDirection() {
+    if (_currentPosition == null) return;
+
+    double lat1 = _degreeToRadian(_currentPosition!.latitude);
+    double lon1 = _degreeToRadian(_currentPosition!.longitude);
+    double lat2 = _degreeToRadian(_kaabaLatitude);
+    double lon2 = _degreeToRadian(_kaabaLongitude);
+
+    double dLon = lon2 - lon1;
+
+    double y = math.sin(dLon) * math.cos(lat2);
+    double x = math.cos(lat1) * math.sin(lat2) - 
+               math.sin(lat1) * math.cos(lat2) * math.cos(dLon);
+
+    double bearing = math.atan2(y, x);
+    double qiblaBearing = _radianToDegree(bearing);
+    
+    // Normalize to 0-360 degrees
+    qiblaBearing = (qiblaBearing + 360) % 360;
+
+    setState(() {
+      _qiblaDirection = qiblaBearing;
+      _isLoading = false;
+      _status = 'Arah Kiblat telah ditemukan';
+    });
+  }
+
+  double _degreeToRadian(double degree) {
+    return degree * (math.pi / 180);
+  }
+
+  double _radianToDegree(double radian) {
+    return radian * (180 / math.pi);
   }
 
   @override
@@ -35,205 +138,240 @@ class _QiblaCompassPageState extends State<QiblaCompassPage>
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppTheme.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
         title: const Text(
           'Kompas Kiblat',
           style: TextStyle(
-            color: AppTheme.textPrimary,
-            fontSize: 20,
-            fontWeight: FontWeight.w600,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
           ),
         ),
-        centerTitle: true,
+        backgroundColor: AppTheme.primaryGreen,
+        foregroundColor: Colors.white,
+        elevation: 0,
+        actions: [
+          IconButton(
+            onPressed: _initializeCompass,
+            icon: const Icon(Icons.refresh),
+            tooltip: 'Refresh Lokasi',
+          ),
+        ],
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(24.0),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return Center(
         child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Location Info
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
+            const CircularProgressIndicator(
+              color: AppTheme.primaryGreen,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              _status,
+              style: const TextStyle(
+                fontSize: 16,
+                color: AppTheme.textSecondary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (!_hasPermission || _currentPosition == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.location_off,
+                size: 80,
+                color: Colors.grey.shade400,
+              ),
+              const SizedBox(height: 24),
+              Text(
+                _status,
+                style: const TextStyle(
+                  fontSize: 18,
+                  color: AppTheme.textPrimary,
+                  fontWeight: FontWeight.w500,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton.icon(
+                onPressed: _initializeCompass,
+                icon: const Icon(Icons.location_on),
+                label: const Text('Coba Lagi'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryGreen,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          _buildLocationInfo(),
+          _buildCompass(),
+          _buildInstructions(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLocationInfo() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primaryGreen,
+            AppTheme.primaryGreen.withOpacity(0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryGreen.withOpacity(0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          const Text(
+            ' Lokasi Anda',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 12),
+          if (_currentPosition != null) ...[
+            Text(
+              'Lat: ',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            Text(
+              'Lng: ',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Arah Kiblat: ',
+              style: const TextStyle(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompass() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      child: Center(
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Compass circle
+            Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    Colors.white,
+                    Colors.grey.shade50,
+                    Colors.grey.shade100,
+                  ],
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.location_on,
-                        color: AppTheme.primaryBlue,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'Lokasi Anda',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.textPrimary,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Jakarta, Indonesia',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: AppTheme.textSecondary,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _infoItem('Jarak ke Mekah', '8,924 km'),
-                      _infoItem(
-                        'Arah Kiblat',
-                        '${_qiblaDirection.toStringAsFixed(0)}°',
-                      ),
-                    ],
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
                   ),
                 ],
               ),
             ),
-
-            const SizedBox(height: 40),
-
-            // Compass
-            Expanded(
-              child: Center(
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Compass Background
-                    Container(
-                      width: 280,
-                      height: 280,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: AnimatedBuilder(
-                        animation: _animationController,
-                        builder: (context, child) {
-                          return Transform.rotate(
-                            angle: _animationController.value * 2 * math.pi,
-                            child: CustomPaint(
-                              size: const Size(280, 280),
-                              painter: CompassPainter(),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                    // Qibla Direction Arrow
-                    Transform.rotate(
-                      angle: _qiblaDirection * math.pi / 180,
-                      child: Container(
-                        width: 4,
-                        height: 120,
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.green.shade600,
-                              Colors.green.shade400,
-                            ],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-                    ),
-
-                    // Center Kaaba Icon
-                    Container(
-                      width: 60,
-                      height: 60,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: AppTheme.primaryBlue,
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppTheme.primaryBlue.withOpacity(0.3),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.mosque,
-                        color: Colors.white,
-                        size: 30,
-                      ),
-                    ),
-                  ],
+            
+            // Qibla direction arrow
+            Transform.rotate(
+              angle: _qiblaDirection * math.pi / 180,
+              child: Container(
+                width: 200,
+                height: 200,
+                child: CustomPaint(
+                  painter: QiblaArrowPainter(),
                 ),
               ),
             ),
-
-            const SizedBox(height: 40),
-
-            // Instructions
+            
+            // Center dot
             Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
+              width: 16,
+              height: 16,
               decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.green.shade200),
-              ),
-              child: Column(
-                children: [
-                  Icon(
-                    Icons.info_outline,
-                    color: Colors.green.shade600,
-                    size: 24,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'Cara Menggunakan',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green.shade800,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Arahkan ponsel Anda ke arah panah hijau untuk menghadap kiblat. Pastikan ponsel dalam posisi horizontal.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.green.shade700,
-                      height: 1.4,
-                    ),
+                shape: BoxShape.circle,
+                color: AppTheme.primaryGreen,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryGreen.withOpacity(0.4),
+                    blurRadius: 6,
+                    spreadRadius: 2,
                   ),
                 ],
+              ),
+            ),
+            
+            // Kaaba icon
+            Transform.rotate(
+              angle: _qiblaDirection * math.pi / 180,
+              child: Transform.translate(
+                offset: const Offset(0, -70),
+                child: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.black87,
+                    borderRadius: BorderRadius.circular(8),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: const Text(
+                    '',
+                    style: TextStyle(fontSize: 20),
+                  ),
+                ),
               ),
             ),
           ],
@@ -242,84 +380,110 @@ class _QiblaCompassPageState extends State<QiblaCompassPage>
     );
   }
 
-  Widget _infoItem(String label, String value) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, color: AppTheme.textSecondary),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: AppTheme.textPrimary,
+  Widget _buildInstructions() {
+    return Container(
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
           ),
-        ),
-      ],
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            ' Petunjuk Penggunaan',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            '1. Pastikan GPS/lokasi aktif pada perangkat Anda\n'
+            '2. Arahkan bagian atas ponsel ke arah panah hijau\n'
+            '3. Ikon  menunjukkan arah tepat menuju Kiblat\n'
+            '4. Untuk akurasi terbaik, gunakan di tempat terbuka',
+            style: TextStyle(
+              fontSize: 15,
+              color: AppTheme.textSecondary,
+              height: 1.6,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryGreen.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AppTheme.primaryGreen.withOpacity(0.3),
+              ),
+            ),
+            child: const Row(
+              children: [
+                Icon(
+                  Icons.info,
+                  color: AppTheme.primaryGreen,
+                  size: 20,
+                ),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Kompas ini menghitung arah Kiblat berdasarkan lokasi Anda saat ini',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: AppTheme.primaryGreen,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class CompassPainter extends CustomPainter {
+class QiblaArrowPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = size.width / 2 - 20;
-
     final paint = Paint()
-      ..color = AppTheme.borderColor
-      ..strokeWidth = 2
-      ..style = PaintingStyle.stroke;
+      ..color = AppTheme.primaryGreen
+      ..style = PaintingStyle.fill;
 
-    // Draw outer circle
-    canvas.drawCircle(center, radius, paint);
+    final center = Offset(size.width / 2, size.height / 2);
+    
+    // Draw arrow pointing to Qibla
+    final path = Path();
+    path.moveTo(center.dx, center.dy - 60); // Top point
+    path.lineTo(center.dx - 12, center.dy - 35); // Left point
+    path.lineTo(center.dx - 4, center.dy - 35); // Left inner
+    path.lineTo(center.dx - 4, center.dy + 15); // Left bottom
+    path.lineTo(center.dx + 4, center.dy + 15); // Right bottom
+    path.lineTo(center.dx + 4, center.dy - 35); // Right inner
+    path.lineTo(center.dx + 12, center.dy - 35); // Right point
+    path.close();
 
-    // Draw compass marks
-    for (int i = 0; i < 360; i += 30) {
-      final angle = i * math.pi / 180;
-      final startX = center.dx + (radius - 15) * math.cos(angle);
-      final startY = center.dy + (radius - 15) * math.sin(angle);
-      final endX = center.dx + radius * math.cos(angle);
-      final endY = center.dy + radius * math.sin(angle);
-
-      canvas.drawLine(
-        Offset(startX, startY),
-        Offset(endX, endY),
-        paint..strokeWidth = i % 90 == 0 ? 3 : 1,
-      );
-    }
-
-    // Draw N, S, E, W labels
-    final textPainter = TextPainter(
-      textAlign: TextAlign.center,
-      textDirection: TextDirection.ltr,
-    );
-
-    final directions = ['N', 'E', 'S', 'W'];
-    for (int i = 0; i < 4; i++) {
-      final angle = (i * 90) * math.pi / 180;
-      final x = center.dx + (radius - 35) * math.cos(angle - math.pi / 2);
-      final y = center.dy + (radius - 35) * math.sin(angle - math.pi / 2);
-
-      textPainter.text = TextSpan(
-        text: directions[i],
-        style: const TextStyle(
-          color: AppTheme.textPrimary,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-      textPainter.layout();
-      textPainter.paint(
-        canvas,
-        Offset(x - textPainter.width / 2, y - textPainter.height / 2),
-      );
-    }
+    // Draw shadow
+    final shadowPaint = Paint()
+      ..color = Colors.black.withOpacity(0.2)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2);
+    
+    canvas.drawPath(path, shadowPaint);
+    canvas.drawPath(path, paint);
   }
 
   @override
-  bool shouldRepaint(CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
