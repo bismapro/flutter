@@ -259,7 +259,7 @@ class HomeTabContent extends StatelessWidget {
                               children: [
                                 _buildFeatureCard(
                                   Icons.menu_book,
-                                  'Quran',
+                                  'Al-Quran',
                                   const Color(0xFF4DD0E1),
                                   onTap: () {
                                     Navigator.pushNamed(context, '/quran');
@@ -267,9 +267,30 @@ class HomeTabContent extends StatelessWidget {
                                 ),
                                 const SizedBox(width: 12),
                                 _buildFeatureCard(
-                                  Icons.volume_up,
-                                  'Adzan',
-                                  const Color(0xFF4DD0E1),
+                                  Icons.mosque,
+                                  'Sholat',
+                                  const Color(0xFF66BB6A),
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/sholat');
+                                  },
+                                ),
+                                const SizedBox(width: 12),
+                                _buildFeatureCard(
+                                  Icons.nightlight_round,
+                                  'Puasa',
+                                  const Color(0xFF7E57C2),
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/puasa');
+                                  },
+                                ),
+                                const SizedBox(width: 12),
+                                _buildFeatureCard(
+                                  Icons.volunteer_activism,
+                                  'Sedekah',
+                                  const Color(0xFFFF7043),
+                                  onTap: () {
+                                    Navigator.pushNamed(context, '/zakat');
+                                  },
                                 ),
                                 const SizedBox(width: 12),
                                 _buildFeatureCard(
@@ -282,24 +303,6 @@ class HomeTabContent extends StatelessWidget {
                                       '/qibla-compass',
                                     );
                                   },
-                                ),
-                                const SizedBox(width: 12),
-                                _buildFeatureCard(
-                                  Icons.favorite,
-                                  'Donation',
-                                  const Color(0xFF4DD0E1),
-                                ),
-                                const SizedBox(width: 12),
-                                _buildFeatureCard(
-                                  Icons.apps,
-                                  'All',
-                                  const Color(0xFF4DD0E1),
-                                ),
-                                const SizedBox(width: 12),
-                                _buildFeatureCard(
-                                  Icons.mosque,
-                                  'Masjid',
-                                  const Color(0xFF4DD0E1),
                                 ),
                               ],
                             ),
@@ -431,6 +434,7 @@ class HomeTabContent extends StatelessWidget {
                               imageUrl:
                                   'https://picsum.photos/80/80?random=${index + 2}',
                               date: _getArticleDate(index),
+                              context: context,
                             ),
                           ),
 
@@ -501,8 +505,8 @@ class HomeTabContent extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              width: 60,
-              height: 60,
+              width: 70,
+              height: 70,
               decoration: BoxDecoration(
                 color: color,
                 borderRadius: BorderRadius.circular(12),
@@ -530,73 +534,170 @@ class HomeTabContent extends StatelessWidget {
     required String summary,
     required String imageUrl,
     required String date,
+    required BuildContext context,
   }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 16),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: Image.network(
-              imageUrl,
-              width: 120,
-              height: 100,
-              fit: BoxFit.cover,
-              errorBuilder: (context, error, stackTrace) {
-                return Container(
-                  width: 120,
-                  height: 100,
-                  color: Colors.grey.shade200,
-                  child: const Icon(Icons.image, color: Colors.grey, size: 40),
-                );
-              },
+    return GestureDetector(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/article-detail',
+          arguments: {
+            'title': title,
+            'summary': summary,
+            'imageUrl': imageUrl,
+            'date': date,
+            'content': _getFullArticleContent(title),
+            'author': 'Tim Editorial Islamic App',
+            'readTime': '5 min',
+            'category': 'Ibadah',
+          },
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.grey.withOpacity(0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black87,
+          ],
+        ),
+        child: Row(
+          children: [
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                imageUrl,
+                width: 120,
+                height: 100,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 120,
+                    height: 100,
+                    color: Colors.grey.shade200,
+                    child: const Icon(
+                      Icons.image,
+                      color: Colors.grey,
+                      size: 40,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  summary,
-                  style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  date,
-                  style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
-                ),
-              ],
+                  const SizedBox(height: 4),
+                  Text(
+                    summary,
+                    style: TextStyle(fontSize: 14, color: Colors.grey.shade600),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    date,
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade500),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
+  }
+
+  String _getFullArticleContent(String title) {
+    // Mock content berdasarkan title
+    switch (title) {
+      case 'Keutamaan Membaca Al-Quran di Bulan Ramadhan':
+        return '''Bulan Ramadhan adalah bulan yang penuh berkah dan rahmat. Dalam bulan ini, Allah SWT memberikan keutamaan yang luar biasa bagi umat Islam yang menjalankan ibadah dengan khusyuk.
+
+Membaca Al-Quran di bulan Ramadhan memiliki pahala yang berlipat ganda dibandingkan dengan bulan-bulan lainnya. Rasulullah SAW bersabda dalam sebuah hadits yang diriwayatkan oleh Ibnu Majah:
+
+"من قرأ حرفا من كتاب الله فله به حسنة، والحسنة بعشر أمثالها"
+
+Artinya: "Barangsiapa membaca satu huruf dari kitab Allah, maka baginya satu kebaikan, dan satu kebaikan dibalas dengan sepuluh kali lipatnya."
+
+Di bulan Ramadhan, pahala ini menjadi berlipat ganda karena kemuliaan bulan tersebut. Para ulama menyarankan untuk:
+
+1. Membaca Al-Quran dengan tartil (perlahan dan jelas)
+2. Merenungkan makna ayat-ayat yang dibaca
+3. Mengamalkan isi kandungan Al-Quran dalam kehidupan sehari-hari
+4. Membaca Al-Quran secara rutin setiap hari
+
+Semoga dengan membaca Al-Quran di bulan Ramadhan, kita dapat meraih ridha Allah SWT dan menjadi pribadi yang lebih baik.''';
+
+      case 'Doa-Doa yang Dianjurkan Dibaca Setelah Sholat':
+        return '''Setelah menyelesaikan sholat, dianjurkan untuk membaca doa-doa tertentu sebagai bentuk dzikir dan memohon keberkahan kepada Allah SWT.
+
+Berikut adalah beberapa doa yang dianjurkan:
+
+1. ISTIGHFAR (3x)
+أَسْتَغْفِرُ اللَّهَ الْعَظِيمَ
+"Astaghfirullaahal 'adhiim"
+Artinya: "Aku memohon ampun kepada Allah Yang Maha Agung"
+
+2. DOA SETELAH SHOLAT
+اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ
+"Allahumma a'innii 'alaa dzikrika wa syukrika wa husni 'ibaadatika"
+Artinya: "Ya Allah, tolonglah aku dalam berdzikir kepada-Mu, bersyukur kepada-Mu, dan beribadah dengan baik kepada-Mu"
+
+3. TASBIH, TAHMID, dan TAKBIR
+- Subhanallah (33x)
+- Alhamdulillah (33x)  
+- Allahu Akbar (34x)
+
+Doa-doa ini memiliki keutamaan yang besar dan dapat menjadi penutup yang baik setelah melaksanakan sholat.''';
+
+      default:
+        return '''Lailatul Qadr adalah malam yang sangat mulia dalam Islam. Malam ini disebutkan dalam Al-Quran sebagai malam yang lebih baik dari seribu bulan.
+
+Beberapa amalan yang dianjurkan di malam Lailatul Qadr:
+
+1. Sholat Tahajjud
+Melaksanakan sholat malam dengan khusyuk dan penuh harapan.
+
+2. Membaca Al-Quran
+Memperbanyak tilawah Al-Quran, terutama surah-surah pendek.
+
+3. Berdzikir dan Bertasbih
+Memperbanyak dzikir dengan mengucap tasbih, tahmid, dan takbir.
+
+4. Berdoa
+Memohon kepada Allah dengan doa-doa yang tulus dari hati.
+
+5. Istighfar
+Memohon ampun kepada Allah atas segala dosa dan kesalahan.
+
+Doa yang dianjurkan di malam Lailatul Qadr:
+اللَّهُمَّ إِنَّكَ عَفُوٌّ تُحِبُّ الْعَفْوَ فَاعْفُ عَنِّي
+
+"Allahumma innaka 'afuwwun tuhibbul 'afwa fa'fu 'anni"
+
+Artinya: "Ya Allah, sesungguhnya Engkau Maha Pemaaf dan menyukai maaf, maka maafkanlah aku."
+
+Semoga kita dapat memanfaatkan malam Lailatul Qadr dengan sebaik-baiknya.''';
+    }
   }
 
   String _getArticleTitle(int index) {

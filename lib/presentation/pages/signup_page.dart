@@ -32,14 +32,14 @@ class _SignupPageState extends State<SignupPage> {
                   ),
                 ],
               ),
-              
+
               Expanded(
                 child: SingleChildScrollView(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       const SizedBox(height: 20),
-                      
+
                       Container(
                         width: 80,
                         height: 80,
@@ -54,7 +54,7 @@ class _SignupPageState extends State<SignupPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
+
                       const Text(
                         'Create Account',
                         style: TextStyle(
@@ -110,7 +110,11 @@ class _SignupPageState extends State<SignupPage> {
                               decoration: InputDecoration(
                                 hintText: 'Create password',
                                 suffixIcon: IconButton(
-                                  icon: Icon(_isPasswordVisible ? Icons.visibility_off : Icons.visibility),
+                                  icon: Icon(
+                                    _isPasswordVisible
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                  ),
                                   onPressed: () {
                                     setState(() {
                                       _isPasswordVisible = !_isPasswordVisible;
@@ -141,9 +145,14 @@ class _SignupPageState extends State<SignupPage> {
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: _agreeTerms ? () {
-                                  Navigator.pushReplacementNamed(context, '/home');
-                                } : null,
+                                onPressed: _agreeTerms
+                                    ? () {
+                                        Navigator.pushReplacementNamed(
+                                          context,
+                                          '/home',
+                                        );
+                                      }
+                                    : null,
                                 child: const Text('Create Account'),
                               ),
                             ),
@@ -153,7 +162,10 @@ class _SignupPageState extends State<SignupPage> {
                               width: double.infinity,
                               child: OutlinedButton.icon(
                                 onPressed: () {
-                                  Navigator.pushReplacementNamed(context, '/home');
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    '/home',
+                                  );
                                 },
                                 icon: const Icon(Icons.g_mobiledata),
                                 label: const Text('Continue with Google'),
@@ -162,9 +174,9 @@ class _SignupPageState extends State<SignupPage> {
                           ],
                         ),
                       ),
-                      
+
                       const SizedBox(height: 32),
-                      
+
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [

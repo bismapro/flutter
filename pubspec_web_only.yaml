@@ -1,0 +1,26 @@
+name: test_flutter
+description: "A new Flutter project (Web Only)."
+publish_to: "none"
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.2
+
+dependencies:
+  flutter:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+  http: ^1.2.1
+  
+  # Web-only alternatives (no native code needed)
+  # geolocator_web: ^2.2.0  # Web-only location
+  # universal_html: ^2.2.4  # For web permissions
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true

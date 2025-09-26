@@ -42,14 +42,14 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                   ],
                 ),
-                
+
                 Expanded(
                   child: SingleChildScrollView(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         const SizedBox(height: 20),
-                        
+
                         // App Logo
                         Container(
                           width: 80,
@@ -72,7 +72,7 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 24),
-                        
+
                         // Header
                         const Text(
                           'Welcome Back',
@@ -152,7 +152,8 @@ class _LoginPageState extends State<LoginPage> {
                                     ),
                                     onPressed: () {
                                       setState(() {
-                                        _isPasswordVisible = !_isPasswordVisible;
+                                        _isPasswordVisible =
+                                            !_isPasswordVisible;
                                       });
                                     },
                                   ),
@@ -183,7 +184,10 @@ class _LoginPageState extends State<LoginPage> {
                                 height: 50,
                                 child: ElevatedButton(
                                   onPressed: () {
-                                    Navigator.pushReplacementNamed(context, '/home');
+                                    Navigator.pushReplacementNamed(
+                                      context,
+                                      '/home',
+                                    );
                                   },
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: AppTheme.primaryGreen,
@@ -206,9 +210,13 @@ class _LoginPageState extends State<LoginPage> {
                               // Or divider
                               Row(
                                 children: [
-                                  Expanded(child: Divider(color: AppTheme.borderColor)),
+                                  Expanded(
+                                    child: Divider(color: AppTheme.borderColor),
+                                  ),
                                   const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 16),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
                                     child: Text(
                                       'Or continue with',
                                       style: TextStyle(
@@ -217,7 +225,9 @@ class _LoginPageState extends State<LoginPage> {
                                       ),
                                     ),
                                   ),
-                                  Expanded(child: Divider(color: AppTheme.borderColor)),
+                                  Expanded(
+                                    child: Divider(color: AppTheme.borderColor),
+                                  ),
                                 ],
                               ),
                               const SizedBox(height: 24),
@@ -228,10 +238,15 @@ class _LoginPageState extends State<LoginPage> {
                                 height: 50,
                                 child: OutlinedButton.icon(
                                   onPressed: () {
-                                    Navigator.pushReplacementNamed(context, '/home');
+                                    Navigator.pushReplacementNamed(
+                                      context,
+                                      '/home',
+                                    );
                                   },
                                   style: OutlinedButton.styleFrom(
-                                    side: BorderSide(color: AppTheme.borderColor),
+                                    side: BorderSide(
+                                      color: AppTheme.borderColor,
+                                    ),
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(12),
                                     ),
@@ -240,8 +255,12 @@ class _LoginPageState extends State<LoginPage> {
                                     'https://developers.google.com/identity/images/g-logo.png',
                                     width: 20,
                                     height: 20,
-                                    errorBuilder: (context, error, stackTrace) => 
-                                      Icon(Icons.g_mobiledata, size: 24, color: AppTheme.textPrimary),
+                                    errorBuilder:
+                                        (context, error, stackTrace) => Icon(
+                                          Icons.g_mobiledata,
+                                          size: 24,
+                                          color: AppTheme.textPrimary,
+                                        ),
                                   ),
                                   label: const Text(
                                     'Continue with Google',
@@ -256,9 +275,9 @@ class _LoginPageState extends State<LoginPage> {
                             ],
                           ),
                         ),
-                        
+
                         const SizedBox(height: 32),
-                        
+
                         // Don't have account
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,

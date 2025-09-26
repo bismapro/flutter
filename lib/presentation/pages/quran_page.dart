@@ -23,19 +23,27 @@ class _QuranPageState extends State<QuranPage> {
     _loadSurahs();
   }
 
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadSurahs() async {
     try {
       final surahs = await QuranService.getAllSurahs();
-      setState(() {
-        _surahs = surahs;
-        _filteredSurahs = surahs;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
       if (mounted) {
+        setState(() {
+          _surahs = surahs;
+          _filteredSurahs = surahs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading surahs: $e'),
@@ -52,11 +60,9 @@ class _QuranPageState extends State<QuranPage> {
         _filteredSurahs = _surahs;
       } else {
         _filteredSurahs = _surahs.where((surah) {
-          return surah.name.toLowerCase().contains(query.toLowerCase()) ||
-              surah.englishName.toLowerCase().contains(query.toLowerCase()) ||
-              surah.englishNameTranslation.toLowerCase().contains(
-                query.toLowerCase(),
-              );
+          return surah.nama.toLowerCase().contains(query.toLowerCase()) ||
+              surah.namaLatin.toLowerCase().contains(query.toLowerCase()) ||
+              surah.arti.toLowerCase().contains(query.toLowerCase());
         }).toList();
       }
     });
@@ -74,6 +80,7 @@ class _QuranPageState extends State<QuranPage> {
         backgroundColor: AppTheme.primaryBlue,
         foregroundColor: Colors.white,
         elevation: 0,
+        actions: [],
       ),
       body: Column(
         children: [
@@ -168,7 +175,7 @@ class _QuranPageState extends State<QuranPage> {
                 ),
                 child: Center(
                   child: Text(
-                    surah.number.toString(),
+                    surah.nomor.toString(),
                     style: const TextStyle(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -187,9 +194,8 @@ class _QuranPageState extends State<QuranPage> {
                   children: [
                     // Arabic Name
                     Text(
-                      surah.name,
+                      surah.nama,
                       style: const TextStyle(
-                        fontFamily: 'Amiri',
                         fontSize: 20,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.textPrimary,
@@ -198,9 +204,9 @@ class _QuranPageState extends State<QuranPage> {
                     ),
                     const SizedBox(height: 4),
 
-                    // English Name
+                    // Latin Name
                     Text(
-                      surah.englishName,
+                      surah.namaLatin,
                       style: const TextStyle(
                         fontSize: 14,
                         color: AppTheme.textSecondary,
@@ -210,7 +216,7 @@ class _QuranPageState extends State<QuranPage> {
 
                     // Translation
                     Text(
-                      surah.englishNameTranslation,
+                      surah.arti,
                       style: const TextStyle(
                         fontSize: 12,
                         color: AppTheme.textSecondary,
@@ -226,7 +232,7 @@ class _QuranPageState extends State<QuranPage> {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
-                    '${surah.numberOfAyahs} ayat',
+                    '${surah.jumlahAyat} ayat',
                     style: const TextStyle(
                       fontSize: 12,
                       color: AppTheme.textSecondary,
@@ -239,19 +245,17 @@ class _QuranPageState extends State<QuranPage> {
                       vertical: 4,
                     ),
                     decoration: BoxDecoration(
-                      color: surah.revelationType == 'Meccan'
+                      color: surah.tempatTurun == 'Mekah'
                           ? AppTheme.primaryBlue.withOpacity(0.1)
                           : AppTheme.primaryGreen.withOpacity(0.1),
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      surah.revelationType == 'Meccan'
-                          ? 'Makkiyyah'
-                          : 'Madaniyyah',
+                      surah.tempatTurun == 'Mekah' ? 'Makkiyyah' : 'Madaniyyah',
                       style: TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: surah.revelationType == 'Meccan'
+                        color: surah.tempatTurun == 'Mekah'
                             ? AppTheme.primaryBlue
                             : AppTheme.primaryGreen,
                       ),
@@ -273,11 +277,5 @@ class _QuranPageState extends State<QuranPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
   }
 }

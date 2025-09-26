@@ -18,7 +18,7 @@ class WelcomePage extends StatelessWidget {
                   child: Column(
                     children: [
                       const SizedBox(height: 60),
-                      
+
                       // App Logo
                       Container(
                         width: 100,
@@ -41,7 +41,7 @@ class WelcomePage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 24),
-                      
+
                       const Text(
                         'FaithHub',
                         style: TextStyle(
@@ -52,7 +52,7 @@ class WelcomePage extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(height: 60),
-                      
+
                       // Main Content Container
                       Container(
                         width: double.infinity,
@@ -81,7 +81,7 @@ class WelcomePage extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            
+
                             const Text(
                               'Prayer times, Qibla direction, Islamic calendar\nand community - all in one place',
                               textAlign: TextAlign.center,
@@ -99,7 +99,7 @@ class WelcomePage extends StatelessWidget {
                   ),
                 ),
               ),
-              
+
               // Bottom Buttons
               Column(
                 children: [
@@ -128,7 +128,7 @@ class WelcomePage extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   SizedBox(
                     width: double.infinity,
                     height: 56,
