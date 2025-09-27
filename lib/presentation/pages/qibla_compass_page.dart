@@ -31,8 +31,19 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
   @override
   void initState() {
     super.initState();
+    _checkCompassAvailability();
     _initializeCompass();
     _initializeCompassSensor();
+  }
+
+  void _checkCompassAvailability() async {
+    // Check if compass sensor is available
+    if (await FlutterCompass.events == null) {
+      setState(() {
+        _status = 'Sensor kompas tidak tersedia pada perangkat ini';
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -43,11 +54,26 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
 
   void _initializeCompassSensor() {
     // Listen to compass events
+    _compassSubscription?.cancel();
     _compassSubscription = FlutterCompass.events?.listen((CompassEvent event) {
-      setState(() {
-        _compassHeading = event.heading ?? 0.0;
-        _isCompassCalibrated = event.accuracy != null;
-      });
+      if (mounted && event.heading != null) {
+        double heading = event.heading!;
+        // Normalize heading to 0-360 range
+        heading = heading < 0 ? heading + 360 : heading;
+        heading = heading >= 360 ? heading - 360 : heading;
+
+        // Apply smoothing to reduce jittery movement
+        double difference = (heading - _compassHeading).abs();
+        if (difference > 180) difference = 360 - difference;
+
+        if (difference > 1.0 || _compassHeading == 0.0) {
+          setState(() {
+            _compassHeading = heading;
+            _isCompassCalibrated =
+                event.accuracy != null && event.accuracy! > 0.3;
+          });
+        }
+      }
     });
   }
 
@@ -374,6 +400,8 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
           _buildLocationInfo(),
           _buildCompass(),
           _buildQiblaInfo(),
+          _buildControlButtons(),
+          const SizedBox(height: 16),
           _buildInstructions(),
         ],
       ),
@@ -524,158 +552,162 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
     return Container(
       margin: const EdgeInsets.all(16),
       child: Center(
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // Outer compass ring with degrees (rotates with device)
-            Transform.rotate(
-              angle: -_compassHeading * math.pi / 180,
-              child: Container(
-                width: 300,
-                height: 300,
-                child: CustomPaint(painter: CompassRingPainter()),
-              ),
-            ),
-
-            // Main compass circle
-            Container(
-              width: 280,
-              height: 280,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    Colors.white,
-                    Colors.grey.shade50,
-                    Colors.grey.shade100,
-                  ],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.15),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-            ),
-
-            // Cardinal directions (N, S, E, W) - rotates with device
-            Transform.rotate(
-              angle: -_compassHeading * math.pi / 180,
-              child: _buildCardinalDirections(),
-            ),
-
-            // Qibla direction arrow (adjusting for device orientation)
-            Transform.rotate(
-              angle: (_qiblaDirection - _compassHeading) * math.pi / 180,
-              child: Container(
-                width: 200,
-                height: 200,
-                child: CustomPaint(painter: QiblaArrowPainter()),
-              ),
-            ),
-
-            // Center dot
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: AppTheme.primaryGreen,
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryGreen.withOpacity(0.4),
-                    blurRadius: 6,
-                    spreadRadius: 2,
-                  ),
-                ],
-              ),
-            ),
-
-            // Kaaba icon (adjusting for device orientation)
-            Transform.rotate(
-              angle: (_qiblaDirection - _compassHeading) * math.pi / 180,
-              child: Transform.translate(
-                offset: const Offset(0, -70),
+        child: SizedBox(
+          width: 320,
+          height: 320,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer compass ring with degrees (rotates with device)
+              Transform.rotate(
+                angle: -_compassHeading * math.pi / 180,
                 child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black87,
-                    borderRadius: BorderRadius.circular(8),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
+                  width: 300,
+                  height: 300,
+                  child: CustomPaint(painter: CompassRingPainter()),
+                ),
+              ),
+
+              // Main compass circle
+              Container(
+                width: 280,
+                height: 280,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      Colors.white,
+                      Colors.grey.shade50,
+                      Colors.grey.shade100,
                     ],
                   ),
-                  child: const Text('🕋', style: TextStyle(fontSize: 20)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
               ),
-            ),
 
-            // Degree indicators
-            Positioned(
-              top: 15,
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.primaryGreen,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'Kiblat: ${_qiblaDirection.toStringAsFixed(0)}°',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade600,
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.2),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: Text(
-                      'Heading: ${_compassHeading.toStringAsFixed(0)}°',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ],
+              // Cardinal directions (N, S, E, W) - rotates with device
+              Transform.rotate(
+                angle: -_compassHeading * math.pi / 180,
+                child: _buildCardinalDirections(),
               ),
-            ),
-          ],
+
+              // Qibla direction arrow (adjusting for device orientation)
+              Transform.rotate(
+                angle: (_qiblaDirection - _compassHeading) * math.pi / 180,
+                child: Container(
+                  width: 200,
+                  height: 200,
+                  child: CustomPaint(painter: QiblaArrowPainter()),
+                ),
+              ),
+
+              // Center dot
+              Container(
+                width: 16,
+                height: 16,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppTheme.primaryGreen,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryGreen.withOpacity(0.4),
+                      blurRadius: 6,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+              ),
+
+              // Kaaba icon (adjusting for device orientation)
+              Transform.rotate(
+                angle: (_qiblaDirection - _compassHeading) * math.pi / 180,
+                child: Transform.translate(
+                  offset: const Offset(0, -70),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black87,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.3),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Text('🕋', style: TextStyle(fontSize: 20)),
+                  ),
+                ),
+              ),
+
+              // Degree indicators
+              Positioned(
+                top: 15,
+                child: Column(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryGreen,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'Kiblat: ${_qiblaDirection.toStringAsFixed(0)}°',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade600,
+                        borderRadius: BorderRadius.circular(12),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 6,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Text(
+                        'Heading: ${_compassHeading.toStringAsFixed(0)}°',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -891,13 +923,141 @@ class _QiblaCompassPageState extends State<QiblaCompassPage> {
   }
 
   String _getCompassStatus() {
-    if (_isCompassCalibrated && _qiblaDirection > 0) {
-      return 'Kompas terkalibrasi dengan baik\nHeading: ${_compassHeading.toStringAsFixed(0)}°\nArahkan ponsel mengikuti panah hijau';
-    } else if (_qiblaDirection > 0) {
-      return 'Kompas bekerja\nHeading: ${_compassHeading.toStringAsFixed(0)}°\nArahkan ponsel mengikuti panah hijau';
-    } else {
-      return 'Menunggu kalibrasi kompas...\nPastikan GPS dan sensor kompas aktif';
+    if (_qiblaDirection == 0) {
+      return 'Menunggu lokasi GPS...\nPastikan GPS dan sensor kompas aktif';
     }
+
+    double difference = (_qiblaDirection - _compassHeading).abs();
+    if (difference > 180) difference = 360 - difference;
+
+    String calibrationStatus = _isCompassCalibrated
+        ? '✅ Terkalibrasi'
+        : '⚠️ Perlu Kalibrasi';
+    String accuracyStatus;
+
+    if (difference < 3) {
+      accuracyStatus = '🎯 Tepat mengarah ke Kiblat!';
+    } else if (difference < 10) {
+      accuracyStatus = '↗️ Sangat dekat dengan Kiblat';
+    } else if (difference < 20) {
+      accuracyStatus = '🧭 Dekat dengan arah Kiblat';
+    } else if (difference < 45) {
+      accuracyStatus = '🔄 Putar ke arah panah hijau';
+    } else {
+      accuracyStatus = '↻ Putar perangkat mengikuti panah';
+    }
+
+    return '$calibrationStatus\n$accuracyStatus\nSelisih: ${difference.toStringAsFixed(1)}°';
+  }
+
+  void _recalibrateCompass() {
+    setState(() {
+      _isCompassCalibrated = false;
+      _compassHeading = 0.0;
+      _status = 'Mengkalibrasi ulang kompas...';
+    });
+
+    // Restart compass sensor
+    _initializeCompassSensor();
+
+    // Show calibration dialog
+    _showCalibrationDialog();
+  }
+
+  void _refreshLocation() {
+    setState(() {
+      _isLoading = true;
+      _status = 'Memperbarui lokasi GPS...';
+    });
+
+    _initializeCompass();
+  }
+
+  void _showCalibrationDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        title: const Text('Kalibrasi Kompas'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.rotate_right,
+              size: 64,
+              color: AppTheme.primaryGreen,
+            ),
+            const SizedBox(height: 16),
+            const Text(
+              'Untuk kalibrasi yang optimal:\n\n'
+              '1. Pegang ponsel horizontal\n'
+              '2. Gerakkan dalam bentuk angka 8\n'
+              '3. Putar perangkat 360°\n'
+              '4. Hindari objek logam',
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 16),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Selesai'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildControlButtons() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        children: [
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _recalibrateCompass,
+              icon: const Icon(Icons.refresh, color: Colors.white),
+              label: const Text(
+                'Kalibrasi Ulang',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryGreen,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: ElevatedButton.icon(
+              onPressed: _refreshLocation,
+              icon: const Icon(Icons.my_location, color: Colors.white),
+              label: const Text(
+                'Refresh GPS',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue.shade600,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildInstructions() {

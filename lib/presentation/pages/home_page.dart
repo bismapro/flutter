@@ -23,12 +23,23 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundColor,
       body: _pages[_currentIndex],
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/qibla-compass');
-        },
-        backgroundColor: AppTheme.primaryBlue,
-        child: const Icon(Icons.explore, color: Colors.white),
+      floatingActionButton: SizedBox(
+        // Tentukan ukuran container/area total yang Anda inginkan
+        width: 80.0, // Contoh lebar
+        height: 80.0, // Contoh tinggi
+        child: FloatingActionButton(
+          onPressed: () {
+            Navigator.pushNamed(context, '/qibla-compass');
+          },
+          // Pastikan `AppTheme.primaryBlue` sudah didefinisikan
+          backgroundColor: AppTheme.primaryBlue,
+          child: const Icon(
+            Icons.explore,
+            color: Colors.white,
+            size:
+                42.0, // Icon ini sudah besar, sehingga membutuhkan FAB yang besar juga
+          ),
+        ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
@@ -67,17 +78,17 @@ class _HomePageState extends State<HomePage> {
           Icon(
             icon,
             color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary,
-            size: 24,
+            size: 32,
           ),
           const SizedBox(height: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary,
-              fontSize: 12,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-            ),
-          ),
+          // Text(
+          //   label,
+          //   style: TextStyle(
+          //     color: isSelected ? AppTheme.primaryBlue : AppTheme.textSecondary,
+          //     fontSize: 12,
+          //     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          //   ),
+          // ),
         ],
       ),
     );
@@ -269,7 +280,7 @@ class HomeTabContent extends StatelessWidget {
                                 _buildFeatureCard(
                                   Icons.mosque,
                                   'Sholat',
-                                  const Color(0xFF66BB6A),
+                                  const Color(0xFF4DD0E1),
                                   onTap: () {
                                     Navigator.pushNamed(context, '/sholat');
                                   },
@@ -278,7 +289,7 @@ class HomeTabContent extends StatelessWidget {
                                 _buildFeatureCard(
                                   Icons.nightlight_round,
                                   'Puasa',
-                                  const Color(0xFF7E57C2),
+                                  const Color(0xFF4DD0E1),
                                   onTap: () {
                                     Navigator.pushNamed(context, '/puasa');
                                   },
@@ -287,7 +298,7 @@ class HomeTabContent extends StatelessWidget {
                                 _buildFeatureCard(
                                   Icons.volunteer_activism,
                                   'Sedekah',
-                                  const Color(0xFFFF7043),
+                                  const  Color(0xFF4DD0E1),
                                   onTap: () {
                                     Navigator.pushNamed(context, '/zakat');
                                   },
@@ -361,29 +372,6 @@ class HomeTabContent extends StatelessWidget {
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
-                                    ),
-                                  ),
-                                ),
-                                // Live badge
-                                Positioned(
-                                  top: 12,
-                                  right: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.red,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: const Text(
-                                      'LIVE',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
                                     ),
                                   ),
                                 ),
