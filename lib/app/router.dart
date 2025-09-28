@@ -11,6 +11,7 @@ import '../features/worship/pages/sholat_page.dart';
 import '../features/worship/pages/puasa_page.dart';
 import '../features/worship/pages/zakat_page.dart';
 import '../features/articles/pages/article_detail_page.dart';
+import '../features/prayer/pages/alarm_settings_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -25,6 +26,7 @@ class AppRoutes {
   static const String puasa = '/puasa';
   static const String zakat = '/zakat';
   static const String articleDetail = '/article-detail';
+  static const String alarmSettings = '/alarm-settings';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -57,6 +59,8 @@ class AppRoutes {
           builder: (_) =>
               ArticleDetailPage(article: settings.arguments as dynamic),
         );
+      case alarmSettings:
+        return MaterialPageRoute(builder: (_) => const AlarmSettingsPage());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

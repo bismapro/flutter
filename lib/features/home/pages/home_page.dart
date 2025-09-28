@@ -317,6 +317,18 @@ class HomeTabContent extends StatelessWidget {
                                     );
                                   },
                                 ),
+                                const SizedBox(width: 12),
+                                _buildFeatureCard(
+                                  Icons.alarm,
+                                  'Alarm Sholat',
+                                  const Color(0xFF4DD0E1),
+                                  onTap: () {
+                                    Navigator.pushNamed(
+                                      context,
+                                      '/alarm-settings',
+                                    );
+                                  },
+                                ),
                               ],
                             ),
                           ),

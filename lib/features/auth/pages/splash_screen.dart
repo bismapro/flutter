@@ -123,20 +123,22 @@ class _SplashScreenState extends State<SplashScreen>
                             width: 120,
                             height: 120,
                             decoration: BoxDecoration(
-                              color: AppTheme.surfaceWhite,
+                              color: Colors.transparent,
                               borderRadius: BorderRadius.circular(30),
                               boxShadow: [
                                 BoxShadow(
-                                  color: Colors.black.withOpacity(0.2),
+                                  color: Colors.black.withValues(alpha: 0.2),
                                   blurRadius: 20,
                                   offset: const Offset(0, 10),
                                 ),
                               ],
                             ),
-                            child: Icon(
-                              Icons.mosque,
-                              size: 60,
-                              color: AppTheme.primaryBlue,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(30),
+                              child: Image.asset(
+                                AppConfig.appLogo,
+                                fit: BoxFit.cover,
+                              ),
                             ),
                           ),
                         );

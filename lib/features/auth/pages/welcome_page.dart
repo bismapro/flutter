@@ -29,16 +29,20 @@ class WelcomePage extends StatelessWidget {
                           borderRadius: BorderRadius.circular(24),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryBlue.withOpacity(0.3),
+                              color: AppTheme.primaryBlue.withValues(
+                                alpha: 0.3,
+                              ),
                               blurRadius: 20,
                               offset: const Offset(0, 8),
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.mosque,
-                          size: 50,
-                          color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(24),
+                          child: Image.asset(
+                            AppConfig.appLogo,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),

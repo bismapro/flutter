@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_flutter/core/constants/app_config.dart';
 import '../../../app/theme.dart';
 
 class SignupPage extends StatefulWidget {
@@ -50,16 +51,20 @@ class _SignupPageState extends State<SignupPage> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryBlue.withOpacity(0.3),
+                              color: AppTheme.primaryBlue.withValues(
+                                alpha: 0.3,
+                              ),
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.mosque,
-                          size: 40,
-                          color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.asset(
+                            AppConfig.appLogo,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -67,10 +72,11 @@ class _SignupPageState extends State<SignupPage> {
                       // Header
                       Text(
                         'Create Account',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.onSurface,
-                        ),
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.onSurface,
+                            ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -154,7 +160,8 @@ class _SignupPageState extends State<SignupPage> {
                                 suffixIcon: IconButton(
                                   onPressed: () {
                                     setState(() {
-                                      _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                                      _isConfirmPasswordVisible =
+                                          !_isConfirmPasswordVisible;
                                     });
                                   },
                                   icon: Icon(
@@ -182,9 +189,12 @@ class _SignupPageState extends State<SignupPage> {
                                 Expanded(
                                   child: RichText(
                                     text: TextSpan(
-                                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                        color: AppTheme.onSurfaceVariant,
-                                      ),
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall
+                                          ?.copyWith(
+                                            color: AppTheme.onSurfaceVariant,
+                                          ),
                                       children: [
                                         const TextSpan(text: 'I agree to the '),
                                         TextSpan(
@@ -215,10 +225,15 @@ class _SignupPageState extends State<SignupPage> {
                               width: double.infinity,
                               height: 56,
                               child: ElevatedButton(
-                                onPressed: _agreeTerms ? () {
-                                  // Handle signup
-                                  Navigator.pushReplacementNamed(context, '/home');
-                                } : null,
+                                onPressed: _agreeTerms
+                                    ? () {
+                                        // Handle signup
+                                        Navigator.pushReplacementNamed(
+                                          context,
+                                          '/home',
+                                        );
+                                      }
+                                    : null,
                                 child: const Text(
                                   'Create Account',
                                   style: TextStyle(
@@ -238,12 +253,11 @@ class _SignupPageState extends State<SignupPage> {
                         children: [
                           Text(
                             'Or sign up with',
-                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: AppTheme.onSurfaceVariant,
-                            ),
+                            style: Theme.of(context).textTheme.bodyMedium
+                                ?.copyWith(color: AppTheme.onSurfaceVariant),
                           ),
                           const SizedBox(height: 20),
-                          
+
                           Row(
                             children: [
                               Expanded(
@@ -251,14 +265,18 @@ class _SignupPageState extends State<SignupPage> {
                                   onPressed: () {
                                     // Handle Google signup
                                   },
-                                  icon: const Icon(Icons.g_mobiledata, size: 24),
+                                  icon: const Icon(
+                                    Icons.g_mobiledata,
+                                    size: 24,
+                                  ),
                                   label: const Text('Google'),
                                   style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(vertical: 12),
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
                                   ),
                                 ),
                               ),
-                              
                             ],
                           ),
                         ],

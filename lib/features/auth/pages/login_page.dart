@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_flutter/core/constants/app_config.dart';
 import '../../../app/theme.dart';
 
 class LoginPage extends StatefulWidget {
@@ -46,16 +47,20 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryBlue.withOpacity(0.3),
+                              color: AppTheme.primaryBlue.withValues(
+                                alpha: 0.3,
+                              ),
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
                           ],
                         ),
-                        child: const Icon(
-                          Icons.mosque,
-                          size: 40,
-                          color: Colors.white,
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(20),
+                          child: Image.asset(
+                            AppConfig.appLogo,
+                            fit: BoxFit.cover,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 24),
@@ -199,7 +204,6 @@ class _LoginPageState extends State<LoginPage> {
                                   ),
                                 ),
                               ),
-                              
                             ],
                           ),
                         ],
