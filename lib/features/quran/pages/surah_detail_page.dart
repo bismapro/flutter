@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:audioplayers/audioplayers.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/surah.dart';
 import 'package:test_flutter/data/services/quran_service.dart';
+import 'package:test_flutter/data/services/audio_player_service.dart';
 
 class SurahDetailPage extends StatefulWidget {
   final Surah surah;
@@ -17,76 +17,53 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
   Map<String, dynamic>? _surahData;
   bool _isLoading = true;
 
-  final AudioPlayer _audioPlayer = AudioPlayer();
-  bool _isPlaying = false;
   bool _isLoadingAudio = false;
   Duration _duration = Duration.zero;
-  Duration _position = Duration.zero;
   String _selectedReciter = '01';
 
   @override
   void initState() {
     super.initState();
     _loadSurahData();
-    _setupAudioPlayer();
+    _setupAudioService();
   }
 
   @override
   void dispose() {
-    _audioPlayer.dispose();
     super.dispose();
   }
 
-  void _setupAudioPlayer() {
-    _audioPlayer.onPlayerStateChanged.listen((PlayerState state) {
-      if (mounted) {
-        setState(() {
-          _isPlaying = state == PlayerState.playing;
-        });
-      }
-    });
-
-    _audioPlayer.onDurationChanged.listen((Duration duration) {
-      if (mounted) {
-        setState(() {
-          _duration = duration;
-        });
-      }
-    });
-
-    _audioPlayer.onPositionChanged.listen((Duration position) {
-      if (mounted) {
-        setState(() {
-          _position = position;
-        });
-      }
-    });
-
-    _audioPlayer.onPlayerComplete.listen((_) {
-      if (mounted) {
-        setState(() {
-          _position = Duration.zero;
-          _isPlaying = false;
-        });
-      }
-    });
+  void _setupAudioService() {
+    // For now, let's use a simpler approach
+    // We'll listen to the service state in the UI methods directly
   }
 
   Future<void> _playPause() async {
     try {
-      if (_isPlaying) {
-        await _audioPlayer.pause();
+      // Check current playing state from audio service
+      final isCurrentlyPlaying = QuranAudioService.isPlaying;
+
+      if (isCurrentlyPlaying) {
+        await QuranAudioService.pause();
       } else {
         final audioUrl = widget.surah.audioFull[_selectedReciter];
         if (audioUrl != null) {
-          if (_position == Duration.zero) {
-            setState(() {
-              _isLoadingAudio = true;
-            });
-            await _audioPlayer.play(UrlSource(audioUrl));
-          } else {
-            await _audioPlayer.resume();
-          }
+          setState(() {
+            _isLoadingAudio = true;
+          });
+
+          // Get reciter name
+          final reciter = QuranService.getReciters().firstWhere(
+            (r) => r['id'] == _selectedReciter,
+            orElse: () => {'name': 'Unknown Reciter'},
+          );
+
+          await QuranAudioService.playFromUrl(
+            audioUrl,
+            widget.surah.namaLatin,
+            reciter['name']!,
+            widget.surah.nama,
+          );
         }
       }
     } catch (e) {
@@ -108,29 +85,21 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
   }
 
   Future<void> _stop() async {
-    await _audioPlayer.stop();
-    setState(() {
-      _position = Duration.zero;
-      _isPlaying = false;
-    });
+    await QuranAudioService.stop();
   }
 
   Future<void> _seekTo(double value) async {
     final position = Duration(
       milliseconds: (value * _duration.inMilliseconds).round(),
     );
-    await _audioPlayer.seek(position);
+    await QuranAudioService.seek(position);
   }
 
   void _changeReciter(String reciterId) async {
-    final wasPlaying = _isPlaying;
     await _stop();
     setState(() {
       _selectedReciter = reciterId;
     });
-    if (wasPlaying) {
-      await _playPause();
-    }
   }
 
   String _formatDuration(Duration duration) {
@@ -177,13 +146,18 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
         0xFF1E293B,
       ), // Dark blue background like in image
       appBar: AppBar(
-        title: Text(
-          '${widget.surah.namaLatin} - ${widget.surah.jumlahAyat} Ayat, ${widget.surah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 18,
-            color: Colors.white,
-          ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              widget.surah.namaLatin,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            Text(
+              '${widget.surah.jumlahAyat} Ayat, ${widget.surah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
+              style: const TextStyle(fontSize: 12, color: Colors.white70),
+            ),
+          ],
         ),
         backgroundColor: const Color(0xFF1E293B),
         elevation: 0,
@@ -254,177 +228,216 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
   // }
 
   Widget _buildCompactAudioControls() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.1),
-            blurRadius: 10,
-            offset: const Offset(0, -2),
-          ),
-        ],
-      ),
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Progress Slider (only show when playing)
-              if (_duration.inMilliseconds > 0) ...[
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 2,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 6,
-                    ),
-                    overlayShape: const RoundSliderOverlayShape(
-                      overlayRadius: 12,
-                    ),
-                  ),
-                  child: Slider(
-                    value: _duration.inMilliseconds > 0
-                        ? _position.inMilliseconds / _duration.inMilliseconds
-                        : 0.0,
-                    onChanged: _seekTo,
-                    activeColor: AppTheme.primaryBlue,
-                    inactiveColor: AppTheme.primaryBlue.withOpacity(0.3),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        _formatDuration(_position),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                      ),
-                      Text(
-                        _formatDuration(_duration),
-                        style: const TextStyle(
-                          fontSize: 11,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
+    return StreamBuilder<bool>(
+      stream: QuranAudioService.playingStream,
+      builder: (context, playingSnapshot) {
+        final isPlaying = playingSnapshot.data ?? false;
+
+        return StreamBuilder<Duration>(
+          stream: QuranAudioService.positionStream,
+          builder: (context, positionSnapshot) {
+            final position = positionSnapshot.data ?? Duration.zero;
+
+            return StreamBuilder<Duration>(
+              stream: QuranAudioService.durationStream,
+              builder: (context, durationSnapshot) {
+                final duration = durationSnapshot.data ?? Duration.zero;
+                return Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.1),
+                        blurRadius: 10,
+                        offset: const Offset(0, -2),
                       ),
                     ],
                   ),
-                ),
-              ],
-
-              // Main control row
-              Row(
-                children: [
-                  // Reciter Selection
-                  Expanded(
-                    flex: 2,
-                    child: Row(
-                      children: [
-                        const Icon(
-                          Icons.person,
-                          size: 16,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                        const SizedBox(width: 4),
-                        Expanded(
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: _selectedReciter,
-                              isDense: true,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: AppTheme.onSurfaceVariant,
-                              ),
-                              items: QuranService.getReciters().map((reciter) {
-                                return DropdownMenuItem<String>(
-                                  value: reciter['id']!,
-                                  child: Text(
-                                    reciter['name']!,
-                                    style: const TextStyle(fontSize: 12),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                );
-                              }).toList(),
-                              onChanged: (String? newValue) {
-                                if (newValue != null) {
-                                  _changeReciter(newValue);
-                                }
-                              },
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Control Buttons
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      IconButton(
-                        onPressed: _stop,
-                        icon: const Icon(Icons.stop),
-                        iconSize: 24,
-                        color: AppTheme.onSurfaceVariant,
-                        constraints: const BoxConstraints(
-                          minWidth: 40,
-                          minHeight: 40,
-                        ),
-                        padding: EdgeInsets.zero,
+                  child: SafeArea(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
                       ),
-                      Container(
-                        width: 50,
-                        height: 50,
-                        decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue,
-                          shape: BoxShape.circle,
-                        ),
-                        child: IconButton(
-                          onPressed: _isLoadingAudio ? null : _playPause,
-                          icon: _isLoadingAudio
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(
-                                      Colors.white,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          // Progress Slider (only show when playing)
+                          if (duration.inMilliseconds > 0) ...[
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                trackHeight: 2,
+                                thumbShape: const RoundSliderThumbShape(
+                                  enabledThumbRadius: 6,
+                                ),
+                                overlayShape: const RoundSliderOverlayShape(
+                                  overlayRadius: 12,
+                                ),
+                              ),
+                              child: Slider(
+                                value: duration.inMilliseconds > 0
+                                    ? position.inMilliseconds /
+                                          duration.inMilliseconds
+                                    : 0.0,
+                                onChanged: _seekTo,
+                                activeColor: AppTheme.primaryBlue,
+                                inactiveColor: AppTheme.primaryBlue.withValues(
+                                  alpha: 0.3,
+                                ),
+                              ),
+                            ),
+                            Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                              ),
+                              child: Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    _formatDuration(position),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.onSurfaceVariant,
                                     ),
                                   ),
-                                )
-                              : Icon(
-                                  _isPlaying ? Icons.pause : Icons.play_arrow,
-                                  color: Colors.white,
-                                  size: 28,
+                                  Text(
+                                    _formatDuration(duration),
+                                    style: const TextStyle(
+                                      fontSize: 11,
+                                      color: AppTheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+
+                          // Main control row
+                          Row(
+                            children: [
+                              // Reciter Selection
+                              Expanded(
+                                flex: 2,
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.person,
+                                      size: 16,
+                                      color: AppTheme.onSurfaceVariant,
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          value: _selectedReciter,
+                                          isDense: true,
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: AppTheme.onSurfaceVariant,
+                                          ),
+                                          items: QuranService.getReciters().map(
+                                            (reciter) {
+                                              return DropdownMenuItem<String>(
+                                                value: reciter['id']!,
+                                                child: Text(
+                                                  reciter['name']!,
+                                                  style: const TextStyle(
+                                                    fontSize: 12,
+                                                  ),
+                                                  overflow:
+                                                      TextOverflow.ellipsis,
+                                                ),
+                                              );
+                                            },
+                                          ).toList(),
+                                          onChanged: (String? newValue) {
+                                            if (newValue != null) {
+                                              _changeReciter(newValue);
+                                            }
+                                          },
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                          padding: EdgeInsets.zero,
-                        ),
+                              ),
+
+                              // Control Buttons
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    onPressed: _stop,
+                                    icon: const Icon(Icons.stop),
+                                    iconSize: 24,
+                                    color: AppTheme.onSurfaceVariant,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 40,
+                                      minHeight: 40,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.primaryBlue,
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: IconButton(
+                                      onPressed: _isLoadingAudio
+                                          ? null
+                                          : _playPause,
+                                      icon: _isLoadingAudio
+                                          ? const SizedBox(
+                                              width: 20,
+                                              height: 20,
+                                              child: CircularProgressIndicator(
+                                                strokeWidth: 2,
+                                                valueColor:
+                                                    AlwaysStoppedAnimation<
+                                                      Color
+                                                    >(Colors.white),
+                                              ),
+                                            )
+                                          : Icon(
+                                              isPlaying
+                                                  ? Icons.pause
+                                                  : Icons.play_arrow,
+                                              color: Colors.white,
+                                              size: 28,
+                                            ),
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    onPressed: () {
+                                      // Future: Add next/previous surah functionality
+                                    },
+                                    icon: const Icon(Icons.skip_next),
+                                    iconSize: 24,
+                                    color: AppTheme.onSurfaceVariant,
+                                    constraints: const BoxConstraints(
+                                      minWidth: 40,
+                                      minHeight: 40,
+                                    ),
+                                    padding: EdgeInsets.zero,
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ],
                       ),
-                      IconButton(
-                        onPressed: () {
-                          // Future: Add next/previous surah functionality
-                        },
-                        icon: const Icon(Icons.skip_next),
-                        iconSize: 24,
-                        color: AppTheme.onSurfaceVariant,
-                        constraints: const BoxConstraints(
-                          minWidth: 40,
-                          minHeight: 40,
-                        ),
-                        padding: EdgeInsets.zero,
-                      ),
-                    ],
+                    ),
                   ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 

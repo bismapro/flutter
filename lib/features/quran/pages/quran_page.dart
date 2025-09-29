@@ -78,7 +78,7 @@ class _QuranPageState extends State<QuranPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
+      backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.02),
       appBar: AppBar(
         title: const Text(
           'Al-Quran',
@@ -119,14 +119,7 @@ class _QuranPageState extends State<QuranPage>
       ),
       body: TabBarView(
         controller: _tabController,
-        children: [
-          // SURAH Tab
-          _buildSurahTab(),
-          // JUZ Tab
-          _buildJuzTab(),
-          // BOOKMARK Tab
-          _buildBookmarkTab(),
-        ],
+        children: [_buildSurahTab(), _buildJuzTab(), _buildBookmarkTab()],
       ),
     );
   }
@@ -137,17 +130,44 @@ class _QuranPageState extends State<QuranPage>
         // Search Bar
         Container(
           padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.primaryBlue.withValues(alpha: 0.05),
+                AppTheme.accentGreen.withValues(alpha: 0.03),
+              ],
+            ),
+          ),
           child: TextField(
             controller: _searchController,
             onChanged: _filterSurahs,
             decoration: InputDecoration(
               hintText: 'Cari surat...',
+              hintStyle: TextStyle(
+                color: AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
               prefixIcon: const Icon(Icons.search, color: AppTheme.primaryBlue),
               filled: true,
               fillColor: Colors.white,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(16),
                 borderSide: BorderSide.none,
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: BorderSide(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  width: 1,
+                ),
+              ),
+              focusedBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(16),
+                borderSide: const BorderSide(
+                  color: AppTheme.primaryBlue,
+                  width: 2,
+                ),
               ),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 16,
@@ -174,7 +194,10 @@ class _QuranPageState extends State<QuranPage>
                   ),
                 )
               : ListView.builder(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   itemCount: _filteredSurahs.length,
                   itemBuilder: (context, index) {
                     final surah = _filteredSurahs[index];
@@ -187,36 +210,51 @@ class _QuranPageState extends State<QuranPage>
   }
 
   Widget _buildJuzTab() {
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      itemCount: 30,
-      itemBuilder: (context, index) {
-        final juzNumber = index + 1;
-        return _buildJuzCard(juzNumber);
-      },
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.accentGreen.withValues(alpha: 0.03),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        itemCount: 30,
+        itemBuilder: (context, index) {
+          final juzNumber = index + 1;
+          return _buildJuzCard(juzNumber);
+        },
+      ),
     );
   }
 
   Widget _buildJuzCard(int juzNumber) {
-    // Data untuk setiap Juz (ini bisa diganti dengan data real dari API)
     final juzData = _getJuzData(juzNumber);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.accentGreen.withValues(alpha: 0.1),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: AppTheme.accentGreen.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: -2,
           ),
         ],
       ),
       child: InkWell(
         onTap: () {
-          // Navigate to Juz detail
           final juzData = _getJuzData(juzNumber);
           Navigator.push(
             context,
@@ -226,31 +264,38 @@ class _QuranPageState extends State<QuranPage>
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Juz Number with star design
+              // Juz Number with gradient background
               Container(
-                width: 40,
-                height: 40,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.accentGreen.withValues(alpha: 0.15),
+                      AppTheme.accentGreen.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
                     Icon(
                       Icons.auto_awesome,
-                      size: 40,
-                      color: AppTheme.accentGreen.withValues(alpha: 0.2),
+                      size: 48,
+                      color: AppTheme.accentGreen.withValues(alpha: 0.3),
                     ),
                     Text(
                       juzNumber.toString(),
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.accentGreen,
                       ),
@@ -277,9 +322,9 @@ class _QuranPageState extends State<QuranPage>
                     const SizedBox(height: 4),
                     Text(
                       juzData['range']!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.onSurfaceVariant,
+                        color: AppTheme.onSurfaceVariant.withValues(alpha: 0.8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -287,36 +332,43 @@ class _QuranPageState extends State<QuranPage>
                 ),
               ),
 
-              // Arabic Name and Download buttons
+              // Arabic Name and Download button
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(
                     juzData['arabic']!,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.onSurface,
+                      color: AppTheme.accentGreen,
                       fontFamily: 'Arabic',
                     ),
                   ),
                   const SizedBox(height: 8),
 
-                  // Download button for Juz
+                  // Download button
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
-                      color: AppTheme.accentGreen.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(8),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppTheme.accentGreen.withValues(alpha: 0.15),
+                          AppTheme.accentGreen.withValues(alpha: 0.08),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
                     ),
                     child: IconButton(
                       onPressed: () {
                         _showJuzDownloadDialog(juzNumber);
                       },
                       icon: const Icon(
-                        Icons.download,
-                        size: 16,
+                        Icons.download_rounded,
+                        size: 18,
                         color: AppTheme.accentGreen,
                       ),
                       padding: EdgeInsets.zero,
@@ -332,7 +384,6 @@ class _QuranPageState extends State<QuranPage>
   }
 
   Map<String, String> _getJuzData(int juzNumber) {
-    // Data sederhana untuk setiap Juz
     final juzData = {
       1: {'range': 'Al-Fatihah 1 - Al-Baqarah 141', 'arabic': 'الم'},
       2: {'range': 'Al-Baqarah 142 - Al-Baqarah 252', 'arabic': 'سيقول'},
@@ -373,11 +424,19 @@ class _QuranPageState extends State<QuranPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Download Juz $juzNumber'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.info_outline, color: AppTheme.accentGreen),
+            const SizedBox(width: 8),
+            Text('Download Juz $juzNumber'),
+          ],
+        ),
         content: Text('Fitur download Juz $juzNumber akan segera tersedia'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primaryBlue),
             child: const Text('OK'),
           ),
         ],
@@ -386,7 +445,6 @@ class _QuranPageState extends State<QuranPage>
   }
 
   Widget _buildBookmarkTab() {
-    // Mock bookmark data - in real app, this would come from local storage/database
     final bookmarks = [
       {
         'type': 'surah',
@@ -412,17 +470,32 @@ class _QuranPageState extends State<QuranPage>
     ];
 
     if (bookmarks.isEmpty) {
-      return const Center(
+      return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.bookmark_outline,
-              size: 80,
-              color: AppTheme.onSurfaceVariant,
+            Container(
+              width: 120,
+              height: 120,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    AppTheme.accentGreen.withValues(alpha: 0.1),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(60),
+              ),
+              child: const Icon(
+                Icons.bookmark_outline,
+                size: 60,
+                color: AppTheme.onSurfaceVariant,
+              ),
             ),
-            SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 24),
+            const Text(
               'Belum ada bookmark',
               style: TextStyle(
                 fontSize: 24,
@@ -430,24 +503,39 @@ class _QuranPageState extends State<QuranPage>
                 color: AppTheme.onSurface,
               ),
             ),
-            SizedBox(height: 8),
+            const SizedBox(height: 8),
             Text(
               'Bookmark ayat atau surah favoritmu\nuntuk dibaca nanti',
               textAlign: TextAlign.center,
-              style: TextStyle(fontSize: 16, color: AppTheme.onSurfaceVariant),
+              style: TextStyle(
+                fontSize: 16,
+                color: AppTheme.onSurfaceVariant.withValues(alpha: 0.8),
+              ),
             ),
           ],
         ),
       );
     }
 
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-      itemCount: bookmarks.length,
-      itemBuilder: (context, index) {
-        final bookmark = bookmarks[index];
-        return _buildBookmarkCard(bookmark);
-      },
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            AppTheme.primaryBlue.withValues(alpha: 0.03),
+            Colors.transparent,
+          ],
+        ),
+      ),
+      child: ListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        itemCount: bookmarks.length,
+        itemBuilder: (context, index) {
+          final bookmark = bookmarks[index];
+          return _buildBookmarkCard(bookmark);
+        },
+      ),
     );
   }
 
@@ -459,12 +547,14 @@ class _QuranPageState extends State<QuranPage>
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: iconColor.withValues(alpha: 0.1), width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: iconColor.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: -2,
           ),
         ],
       ),
@@ -474,26 +564,34 @@ class _QuranPageState extends State<QuranPage>
             SnackBar(
               content: Text('Membuka ${bookmark['name']}'),
               duration: const Duration(seconds: 1),
+              backgroundColor: iconColor,
             ),
           );
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Bookmark icon
+              // Bookmark icon with gradient
               Container(
-                width: 40,
-                height: 40,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(20),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      iconColor.withValues(alpha: 0.15),
+                      iconColor.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
-                  isJuz ? Icons.book : Icons.bookmark,
+                  isJuz ? Icons.auto_awesome_outlined : Icons.bookmark,
                   color: iconColor,
-                  size: 20,
+                  size: 24,
                 ),
               ),
 
@@ -515,9 +613,9 @@ class _QuranPageState extends State<QuranPage>
                     const SizedBox(height: 4),
                     Text(
                       bookmark['info']!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.onSurfaceVariant,
+                        color: AppTheme.onSurfaceVariant.withValues(alpha: 0.8),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -526,7 +624,7 @@ class _QuranPageState extends State<QuranPage>
                       'Terakhir dibaca ${bookmark['lastRead']}',
                       style: TextStyle(
                         fontSize: 11,
-                        color: AppTheme.onSurfaceVariant.withValues(alpha: 0.8),
+                        color: AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
                       ),
                     ),
                   ],
@@ -539,10 +637,10 @@ class _QuranPageState extends State<QuranPage>
                 children: [
                   Text(
                     bookmark['arabic']!,
-                    style: const TextStyle(
-                      fontSize: 18,
+                    style: TextStyle(
+                      fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.onSurface,
+                      color: iconColor,
                       fontFamily: 'Arabic',
                     ),
                   ),
@@ -559,15 +657,22 @@ class _QuranPageState extends State<QuranPage>
                     },
                     icon: Icon(
                       Icons.more_vert,
-                      color: AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
+                      color: AppTheme.onSurfaceVariant.withValues(alpha: 0.5),
                       size: 20,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     itemBuilder: (context) => [
                       const PopupMenuItem(
                         value: 'share',
                         child: Row(
                           children: [
-                            Icon(Icons.share, size: 18),
+                            Icon(
+                              Icons.share,
+                              size: 18,
+                              color: AppTheme.primaryBlue,
+                            ),
                             SizedBox(width: 8),
                             Text('Bagikan'),
                           ],
@@ -602,6 +707,7 @@ class _QuranPageState extends State<QuranPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Text('Hapus Bookmark'),
         content: Text(
           'Apakah Anda yakin ingin menghapus bookmark "$bookmarkName"?',
@@ -609,6 +715,9 @@ class _QuranPageState extends State<QuranPage>
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(
+              foregroundColor: AppTheme.onSurfaceVariant,
+            ),
             child: const Text('Batal'),
           ),
           ElevatedButton(
@@ -621,7 +730,12 @@ class _QuranPageState extends State<QuranPage>
                 ),
               );
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
             child: const Text('Hapus', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -634,6 +748,7 @@ class _QuranPageState extends State<QuranPage>
       SnackBar(
         content: Text('Membagikan ${bookmark['name']}'),
         duration: const Duration(seconds: 1),
+        backgroundColor: AppTheme.primaryBlue,
       ),
     );
   }
@@ -643,12 +758,17 @@ class _QuranPageState extends State<QuranPage>
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+          width: 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+            spreadRadius: -2,
           ),
         ],
       ),
@@ -656,33 +776,38 @@ class _QuranPageState extends State<QuranPage>
         onTap: () {
           Navigator.pushNamed(context, '/surah-detail', arguments: surah);
         },
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(16),
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
             children: [
-              // Surah Number (with 8-pointed star design like in image)
+              // Surah Number with gradient
               Container(
-                width: 40,
-                height: 40,
+                width: 48,
+                height: 48,
                 decoration: BoxDecoration(
-                  color: Colors.transparent,
-                  borderRadius: BorderRadius.circular(8),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppTheme.primaryBlue.withValues(alpha: 0.15),
+                      AppTheme.primaryBlue.withValues(alpha: 0.05),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // 8-pointed star background
                     Icon(
                       Icons.auto_awesome,
-                      size: 40,
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                      size: 48,
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.3),
                     ),
-                    // Surah number
                     Text(
                       surah.nomor.toString(),
                       style: const TextStyle(
-                        fontSize: 14,
+                        fontSize: 16,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryBlue,
                       ),
@@ -698,7 +823,6 @@ class _QuranPageState extends State<QuranPage>
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Latin Name
                     Text(
                       surah.namaLatin,
                       style: const TextStyle(
@@ -709,22 +833,25 @@ class _QuranPageState extends State<QuranPage>
                     ),
                     const SizedBox(height: 4),
 
-                    // Location and Ayahs Count
                     Row(
                       children: [
                         Text(
                           surah.tempatTurun.toUpperCase(),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.onSurfaceVariant,
+                            color: AppTheme.onSurfaceVariant.withValues(
+                              alpha: 0.8,
+                            ),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
                         Text(
                           ' | ${surah.jumlahAyat} AYAT',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 12,
-                            color: AppTheme.onSurfaceVariant,
+                            color: AppTheme.onSurfaceVariant.withValues(
+                              alpha: 0.8,
+                            ),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -734,7 +861,7 @@ class _QuranPageState extends State<QuranPage>
                 ),
               ),
 
-              // Arabic Name
+              // Arabic Name and Action Buttons
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
@@ -743,7 +870,7 @@ class _QuranPageState extends State<QuranPage>
                     style: const TextStyle(
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
-                      color: AppTheme.onSurface,
+                      color: AppTheme.primaryBlue,
                       fontFamily: 'Arabic',
                     ),
                   ),
@@ -753,22 +880,28 @@ class _QuranPageState extends State<QuranPage>
                   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Audio/Speaker button
+                      // Audio button
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
-                          color: AppTheme.accentGreen.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppTheme.accentGreen.withValues(alpha: 0.15),
+                              AppTheme.accentGreen.withValues(alpha: 0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: IconButton(
                           onPressed: () {
-                            // Play audio functionality
                             _showAudioPlayer(surah);
                           },
                           icon: const Icon(
-                            Icons.volume_up,
-                            size: 16,
+                            Icons.volume_up_rounded,
+                            size: 18,
                             color: AppTheme.accentGreen,
                           ),
                           padding: EdgeInsets.zero,
@@ -779,11 +912,18 @@ class _QuranPageState extends State<QuranPage>
 
                       // Download button
                       Container(
-                        width: 32,
-                        height: 32,
+                        width: 36,
+                        height: 36,
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppTheme.primaryBlue.withValues(alpha: 0.15),
+                              AppTheme.primaryBlue.withValues(alpha: 0.08),
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: _buildDownloadButton(surah),
                       ),
@@ -811,7 +951,7 @@ class _QuranPageState extends State<QuranPage>
             CircularProgressIndicator(
               value: downloadData.progress,
               strokeWidth: 2,
-              backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
+              backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.2),
               valueColor: const AlwaysStoppedAnimation<Color>(
                 AppTheme.primaryBlue,
               ),
@@ -832,8 +972,8 @@ class _QuranPageState extends State<QuranPage>
             _showDownloadedInfo(surah);
           },
           icon: const Icon(
-            Icons.check_circle,
-            size: 16,
+            Icons.check_circle_rounded,
+            size: 18,
             color: AppTheme.accentGreen,
           ),
           padding: EdgeInsets.zero,
@@ -845,7 +985,11 @@ class _QuranPageState extends State<QuranPage>
       onPressed: () {
         _showSheikhSelectionDialog(surah);
       },
-      icon: const Icon(Icons.download, size: 16, color: AppTheme.primaryBlue),
+      icon: const Icon(
+        Icons.download_rounded,
+        size: 18,
+        color: AppTheme.primaryBlue,
+      ),
       padding: EdgeInsets.zero,
     );
   }
@@ -854,11 +998,19 @@ class _QuranPageState extends State<QuranPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(surah.namaLatin),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.play_circle_outline, color: AppTheme.accentGreen),
+            const SizedBox(width: 8),
+            Text(surah.namaLatin),
+          ],
+        ),
         content: const Text('Fitur audio player akan segera tersedia'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primaryBlue),
             child: const Text('OK'),
           ),
         ],
@@ -888,12 +1040,19 @@ class _QuranPageState extends State<QuranPage>
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Header
+                  // Header with gradient
                   Container(
                     padding: EdgeInsets.all(isTablet ? 24 : 20),
-                    decoration: const BoxDecoration(
-                      color: AppTheme.primaryBlue,
-                      borderRadius: BorderRadius.only(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppTheme.primaryBlue,
+                          AppTheme.primaryBlue.withValues(alpha: 0.85),
+                        ],
+                      ),
+                      borderRadius: const BorderRadius.only(
                         topLeft: Radius.circular(16),
                         topRight: Radius.circular(16),
                       ),
@@ -901,7 +1060,7 @@ class _QuranPageState extends State<QuranPage>
                     child: Row(
                       children: [
                         const Icon(
-                          Icons.audiotrack,
+                          Icons.audiotrack_rounded,
                           color: Colors.white,
                           size: 28,
                         ),
@@ -1022,10 +1181,13 @@ class _QuranPageState extends State<QuranPage>
                 color: AppTheme.primaryBlue.withValues(alpha: 0.3),
                 width: 2,
               )
-            : Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+            : Border.all(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                width: 1,
+              ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1060,16 +1222,23 @@ class _QuranPageState extends State<QuranPage>
                             vertical: 2,
                           ),
                           decoration: BoxDecoration(
-                            color: Colors.amber.withValues(alpha: 0.2),
+                            gradient: LinearGradient(
+                              colors: [
+                                AppTheme.accentGreen.withValues(alpha: 0.2),
+                                AppTheme.accentGreen.withValues(alpha: 0.1),
+                              ],
+                            ),
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: Colors.amber.withValues(alpha: 0.5),
+                              color: AppTheme.accentGreen.withValues(
+                                alpha: 0.3,
+                              ),
                             ),
                           ),
                           child: Text(
                             'POPULER',
                             style: TextStyle(
-                              color: Colors.amber.shade700,
+                              color: AppTheme.accentGreen,
                               fontSize: isTablet ? 11 : 10,
                               fontWeight: FontWeight.bold,
                             ),
@@ -1083,7 +1252,7 @@ class _QuranPageState extends State<QuranPage>
                     Text(
                       sheikh.arabicName,
                       style: TextStyle(
-                        color: AppTheme.onSurfaceVariant,
+                        color: AppTheme.onSurfaceVariant.withValues(alpha: 0.8),
                         fontSize: isTablet ? 15 : 14,
                       ),
                     ),
@@ -1094,15 +1263,33 @@ class _QuranPageState extends State<QuranPage>
 
             const SizedBox(width: 16),
 
-            // Download Button
-            SizedBox(
+            // Download Button with gradient
+            Container(
               height: buttonHeight,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    AppTheme.primaryBlue,
+                    AppTheme.primaryBlue.withValues(alpha: 0.85),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(10),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
               child: ElevatedButton.icon(
                 onPressed: () {
                   Navigator.pop(context);
                   _startDownload(surah, sheikh);
                 },
-                icon: const Icon(Icons.download, size: 18),
+                icon: const Icon(Icons.download_rounded, size: 18),
                 label: Text(
                   'Download',
                   style: TextStyle(
@@ -1111,15 +1298,16 @@ class _QuranPageState extends State<QuranPage>
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryBlue,
+                  backgroundColor: Colors.transparent,
                   foregroundColor: Colors.white,
-                  elevation: 2,
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
                   padding: EdgeInsets.symmetric(
                     horizontal: isTablet ? 20 : 16,
                     vertical: isTablet ? 12 : 8,
                   ),
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
               ),
@@ -1177,7 +1365,6 @@ class _QuranPageState extends State<QuranPage>
       }
     });
 
-    // Show initial download started message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Memulai download ${surah.namaLatin} - ${sheikh.name}'),
@@ -1191,13 +1378,21 @@ class _QuranPageState extends State<QuranPage>
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Audio Tersimpan'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Icon(Icons.check_circle_rounded, color: AppTheme.accentGreen),
+            const SizedBox(width: 8),
+            const Text('Audio Tersimpan'),
+          ],
+        ),
         content: Text(
           'Audio ${surah.namaLatin} telah tersimpan di perangkat Anda',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
+            style: TextButton.styleFrom(foregroundColor: AppTheme.primaryBlue),
             child: const Text('OK'),
           ),
         ],

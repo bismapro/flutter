@@ -47,6 +47,9 @@ dependencies:
   # Audio player for Quran recitation
   audioplayers: ^6.0.0
   flutter_dotenv: ^6.0.0
+  audio_service: ^0.18.12
+  just_audio: ^0.9.36
+  rxdart: ^0.27.7
 
   # Local storage and alarm functionality
   shared_preferences: ^2.3.2

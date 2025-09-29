@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'app/app.dart';
 import 'data/services/alarm_service.dart';
+import 'data/services/audio_player_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -21,6 +22,15 @@ void main() async {
   } catch (e) {
     if (kDebugMode) {
       print('Error initializing alarm service: $e');
+    }
+  }
+
+  // Initialize audio service
+  try {
+    await QuranAudioService.init();
+  } catch (e) {
+    if (kDebugMode) {
+      print('Error initializing audio service: $e');
     }
   }
 
