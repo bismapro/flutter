@@ -13,7 +13,7 @@ class _SedekahPageState extends State<SedekahPage>
   late TabController _tabController;
 
   // Data tracking sedekah harian
-  List<Map<String, dynamic>> _sedekahHarian = [
+  final List<Map<String, dynamic>> _sedekahHarian = [
     {'name': 'Sedekah Pagi', 'amount': 0, 'done': false, 'time': 'Pagi'},
     {'name': 'Sedekah Siang', 'amount': 0, 'done': false, 'time': 'Siang'},
     {'name': 'Sedekah Sore', 'amount': 0, 'done': false, 'time': 'Sore'},
@@ -21,7 +21,7 @@ class _SedekahPageState extends State<SedekahPage>
   ];
 
   // Riwayat sedekah
-  List<Map<String, dynamic>> _riwayatSedekah = [
+  final List<Map<String, dynamic>> _riwayatSedekah = [
     {
       'date': '25 Sep 2025',
       'amount': 50000,

@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 
-class KomunitasSection extends StatefulWidget {
-  const KomunitasSection({super.key});
+class KomunitasPage extends StatefulWidget {
+  const KomunitasPage({super.key});
 
   @override
-  State<KomunitasSection> createState() => _KomunitasSectionState();
+  State<KomunitasPage> createState() => _KomunitasPageState();
 }
 
-class _KomunitasSectionState extends State<KomunitasSection> {
+class _KomunitasPageState extends State<KomunitasPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'Semua';
   String _searchQuery = '';

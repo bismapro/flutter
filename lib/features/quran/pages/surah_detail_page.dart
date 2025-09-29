@@ -178,7 +178,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
       ), // Dark blue background like in image
       appBar: AppBar(
         title: Text(
-          widget.surah.namaLatin,
+          '${widget.surah.namaLatin} - ${widget.surah.jumlahAyat} Ayat, ${widget.surah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
           style: const TextStyle(
             fontWeight: FontWeight.w600,
             fontSize: 18,
@@ -200,7 +200,7 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
           : Column(
               children: [
                 // Surah Header
-                _buildSurahHeader(),
+                // _buildSurahHeader(),
 
                 // Bismillah (except for At-Taubah)
                 if (widget.surah.nomor != 9 && widget.surah.nomor != 1)
@@ -216,42 +216,42 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
     );
   }
 
-  Widget _buildSurahHeader() {
-    return Container(
-      width: double.infinity,
-      margin: const EdgeInsets.all(0),
-      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            const Color(0xFF8B5CF6), // Purple color matching the image
-            const Color(0xFFA855F7),
-          ],
-        ),
-      ),
-      child: Column(
-        children: [
-          // Surah name
-          Text(
-            widget.surah.namaLatin,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          const SizedBox(height: 4),
-          // Surah info
-          Text(
-            '${widget.surah.jumlahAyat} Ayat, ${widget.surah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
-            style: const TextStyle(fontSize: 16, color: Colors.white70),
-          ),
-        ],
-      ),
-    );
-  }
+  // Widget _buildSurahHeader() {
+  //   return Container(
+  //     width: double.infinity,
+  //     margin: const EdgeInsets.all(0),
+  //     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+  //     decoration: BoxDecoration(
+  //       gradient: LinearGradient(
+  //         begin: Alignment.topLeft,
+  //         end: Alignment.bottomRight,
+  //         colors: [
+  //           const Color(0xFF8B5CF6), // Purple color matching the image
+  //           const Color(0xFFA855F7),
+  //         ],
+  //       ),
+  //     ),
+  //     child: Column(
+  //       children: [
+  //         // Surah name
+  //         Text(
+  //           widget.surah.namaLatin,
+  //           style: const TextStyle(
+  //             fontSize: 24,
+  //             fontWeight: FontWeight.bold,
+  //             color: Colors.white,
+  //           ),
+  //         ),
+  //         const SizedBox(height: 4),
+  //         // Surah info
+  //         Text(
+  //           '${widget.surah.jumlahAyat} Ayat, ${widget.surah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
+  //           style: const TextStyle(fontSize: 16, color: Colors.white70),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildCompactAudioControls() {
     return Container(

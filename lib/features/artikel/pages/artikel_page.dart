@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
 import '../../../app/router.dart';
 
-class ArtikelSection extends StatefulWidget {
-  const ArtikelSection({super.key});
+class ArtikelPage extends StatefulWidget {
+  const ArtikelPage({super.key});
 
   @override
-  State<ArtikelSection> createState() => _ArtikelSectionState();
+  State<ArtikelPage> createState() => _ArtikelPageState();
 }
 
-class _ArtikelSectionState extends State<ArtikelSection> {
+class _ArtikelPageState extends State<ArtikelPage> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'Semua';
   String _searchQuery = '';

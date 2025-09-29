@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
+import 'package:test_flutter/features/artikel/pages/artikel_page.dart';
+import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
 import 'package:test_flutter/features/premium/pages/premium_page.dart';
 import 'package:test_flutter/features/profile/pages/profile_page.dart';
 import '../../../app/theme.dart';
@@ -16,10 +18,10 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> _pages = [
     const HomeTabContent(),
-    const KomunitasTabContent(),
-    const ArtikelTabContent(),
+    const KomunitasPage(),
+    const ArtikelPage(),
     const PremiumPage(),
-    const ProfilePage()
+    const ProfilePage(),
   ];
 
   @override
@@ -244,35 +246,41 @@ class HomeTabContent extends StatelessWidget {
 
           // DraggableScrollableSheet Section
           DraggableScrollableSheet(
-            initialChildSize: 0.45, // Start at 45% of screen height
-            minChildSize: 0.45, // Minimum 45%
-            maxChildSize: 0.85, // Maximum 85%
+            initialChildSize: 0.45,
+            minChildSize: 0.45,
+            maxChildSize: 0.85,
             builder: (context, scrollController) {
               return Container(
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(24),
-                    topRight: Radius.circular(24),
+                decoration: BoxDecoration(
+                  color: AppTheme.backgroundWhite,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(32),
+                    topRight: Radius.circular(32),
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black26,
-                      blurRadius: 10,
-                      offset: Offset(0, -5),
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 20,
+                      offset: const Offset(0, -5),
+                      spreadRadius: -5,
                     ),
                   ],
                 ),
                 child: Column(
                   children: [
-                    // Handle bar
+                    // Enhanced Handle bar
                     Container(
-                      margin: const EdgeInsets.only(top: 12, bottom: 8),
-                      width: 40,
-                      height: 4,
+                      margin: const EdgeInsets.only(top: 16, bottom: 12),
+                      width: 50,
+                      height: 5,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+                        gradient: LinearGradient(
+                          colors: [
+                            AppTheme.primaryBlue.withValues(alpha: 0.3),
+                            AppTheme.accentGreen.withValues(alpha: 0.3),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(3),
                       ),
                     ),
 
@@ -280,37 +288,98 @@ class HomeTabContent extends StatelessWidget {
                     Expanded(
                       child: ListView(
                         controller: scrollController,
-                        padding: const EdgeInsets.all(20.0),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 24.0,
+                          vertical: 8.0,
+                        ),
                         children: [
-                          // All Features
-                          const Text(
-                            'All Features',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: Color(0xFF212121),
-                            ),
+                          // All Features Section - Enhanced
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppTheme.primaryBlue.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                          AppTheme.accentGreen.withValues(
+                                            alpha: 0.1,
+                                          ),
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Icon(
+                                      Icons.apps_rounded,
+                                      color: AppTheme.primaryBlue,
+                                      size: 24,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Text(
+                                    'Quick Access',
+                                    style: TextStyle(
+                                      fontSize: 20,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.onSurface,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              TextButton.icon(
+                                onPressed: () => _showAllFeaturesSheet(context),
+                                icon: Icon(
+                                  Icons.grid_view_rounded,
+                                  size: 18,
+                                  color: AppTheme.primaryBlue,
+                                ),
+                                label: Text(
+                                  'See All',
+                                  style: TextStyle(
+                                    color: AppTheme.primaryBlue,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  backgroundColor: AppTheme.primaryBlue
+                                      .withValues(alpha: 0.1),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 20),
 
-                          // Features Row with Horizontal Scroll
+                          // Features Row with Horizontal Scroll - Enhanced
                           SizedBox(
-                            height:
-                                100, // Adjust based on your feature button height
+                            height: 110,
                             child: ListView(
                               scrollDirection: Axis.horizontal,
                               physics: const BouncingScrollPhysics(),
                               children: [
-                                _buildFeatureButton(
+                                _buildEnhancedFeatureButton(
                                   context,
                                   Icons.menu_book_rounded,
                                   'Al-Quran',
-                                  AppTheme.accentGreen,
+                                  AppTheme.primaryBlue,
                                   onTap: () =>
                                       Navigator.pushNamed(context, '/quran'),
                                 ),
-                                const SizedBox(width: 12),
-                                _buildFeatureButton(
+                                const SizedBox(width: 14),
+                                _buildEnhancedFeatureButton(
                                   context,
                                   Icons.nightlight_round,
                                   'Puasa',
@@ -318,19 +387,19 @@ class HomeTabContent extends StatelessWidget {
                                   onTap: () =>
                                       Navigator.pushNamed(context, '/puasa'),
                                 ),
-                                const SizedBox(width: 12),
-                                _buildFeatureButton(
+                                const SizedBox(width: 14),
+                                _buildEnhancedFeatureButton(
                                   context,
                                   Icons.explore_outlined,
                                   'Qibla',
-                                  AppTheme.accentGreen,
+                                  AppTheme.primaryBlue,
                                   onTap: () => Navigator.pushNamed(
                                     context,
                                     '/qibla-compass',
                                   ),
                                 ),
-                                const SizedBox(width: 12),
-                                _buildFeatureButton(
+                                const SizedBox(width: 14),
+                                _buildEnhancedFeatureButton(
                                   context,
                                   Icons.volunteer_activism_rounded,
                                   'Sedekah',
@@ -338,126 +407,238 @@ class HomeTabContent extends StatelessWidget {
                                   onTap: () =>
                                       Navigator.pushNamed(context, '/zakat'),
                                 ),
-                                const SizedBox(width: 12),
-                                _buildFeatureButton(
+                                const SizedBox(width: 14),
+                                _buildEnhancedFeatureButton(
                                   context,
                                   Icons.apps_rounded,
-                                  'All',
-                                  AppTheme.primaryBlue,
+                                  'More',
+                                  Colors.grey.shade700,
                                   onTap: () => _showAllFeaturesSheet(context),
                                 ),
                               ],
                             ),
                           ),
 
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 36),
 
-                          // Ngaji Online Section
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              const Text(
-                                'Ngaji Online',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.black87,
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () {},
-                                child: const Text(
-                                  'See All',
-                                  style: TextStyle(
-                                    color: AppTheme.accentGreen,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
+                          // Ngaji Online Section - Enhanced
+                          _buildSectionHeader(
+                            context,
+                            'Ngaji Online',
+                            Icons.play_circle_rounded,
+                            AppTheme.accentGreen,
                           ),
-
                           const SizedBox(height: 16),
 
-                          // Live Stream Card
+                          // Enhanced Live Stream Card
                           Container(
-                            height: 200,
+                            height: 220,
                             decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(12),
-                              image: const DecorationImage(
-                                image: NetworkImage(
-                                  'https://picsum.photos/400/200?random=1',
-                                ),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            child: Stack(
-                              children: [
-                                // Gradient overlay
-                                Container(
-                                  decoration: BoxDecoration(
-                                    borderRadius: BorderRadius.circular(12),
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        Colors.black.withValues(alpha: .3),
-                                        Colors.transparent,
-                                        Colors.black.withValues(alpha: .7),
-                                      ],
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                    ),
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: AppTheme.primaryBlue.withValues(
+                                    alpha: 0.15,
                                   ),
-                                ),
-                                // Viewers count
-                                Positioned(
-                                  bottom: 12,
-                                  left: 12,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 8,
-                                      vertical: 4,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: .6),
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                    child: const Text(
-                                      '3.6K viewers',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                      ),
-                                    ),
-                                  ),
+                                  blurRadius: 20,
+                                  offset: const Offset(0, 8),
+                                  spreadRadius: -5,
                                 ),
                               ],
                             ),
-                          ),
-
-                          const SizedBox(height: 32),
-
-                          // Latest Articles Section
-                          const Text(
-                            'Artikel Terbaru',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(20),
+                              child: Stack(
+                                children: [
+                                  // Image
+                                  Image.network(
+                                    'https://picsum.photos/400/220?random=1',
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    fit: BoxFit.cover,
+                                  ),
+                                  // Gradient overlay
+                                  Container(
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          Colors.black.withValues(alpha: 0.2),
+                                          Colors.transparent,
+                                          Colors.black.withValues(alpha: 0.8),
+                                        ],
+                                        begin: Alignment.topCenter,
+                                        end: Alignment.bottomCenter,
+                                      ),
+                                    ),
+                                  ),
+                                  // Live Badge
+                                  Positioned(
+                                    top: 16,
+                                    left: 16,
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                        vertical: 6,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.red,
+                                        borderRadius: BorderRadius.circular(20),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: Colors.red.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                            blurRadius: 8,
+                                            spreadRadius: 2,
+                                          ),
+                                        ],
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            decoration: const BoxDecoration(
+                                              color: Colors.white,
+                                              shape: BoxShape.circle,
+                                            ),
+                                          ),
+                                          const SizedBox(width: 6),
+                                          const Text(
+                                            'LIVE',
+                                            style: TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                  // Play button
+                                  Center(
+                                    child: Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                        shape: BoxShape.circle,
+                                        border: Border.all(
+                                          color: Colors.white,
+                                          width: 2,
+                                        ),
+                                      ),
+                                      child: const Icon(
+                                        Icons.play_arrow_rounded,
+                                        color: Colors.white,
+                                        size: 36,
+                                      ),
+                                    ),
+                                  ),
+                                  // Bottom info
+                                  Positioned(
+                                    bottom: 16,
+                                    left: 16,
+                                    right: 16,
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              const Text(
+                                                'Kajian Tafsir Al-Quran',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                                maxLines: 1,
+                                                overflow: TextOverflow.ellipsis,
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                'Ustadz Ahmad Fauzi',
+                                                style: TextStyle(
+                                                  color: Colors.white
+                                                      .withValues(alpha: 0.9),
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 6,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black.withValues(
+                                              alpha: 0.5,
+                                            ),
+                                            borderRadius: BorderRadius.circular(
+                                              20,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              const Icon(
+                                                Icons.remove_red_eye_rounded,
+                                                color: Colors.white,
+                                                size: 16,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              const Text(
+                                                '3.6K',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
 
+                          const SizedBox(height: 36),
+
+                          // Latest Articles Section - Enhanced
+                          _buildSectionHeader(
+                            context,
+                            'Artikel Terbaru',
+                            Icons.article_rounded,
+                            AppTheme.primaryBlue,
+                          ),
                           const SizedBox(height: 16),
 
                           // Articles List
                           ...List.generate(
                             3,
-                            (index) => _buildArticleCard(
+                            (index) => _buildEnhancedArticleCard(
                               title: _getArticleTitle(index),
                               summary: _getArticleSummary(index),
                               imageUrl:
-                                  'https://picsum.photos/80/80?random=${index + 2}',
+                                  'https://picsum.photos/120/100?random=${index + 2}',
                               date: _getArticleDate(index),
                               context: context,
+                              category: index == 0
+                                  ? 'Ramadhan'
+                                  : (index == 1 ? 'Doa' : 'Ibadah'),
                             ),
                           ),
 
@@ -2313,4 +2494,299 @@ class _FeatureData {
   final String? route;
 
   const _FeatureData(this.icon, this.label, this.color, this.route);
+}
+
+Widget _buildEnhancedFeatureButton(
+  BuildContext context,
+  IconData icon,
+  String label,
+  Color color, {
+  VoidCallback? onTap,
+}) {
+  final screenWidth = MediaQuery.of(context).size.width;
+
+  double iconContainerSize = 64;
+  double iconSize = 28;
+  double fontSize = 13;
+
+  if (screenWidth < 360) {
+    iconContainerSize = 56;
+    iconSize = 24;
+    fontSize = 11;
+  } else if (screenWidth >= 600) {
+    iconContainerSize = 72;
+    iconSize = 32;
+    fontSize = 14;
+  }
+
+  return GestureDetector(
+    onTap: onTap,
+    child: Container(
+      width: iconContainerSize + 16,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: iconContainerSize,
+            height: iconContainerSize,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [color, color.withValues(alpha: 0.8)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                  spreadRadius: -2,
+                ),
+              ],
+            ),
+            child: Icon(icon, color: Colors.white, size: iconSize),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: fontSize,
+              color: AppTheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+// Enhanced Section Header Widget
+Widget _buildSectionHeader(
+  BuildContext context,
+  String title,
+  IconData icon,
+  Color color,
+) {
+  return Row(
+    children: [
+      Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: color.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Icon(icon, color: color, size: 20),
+      ),
+      const SizedBox(width: 12),
+      Text(
+        title,
+        style: const TextStyle(
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+          color: AppTheme.onSurface,
+          letterSpacing: -0.5,
+        ),
+      ),
+    ],
+  );
+}
+
+// Enhanced Article Card Widget
+Widget _buildEnhancedArticleCard({
+  required String title,
+  required String summary,
+  required String imageUrl,
+  required String date,
+  required String category,
+  required BuildContext context,
+}) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(18),
+      border: Border.all(color: Colors.grey.withValues(alpha: 0.1), width: 1),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.black.withValues(alpha: 0.06),
+          blurRadius: 15,
+          offset: const Offset(0, 4),
+          spreadRadius: -3,
+        ),
+      ],
+    ),
+    child: InkWell(
+      onTap: () {
+        Navigator.pushNamed(
+          context,
+          '/article-detail',
+          arguments: {
+            'title': title,
+            'summary': summary,
+            'imageUrl': imageUrl,
+            'date': date,
+            'content': '',
+            'author': 'Tim Editorial Islamic App',
+            'readTime': '5 min',
+            'category': category,
+          },
+        );
+      },
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            // Image with gradient overlay
+            Container(
+              width: 100,
+              height: 90,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Stack(
+                  children: [
+                    Image.network(
+                      imageUrl,
+                      width: 100,
+                      height: 90,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Container(
+                          width: 100,
+                          height: 90,
+                          color: Colors.grey.shade200,
+                          child: Icon(
+                            Icons.image,
+                            color: Colors.grey.shade400,
+                            size: 32,
+                          ),
+                        );
+                      },
+                    ),
+                    // Category badge on image
+                    Positioned(
+                      top: 6,
+                      left: 6,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryBlue,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          category,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    summary,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: AppTheme.onSurfaceVariant,
+                      height: 1.3,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: AppTheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        date,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.onSurfaceVariant,
+                        ),
+                      ),
+                      const Spacer(),
+                      Icon(
+                        Icons.arrow_forward_ios_rounded,
+                        size: 14,
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+// Helper methods for article data
+String _getArticleTitle(int index) {
+  const titles = [
+    'Keutamaan Membaca Al-Quran di Bulan Ramadhan',
+    'Doa-Doa yang Dianjurkan Dibaca Setelah Sholat',
+    'Amalan-Amalan Sunnah di Malam Lailatul Qadr',
+  ];
+  return titles[index % titles.length];
+}
+
+String _getArticleSummary(int index) {
+  const summaries = [
+    'Membaca Al-Quran di bulan Ramadhan memiliki pahala yang berlipat ganda...',
+    'Setelah sholat, dianjurkan untuk membaca doa-doa tertentu...',
+    'Lailatul Qadr adalah malam yang lebih baik dari seribu bulan...',
+  ];
+  return summaries[index % summaries.length];
+}
+
+String _getArticleDate(int index) {
+  const dates = ['2 hari lalu', '5 hari lalu', '1 minggu lalu'];
+  return dates[index % dates.length];
 }

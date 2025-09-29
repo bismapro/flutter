@@ -50,7 +50,7 @@ class HomeSection extends StatelessWidget {
                         Container(
                           padding: const EdgeInsets.all(8),
                           decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
+                            color: Colors.white.withValues(alpha:0.2),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(
@@ -269,9 +269,9 @@ class HomeSection extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(12),
                                     gradient: LinearGradient(
                                       colors: [
-                                        Colors.black.withOpacity(0.3),
+                                        Colors.black.withValues(alpha:0.3),
                                         Colors.transparent,
-                                        Colors.black.withOpacity(0.7),
+                                        Colors.black.withValues(alpha:0.7),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -311,7 +311,7 @@ class HomeSection extends StatelessWidget {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.6),
+                                      color: Colors.black.withValues(alpha:0.6),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Text(
