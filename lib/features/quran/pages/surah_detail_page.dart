@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:audioplayers/audioplayers.dart';
-import '../../../app/theme.dart';
-import '../../../data/models/surah.dart';
-import '../../../data/services/quran_service.dart';
+import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/data/models/surah.dart';
+import 'package:test_flutter/data/services/quran_service.dart';
 
 class SurahDetailPage extends StatefulWidget {
   final Surah surah;

@@ -99,11 +99,15 @@ class _SplashScreenState extends State<SplashScreen>
         width: double.infinity,
         height: double.infinity,
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppTheme.primaryBlue, AppTheme.primaryBlueDark],
-          ),
+          color: AppTheme.primaryBlue,
+          // image: DecorationImage(
+          //   image: AssetImage("assets/images/background/bg-2.png"),
+          //   fit: BoxFit.cover, // bisa cover, contain, fill, dll
+          //   colorFilter: ColorFilter.mode(
+          //     Colors.white.withValues(alpha: 0.1), // kasih warna ke gambar
+          //     BlendMode.srcATop, // mode campuran warna
+          //   ),
+          // ),
         ),
         child: SafeArea(
           child: Column(
@@ -123,7 +127,7 @@ class _SplashScreenState extends State<SplashScreen>
                             width: 120,
                             height: 120,
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: Colors.transparent,
                               borderRadius: BorderRadius.circular(30),
                               boxShadow: [
                                 BoxShadow(
@@ -205,7 +209,7 @@ class _SplashScreenState extends State<SplashScreen>
                               width: 200 * _progress.value,
                               height: 4,
                               decoration: BoxDecoration(
-                                color: AppTheme.accentGreen,
+                                color: AppTheme.surfaceWhite,
                                 borderRadius: BorderRadius.circular(2),
                               ),
                             ),

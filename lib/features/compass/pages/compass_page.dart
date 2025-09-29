@@ -424,7 +424,7 @@ class _CompassPageState extends State<CompassPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryBlue.withOpacity(0.3),
+            color: AppTheme.primaryBlue.withValues(alpha: .3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -517,7 +517,7 @@ class _CompassPageState extends State<CompassPage> {
                     color: AppTheme.surfaceWhite,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: .1),
                         blurRadius: 10,
                         offset: const Offset(0, 4),
                       ),
@@ -553,7 +553,7 @@ class _CompassPageState extends State<CompassPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: AppTheme.onSurface.withOpacity(0.8),
+                      color: AppTheme.onSurface.withValues(alpha: .8),
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: const Text('🕋', style: TextStyle(fontSize: 18)),
@@ -676,7 +676,7 @@ class _CompassPageState extends State<CompassPage> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: .05),
             blurRadius: 10,
             offset: const Offset(0, 2),
           ),
@@ -730,9 +730,9 @@ class _CompassPageState extends State<CompassPage> {
       margin: const EdgeInsets.symmetric(horizontal: 30),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryBlue.withOpacity(0.1),
+        color: AppTheme.primaryBlue.withValues(alpha: .1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.3)),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: .3)),
       ),
       child: Row(
         children: [

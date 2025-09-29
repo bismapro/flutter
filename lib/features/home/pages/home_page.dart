@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:test_flutter/core/widgets/custom_bottom_app_bar.dart';
-import 'package:test_flutter/core/widgets/custom_fab_location.dart';
+import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
+import 'package:test_flutter/features/premium/pages/premium_page.dart';
+import 'package:test_flutter/features/profile/pages/profile_page.dart';
 import '../../../app/theme.dart';
 
 class HomePage extends StatefulWidget {
@@ -15,9 +16,10 @@ class _HomePageState extends State<HomePage> {
 
   final List<Widget> _pages = [
     const HomeTabContent(),
-    const PremiumTabContent(),
-    const ArtikelTabContent(),
     const KomunitasTabContent(),
+    const ArtikelTabContent(),
+    const PremiumPage(),
+    const ProfilePage()
   ];
 
   @override
@@ -25,19 +27,19 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       body: _pages[_currentIndex],
-      floatingActionButton: SizedBox(
-        width: 55.0,
-        height: 55.0,
-        child: FloatingActionButton(
-          onPressed: () {
-            Navigator.pushNamed(context, '/qibla-compass');
-          },
-          backgroundColor: AppTheme.primaryBlue,
-          elevation: 4,
-          child: const Icon(Icons.explore, color: Colors.white, size: 28.0),
-        ),
-      ),
-      floatingActionButtonLocation: CustomCenterDockedFAB(offsetY: 40),
+      // floatingActionButton: SizedBox(
+      //   width: 55.0,
+      //   height: 55.0,
+      //   child: FloatingActionButton(
+      //     onPressed: () {
+      //       Navigator.pushNamed(context, '/qibla-compass');
+      //     },
+      //     backgroundColor: AppTheme.primaryBlue,
+      //     elevation: 4,
+      //     child: const Icon(Icons.explore, color: Colors.white, size: 28.0),
+      //   ),
+      // ),
+      // floatingActionButtonLocation: CustomCenterDockedFAB(offsetY: 40),
       bottomNavigationBar: CustomBottomAppBar(
         currentIndex: _currentIndex,
         onTabSelected: (index) {
@@ -53,238 +55,301 @@ class _HomePageState extends State<HomePage> {
 class HomeTabContent extends StatelessWidget {
   const HomeTabContent({super.key});
 
+  void _showAllFeaturesSheet(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => const AllFeaturesSheet(),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(color: AppTheme.accentGreen),
-      child: SafeArea(
-        child: Stack(
-          children: [
-            // Banner Section (Fixed Background)
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20.0, 20.0, 20.0, 80.0),
-                child: Column(
-                  children: [
-                    // Date and Location
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Column(
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundWhite,
+      body: Stack(
+        children: [
+          // Background gradient
+          Container(
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
+              ),
+            ),
+          ),
+
+          // Background image with custom positioning
+          Positioned(
+            top: -40, // Adjust this value to control vertical position
+            left: 0,
+            right: 0,
+            height:
+                MediaQuery.of(context).size.height *
+                0.6, // Control image height
+            child: Container(
+              decoration: BoxDecoration(
+                image: DecorationImage(
+                  image: AssetImage("assets/images/background/bg-1.png"),
+                  fit: BoxFit.cover,
+                  alignment: Alignment.topCenter,
+                  colorFilter: ColorFilter.mode(
+                    Colors.white.withValues(
+                      alpha: 0.01,
+                    ), // transparan banget, nyatu dengan background
+                    BlendMode.srcOver, // campur halus dengan background
+                  ),
+                ),
+              ),
+            ),
+          ),
+
+          // Top gradient section with prayer times
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                // Header with location
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width * 0.04,
+                    vertical: 16.0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
                               '9 Ramadhan 1444 H',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: 18,
+                                fontSize:
+                                    MediaQuery.of(context).size.width < 360
+                                    ? 14
+                                    : 16,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
+                            const SizedBox(height: 4),
                             Text(
                               'Jakarta, Indonesia',
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: 14,
+                                fontSize:
+                                    MediaQuery.of(context).size.width < 360
+                                    ? 12
+                                    : 14,
                               ),
                             ),
                           ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.all(8),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.2),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: const Icon(
-                            Icons.notifications_outlined,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Next Prayer Time
-                    const Text(
-                      '04:41',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 64,
-                        fontWeight: FontWeight.w300,
                       ),
-                    ),
-                    const Text(
-                      'Fajr 3 hour 9 min left',
-                      style: TextStyle(color: Colors.white70, fontSize: 16),
-                    ),
-                    const SizedBox(height: 32),
-
-                    // Prayer Times Row
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [
-                        _buildPrayerTimeWidget(
-                          'Fajr',
-                          '04:41',
-                          Icons.nightlight_round,
-                          true,
+                      Container(
+                        padding: EdgeInsets.all(
+                          MediaQuery.of(context).size.width < 360 ? 6 : 8,
                         ),
-                        _buildPrayerTimeWidget(
-                          'Dzuhr',
-                          '12:00',
-                          Icons.wb_sunny,
-                          false,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: .2),
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        _buildPrayerTimeWidget(
-                          'Asr',
-                          '15:14',
-                          Icons.wb_sunny_outlined,
-                          false,
+                        child: Icon(
+                          Icons.notifications_outlined,
+                          color: Colors.white,
+                          size: MediaQuery.of(context).size.width < 360
+                              ? 20
+                              : 24,
                         ),
-                        _buildPrayerTimeWidget(
-                          'Maghrib',
-                          '18:02',
-                          Icons.brightness_3,
-                          false,
-                        ),
-                        _buildPrayerTimeWidget(
-                          'Isha',
-                          '19:11',
-                          Icons.nights_stay,
-                          false,
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Scrollable White Section
-            DraggableScrollableSheet(
-              initialChildSize: 0.45, // Start at 45% of screen height
-              minChildSize: 0.45, // Minimum 45%
-              maxChildSize: 0.85, // Maximum 85%
-              builder: (context, scrollController) {
-                return Container(
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black26,
-                        blurRadius: 10,
-                        offset: Offset(0, -5),
                       ),
                     ],
                   ),
-                  child: SingleChildScrollView(
-                    controller: scrollController,
-                    child: Padding(
-                      padding: const EdgeInsets.all(20.0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Handle bar
-                          Center(
-                            child: Container(
-                              width: 40,
-                              height: 4,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade300,
-                                borderRadius: BorderRadius.circular(2),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+                ),
 
+                SizedBox(
+                  height: MediaQuery.of(context).size.height < 700 ? 16 : 20,
+                ),
+
+                // Current prayer time
+                Text(
+                  '04:41',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: MediaQuery.of(context).size.width < 360 ? 48 : 56,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 2,
+                  ),
+                ),
+                Text(
+                  'Fajr 3 hour 9 min left',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: MediaQuery.of(context).size.width < 360 ? 14 : 16,
+                  ),
+                ),
+
+                SizedBox(
+                  height: MediaQuery.of(context).size.height < 700 ? 24 : 32,
+                ),
+
+                // Prayer times row
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: MediaQuery.of(context).size.width * 0.04,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      _buildPrayerTimeWidget(
+                        'Fajr',
+                        '04:41',
+                        Icons.nightlight_round,
+                        true,
+                      ),
+                      _buildPrayerTimeWidget(
+                        'Dzuhr',
+                        '12:00',
+                        Icons.wb_sunny_rounded,
+                        false,
+                      ),
+                      _buildPrayerTimeWidget(
+                        'Asr',
+                        '15:14',
+                        Icons.wb_twilight_rounded,
+                        false,
+                      ),
+                      _buildPrayerTimeWidget(
+                        'Maghrib',
+                        '18:02',
+                        Icons.wb_sunny_outlined,
+                        false,
+                      ),
+                      _buildPrayerTimeWidget(
+                        'Isha',
+                        '19:11',
+                        Icons.dark_mode_rounded,
+                        false,
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+
+          // DraggableScrollableSheet Section
+          DraggableScrollableSheet(
+            initialChildSize: 0.45, // Start at 45% of screen height
+            minChildSize: 0.45, // Minimum 45%
+            maxChildSize: 0.85, // Maximum 85%
+            builder: (context, scrollController) {
+              return Container(
+                decoration: const BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black26,
+                      blurRadius: 10,
+                      offset: Offset(0, -5),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    // Handle bar
+                    Container(
+                      margin: const EdgeInsets.only(top: 12, bottom: 8),
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+
+                    // Scrollable content
+                    Expanded(
+                      child: ListView(
+                        controller: scrollController,
+                        padding: const EdgeInsets.all(20.0),
+                        children: [
                           // All Features
                           const Text(
                             'All Features',
                             style: TextStyle(
-                              fontSize: 20,
+                              fontSize: 18,
                               fontWeight: FontWeight.bold,
-                              color: Colors.black87,
+                              color: Color(0xFF212121),
                             ),
                           ),
                           const SizedBox(height: 16),
 
-                          // Features Grid - Scrollable
+                          // Features Row with Horizontal Scroll
                           SizedBox(
-                            height: 120,
+                            height:
+                                100, // Adjust based on your feature button height
                             child: ListView(
                               scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
                               children: [
-                                _buildFeatureCard(
-                                  Icons.menu_book,
+                                _buildFeatureButton(
+                                  context,
+                                  Icons.menu_book_rounded,
                                   'Al-Quran',
-                                  const Color(0xFF4DD0E1),
-                                  onTap: () {
-                                    Navigator.pushNamed(context, '/quran');
-                                  },
+                                  AppTheme.accentGreen,
+                                  onTap: () =>
+                                      Navigator.pushNamed(context, '/quran'),
                                 ),
                                 const SizedBox(width: 12),
-                                _buildFeatureCard(
-                                  Icons.mosque,
-                                  'Sholat',
-                                  const Color(0xFF4DD0E1),
-                                  onTap: () {
-                                    Navigator.pushNamed(context, '/sholat');
-                                  },
-                                ),
-                                const SizedBox(width: 12),
-                                _buildFeatureCard(
+                                _buildFeatureButton(
+                                  context,
                                   Icons.nightlight_round,
                                   'Puasa',
-                                  const Color(0xFF4DD0E1),
-                                  onTap: () {
-                                    Navigator.pushNamed(context, '/puasa');
-                                  },
+                                  AppTheme.accentGreen,
+                                  onTap: () =>
+                                      Navigator.pushNamed(context, '/puasa'),
                                 ),
                                 const SizedBox(width: 12),
-                                _buildFeatureCard(
-                                  Icons.volunteer_activism,
-                                  'Sedekah',
-                                  const Color(0xFF4DD0E1),
-                                  onTap: () {
-                                    Navigator.pushNamed(context, '/zakat');
-                                  },
-                                ),
-                                const SizedBox(width: 12),
-                                _buildFeatureCard(
-                                  Icons.explore,
+                                _buildFeatureButton(
+                                  context,
+                                  Icons.explore_outlined,
                                   'Qibla',
-                                  const Color(0xFF4DD0E1),
-                                  onTap: () {
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/qibla-compass',
-                                    );
-                                  },
+                                  AppTheme.accentGreen,
+                                  onTap: () => Navigator.pushNamed(
+                                    context,
+                                    '/qibla-compass',
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
-                                _buildFeatureCard(
-                                  Icons.alarm,
-                                  'Alarm Sholat',
-                                  const Color(0xFF4DD0E1),
-                                  onTap: () {
-                                    Navigator.pushNamed(
-                                      context,
-                                      '/alarm-settings',
-                                    );
-                                  },
+                                _buildFeatureButton(
+                                  context,
+                                  Icons.volunteer_activism_rounded,
+                                  'Sedekah',
+                                  AppTheme.accentGreen,
+                                  onTap: () =>
+                                      Navigator.pushNamed(context, '/zakat'),
+                                ),
+                                const SizedBox(width: 12),
+                                _buildFeatureButton(
+                                  context,
+                                  Icons.apps_rounded,
+                                  'All',
+                                  AppTheme.primaryBlue,
+                                  onTap: () => _showAllFeaturesSheet(context),
                                 ),
                               ],
                             ),
                           ),
+
                           const SizedBox(height: 32),
 
                           // Ngaji Online Section
@@ -304,13 +369,14 @@ class HomeTabContent extends StatelessWidget {
                                 child: const Text(
                                   'See All',
                                   style: TextStyle(
-                                    color: Color(0xFF4DD0E1),
+                                    color: AppTheme.accentGreen,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
                             ],
                           ),
+
                           const SizedBox(height: 16),
 
                           // Live Stream Card
@@ -333,9 +399,9 @@ class HomeTabContent extends StatelessWidget {
                                     borderRadius: BorderRadius.circular(12),
                                     gradient: LinearGradient(
                                       colors: [
-                                        Colors.black.withOpacity(0.3),
+                                        Colors.black.withValues(alpha: .3),
                                         Colors.transparent,
-                                        Colors.black.withOpacity(0.7),
+                                        Colors.black.withValues(alpha: .7),
                                       ],
                                       begin: Alignment.topCenter,
                                       end: Alignment.bottomCenter,
@@ -352,7 +418,7 @@ class HomeTabContent extends StatelessWidget {
                                       vertical: 4,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withOpacity(0.6),
+                                      color: Colors.black.withValues(alpha: .6),
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                     child: const Text(
@@ -367,6 +433,7 @@ class HomeTabContent extends StatelessWidget {
                               ],
                             ),
                           ),
+
                           const SizedBox(height: 32),
 
                           // Latest Articles Section
@@ -378,6 +445,7 @@ class HomeTabContent extends StatelessWidget {
                               color: Colors.black87,
                             ),
                           ),
+
                           const SizedBox(height: 16),
 
                           // Articles List
@@ -398,12 +466,12 @@ class HomeTabContent extends StatelessWidget {
                         ],
                       ),
                     ),
-                  ),
-                );
-              },
-            ),
-          ],
-        ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -414,72 +482,141 @@ class HomeTabContent extends StatelessWidget {
     IconData icon,
     bool isActive,
   ) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: isActive
-                ? Colors.white.withOpacity(0.2)
-                : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenWidth = MediaQuery.of(context).size.width;
+
+        // Responsive sizing
+        double containerSize = 44;
+        double iconSize = 20;
+        double nameFontSize = 12;
+        double timeFontSize = 11;
+        double spacing = 6;
+
+        if (screenWidth < 360) {
+          containerSize = 36;
+          iconSize = 18;
+          nameFontSize = 10;
+          timeFontSize = 9;
+          spacing = 4;
+        } else if (screenWidth >= 400) {
+          containerSize = 48;
+          iconSize = 22;
+          nameFontSize = 14;
+          timeFontSize = 12;
+          spacing = 8;
+        }
+
+        return Flexible(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                name,
+                style: TextStyle(
+                  color: isActive ? Colors.white : Colors.white70,
+                  fontSize: nameFontSize,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+              SizedBox(height: spacing),
+              Container(
+                width: containerSize,
+                height: containerSize,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? Colors.white.withValues(alpha: .3)
+                      : Colors.white.withValues(alpha: .1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(icon, color: Colors.white, size: iconSize),
+              ),
+              SizedBox(height: spacing),
+              Text(
+                time,
+                style: TextStyle(
+                  color: isActive ? Colors.white : Colors.white70,
+                  fontSize: timeFontSize,
+                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ],
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          name,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.white70,
-            fontSize: 12,
-            fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-          ),
-        ),
-        Text(
-          time,
-          style: TextStyle(
-            color: isActive ? Colors.white : Colors.white70,
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
+        );
+      },
     );
   }
 
-  Widget _buildFeatureCard(
+  Widget _buildFeatureButton(
+    BuildContext context,
     IconData icon,
-    String title,
+    String label,
     Color color, {
     VoidCallback? onTap,
   }) {
+    final screenWidth = MediaQuery.of(context).size.width;
+
+    // Responsive sizing
+    double iconContainerSize = 56;
+    double iconSize = 28;
+    double fontSize = 12;
+    double spacing = 8;
+
+    if (screenWidth < 360) {
+      iconContainerSize = 48;
+      iconSize = 24;
+      fontSize = 10;
+      spacing = 6;
+    } else if (screenWidth >= 600) {
+      iconContainerSize = 64;
+      iconSize = 32;
+      fontSize = 14;
+      spacing = 10;
+    }
+
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        width: 80,
-        child: Column(
-          children: [
-            Container(
-              width: 70,
-              height: 70,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: Colors.white, size: 24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: iconContainerSize,
+            height: iconContainerSize,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: color.withValues(alpha: .3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+            child: Icon(icon, color: Colors.white, size: iconSize),
+          ),
+          SizedBox(height: spacing),
+          SizedBox(
+            width: iconContainerSize + 8, // Slightly wider for text
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: fontSize,
+                color: const Color(0xFF212121),
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -516,7 +653,7 @@ class HomeTabContent extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha: .1),
               blurRadius: 8,
               offset: const Offset(0, 2),
             ),
@@ -845,7 +982,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: .05),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1001,7 +1138,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: .08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1045,7 +1182,7 @@ class _ArtikelTabContentState extends State<ArtikelTabContent> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryBlue.withOpacity(0.1),
+                    color: AppTheme.primaryBlue.withValues(alpha: .1),
                     borderRadius: BorderRadius.circular(6),
                   ),
                   child: Text(
@@ -1524,7 +1661,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
                       borderRadius: BorderRadius.circular(12),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
+                          color: Colors.black.withValues(alpha: .05),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -1632,7 +1769,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: .08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -1648,7 +1785,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
               children: [
                 CircleAvatar(
                   radius: 20,
-                  backgroundColor: AppTheme.primaryBlue.withOpacity(0.1),
+                  backgroundColor: AppTheme.primaryBlue.withValues(alpha: .1),
                   child: Text(
                     post['authorName'][0].toUpperCase(),
                     style: const TextStyle(
@@ -1705,7 +1842,7 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
-                color: AppTheme.primaryBlue.withOpacity(0.1),
+                color: AppTheme.primaryBlue.withValues(alpha: .1),
                 borderRadius: BorderRadius.circular(6),
               ),
               child: Text(
@@ -1851,4 +1988,329 @@ class _KomunitasTabContentState extends State<KomunitasTabContent> {
     _searchController.dispose();
     super.dispose();
   }
+}
+
+class AllFeaturesSheet extends StatelessWidget {
+  const AllFeaturesSheet({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final responsive = _ResponsiveConfig.fromScreenSize(size);
+
+    return DraggableScrollableSheet(
+      initialChildSize: responsive.initialSheetSize,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(24),
+              topRight: Radius.circular(24),
+            ),
+          ),
+          child: Column(
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // Header
+              Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: responsive.horizontalPadding,
+                  vertical: 16.0,
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      'All Features',
+                      style: TextStyle(
+                        fontSize: responsive.headerFontSize,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF212121),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close),
+                      color: Colors.grey[600],
+                      iconSize: responsive.closeIconSize,
+                      padding: EdgeInsets.all(responsive.iconButtonPadding),
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Grid of features
+              Expanded(
+                child: GridView.count(
+                  controller: scrollController,
+                  crossAxisCount: responsive.gridColumns,
+                  padding: EdgeInsets.symmetric(
+                    horizontal: responsive.horizontalPadding,
+                    vertical: 16.0,
+                  ),
+                  mainAxisSpacing: responsive.gridMainSpacing,
+                  crossAxisSpacing: responsive.gridCrossSpacing,
+                  childAspectRatio: responsive.gridAspectRatio,
+                  children: _buildFeatureItems(context, responsive),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  List<Widget> _buildFeatureItems(
+    BuildContext context,
+    _ResponsiveConfig responsive,
+  ) {
+    final features = [
+      _FeatureData(
+        Icons.menu_book_rounded,
+        'Al-Quran',
+        AppTheme.accentGreen,
+        '/quran',
+      ),
+      _FeatureData(
+        Icons.nightlight_round,
+        'Puasa',
+        AppTheme.accentGreen,
+        '/puasa',
+      ),
+      _FeatureData(
+        Icons.explore_outlined,
+        'Qibla',
+        AppTheme.accentGreen,
+        '/qibla-compass',
+      ),
+      _FeatureData(
+        Icons.volunteer_activism_rounded,
+        'Sedekah',
+        AppTheme.accentGreen,
+        '/zakat',
+      ),
+
+      _FeatureData(
+        Icons.alarm_rounded,
+        'Alarm',
+        AppTheme.accentGreen,
+        '/alarm-settings',
+      ),
+    ];
+
+    return features
+        .map((feature) => _buildFeatureItem(context, feature, responsive))
+        .toList();
+  }
+
+  Widget _buildFeatureItem(
+    BuildContext context,
+    _FeatureData feature,
+    _ResponsiveConfig responsive,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        // HapticFeedback.lightImpact();
+        Navigator.pop(context);
+
+        if (feature.route != null) {
+          Navigator.pushNamed(context, feature.route!);
+        }
+      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: responsive.iconContainerSize,
+            height: responsive.iconContainerSize,
+            decoration: BoxDecoration(
+              color: feature.color,
+              borderRadius: BorderRadius.circular(responsive.iconBorderRadius),
+              boxShadow: [
+                BoxShadow(
+                  color: feature.color.withValues(alpha: .3),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Icon(
+              feature.icon,
+              color: Colors.white,
+              size: responsive.iconSize,
+            ),
+          ),
+          SizedBox(height: responsive.iconLabelSpacing),
+          Flexible(
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: responsive.labelPadding,
+              ),
+              child: Text(
+                feature.label,
+                style: TextStyle(
+                  fontSize: responsive.labelFontSize,
+                  color: const Color(0xFF212121),
+                  fontWeight: FontWeight.w500,
+                  height: 1.2,
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// Responsive configuration class
+class _ResponsiveConfig {
+  final int gridColumns;
+  final double gridMainSpacing;
+  final double gridCrossSpacing;
+  final double gridAspectRatio;
+  final double iconContainerSize;
+  final double iconSize;
+  final double iconBorderRadius;
+  final double labelFontSize;
+  final double labelPadding;
+  final double iconLabelSpacing;
+  final double headerFontSize;
+  final double closeIconSize;
+  final double iconButtonPadding;
+  final double horizontalPadding;
+  final double initialSheetSize;
+
+  const _ResponsiveConfig({
+    required this.gridColumns,
+    required this.gridMainSpacing,
+    required this.gridCrossSpacing,
+    required this.gridAspectRatio,
+    required this.iconContainerSize,
+    required this.iconSize,
+    required this.iconBorderRadius,
+    required this.labelFontSize,
+    required this.labelPadding,
+    required this.iconLabelSpacing,
+    required this.headerFontSize,
+    required this.closeIconSize,
+    required this.iconButtonPadding,
+    required this.horizontalPadding,
+    required this.initialSheetSize,
+  });
+
+  factory _ResponsiveConfig.fromScreenSize(Size size) {
+    final width = size.width;
+    final height = size.height;
+
+    // Small phones (< 360px)
+    if (width < 360) {
+      return const _ResponsiveConfig(
+        gridColumns: 3,
+        gridMainSpacing: 16,
+        gridCrossSpacing: 12,
+        gridAspectRatio: 0.85,
+        iconContainerSize: 48,
+        iconSize: 24,
+        iconBorderRadius: 14,
+        labelFontSize: 10,
+        labelPadding: 2,
+        iconLabelSpacing: 6,
+        headerFontSize: 18,
+        closeIconSize: 20,
+        iconButtonPadding: 8,
+        horizontalPadding: 16,
+        initialSheetSize: 0.85,
+      );
+    }
+    // Normal phones (360px - 600px)
+    else if (width >= 360 && width < 600) {
+      return _ResponsiveConfig(
+        gridColumns: 4,
+        gridMainSpacing: 20,
+        gridCrossSpacing: 16,
+        gridAspectRatio: 0.9,
+        iconContainerSize: 56,
+        iconSize: 28,
+        iconBorderRadius: 16,
+        labelFontSize: 11,
+        labelPadding: 2,
+        iconLabelSpacing: 8,
+        headerFontSize: 20,
+        closeIconSize: 24,
+        iconButtonPadding: 8,
+        horizontalPadding: width * 0.05,
+        initialSheetSize: height < 700 ? 0.8 : 0.7,
+      );
+    }
+    // Tablets (600px - 900px)
+    else if (width >= 600 && width < 900) {
+      return const _ResponsiveConfig(
+        gridColumns: 5,
+        gridMainSpacing: 24,
+        gridCrossSpacing: 20,
+        gridAspectRatio: 0.95,
+        iconContainerSize: 64,
+        iconSize: 32,
+        iconBorderRadius: 18,
+        labelFontSize: 12,
+        labelPadding: 4,
+        iconLabelSpacing: 10,
+        headerFontSize: 22,
+        closeIconSize: 26,
+        iconButtonPadding: 10,
+        horizontalPadding: 32,
+        initialSheetSize: 0.65,
+      );
+    }
+    // Large tablets / Desktop (>= 900px)
+    else {
+      return const _ResponsiveConfig(
+        gridColumns: 6,
+        gridMainSpacing: 28,
+        gridCrossSpacing: 24,
+        gridAspectRatio: 1.0,
+        iconContainerSize: 72,
+        iconSize: 36,
+        iconBorderRadius: 20,
+        labelFontSize: 13,
+        labelPadding: 6,
+        iconLabelSpacing: 12,
+        headerFontSize: 24,
+        closeIconSize: 28,
+        iconButtonPadding: 12,
+        horizontalPadding: 48,
+        initialSheetSize: 0.6,
+      );
+    }
+  }
+}
+
+// Feature data model
+class _FeatureData {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final String? route;
+
+  const _FeatureData(this.icon, this.label, this.color, this.route);
 }

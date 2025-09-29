@@ -44,7 +44,7 @@ class ArticleDetailPage extends StatelessWidget {
                       gradient: LinearGradient(
                         colors: [
                           Colors.transparent,
-                          Colors.black.withOpacity(0.7),
+                          Colors.black.withValues(alpha: .7),
                         ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
@@ -94,7 +94,7 @@ class ArticleDetailPage extends StatelessWidget {
                       vertical: 6,
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue.withOpacity(0.1),
+                      color: AppTheme.primaryBlue.withValues(alpha: .1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -162,7 +162,7 @@ class ArticleDetailPage extends StatelessWidget {
                         color: AppTheme.backgroundWhite,
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppTheme.primaryBlue.withOpacity(0.2),
+                          color: AppTheme.primaryBlue.withValues(alpha: .2),
                           width: 1,
                         ),
                       ),
@@ -211,7 +211,7 @@ class ArticleDetailPage extends StatelessWidget {
                             vertical: 6,
                           ),
                           decoration: BoxDecoration(
-                            color: AppTheme.primaryBlue.withOpacity(0.1),
+                            color: AppTheme.primaryBlue.withValues(alpha: .1),
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: Text(
@@ -249,7 +249,7 @@ class ArticleDetailPage extends StatelessWidget {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.grey.withOpacity(0.1),
+                            color: Colors.grey.withValues(alpha: .1),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),

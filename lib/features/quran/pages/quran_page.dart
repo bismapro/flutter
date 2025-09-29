@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../../app/theme.dart';
-import '../../../data/models/surah.dart';
-import '../../../data/services/quran_service.dart';
+import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/data/models/surah.dart';
+import 'package:test_flutter/data/services/quran_service.dart';
 
 class QuranPage extends StatefulWidget {
   const QuranPage({super.key});

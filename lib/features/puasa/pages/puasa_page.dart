@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../app/theme.dart';
+import 'package:test_flutter/app/theme.dart';
 
 class PuasaPage extends StatefulWidget {
   const PuasaPage({super.key});

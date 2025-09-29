@@ -1,17 +1,18 @@
 import 'package:flutter/material.dart';
-import '../features/auth/pages/splash_screen.dart';
-import '../features/auth/pages/welcome_page.dart';
-import '../features/auth/pages/login_page.dart';
-import '../features/auth/pages/signup_page.dart';
-import '../features/home/pages/home_page.dart';
-import '../features/compass/pages/compass_page.dart';
-import '../features/worship/pages/quran_page.dart';
-import '../features/worship/pages/surah_detail_page.dart';
-import '../features/worship/pages/sholat_page.dart';
-import '../features/worship/pages/puasa_page.dart';
-import '../features/worship/pages/zakat_page.dart';
-import '../features/articles/pages/article_detail_page.dart';
-import '../features/alarm/pages/alarm_settings_page.dart';
+import 'package:test_flutter/features/alarm/pages/alarm_settings_page.dart';
+import 'package:test_flutter/features/articles/pages/article_detail_page.dart';
+import 'package:test_flutter/features/auth/pages/login_page.dart';
+import 'package:test_flutter/features/auth/pages/signup_page.dart';
+import 'package:test_flutter/features/auth/pages/splash_screen.dart';
+import 'package:test_flutter/features/auth/pages/welcome_page.dart';
+import 'package:test_flutter/features/compass/pages/compass_page.dart';
+import 'package:test_flutter/features/home/pages/home_page.dart';
+import 'package:test_flutter/features/profile/pages/profile_page.dart';
+import 'package:test_flutter/features/puasa/pages/puasa_page.dart';
+import 'package:test_flutter/features/quran/pages/quran_page.dart';
+import 'package:test_flutter/features/quran/pages/surah_detail_page.dart';
+import 'package:test_flutter/features/sedekah/pages/sedekah_page.dart';
+import 'package:test_flutter/features/sholat/pages/sholat_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -27,6 +28,7 @@ class AppRoutes {
   static const String zakat = '/zakat';
   static const String articleDetail = '/article-detail';
   static const String alarmSettings = '/alarm-settings';
+  static const String profile = '/profile';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -53,7 +55,7 @@ class AppRoutes {
       case puasa:
         return MaterialPageRoute(builder: (_) => const PuasaPage());
       case zakat:
-        return MaterialPageRoute(builder: (_) => const ZakatPage());
+        return MaterialPageRoute(builder: (_) => const SedekahPage());
       case articleDetail:
         return MaterialPageRoute(
           builder: (_) =>
@@ -61,6 +63,8 @@ class AppRoutes {
         );
       case alarmSettings:
         return MaterialPageRoute(builder: (_) => const AlarmSettingsPage());
+      case profile:
+        return MaterialPageRoute(builder: (_) => const ProfilePage());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

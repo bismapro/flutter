@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../app/theme.dart';
+import 'package:test_flutter/app/theme.dart';
 
 class SholatPage extends StatefulWidget {
   const SholatPage({super.key});
@@ -16,7 +16,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
   bool _isScrolled = false;
 
   // Data tracking sholat (untuk demo)
-  Map<String, bool> _sholatFardhuStatus = {
+  final Map<String, bool> _sholatFardhuStatus = {
     'Fajr': false,
     'Subuh': false,
     'Dzuhur': false,
@@ -25,7 +25,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     'Isha': false,
   };
 
-  Map<String, bool> _sholatSunnahStatus = {
+  final Map<String, bool> _sholatSunnahStatus = {
     'Tahajud': false,
     'Dhuha': false,
     'Qabliyah Subuh': false,
@@ -71,7 +71,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
           ),
         ),
         backgroundColor: _isScrolled
-            ? AppTheme.backgroundWhite.withOpacity(0.95)
+            ? AppTheme.backgroundWhite.withValues(alpha: .95)
             : AppTheme.backgroundWhite,
         iconTheme: const IconThemeData(color: AppTheme.onSurface),
         elevation: _isScrolled ? 4 : 0,
@@ -173,7 +173,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
         controller: _tabController,
         indicatorColor: AppTheme.backgroundWhite,
         labelColor: AppTheme.backgroundWhite,
-        unselectedLabelColor: AppTheme.backgroundWhite.withOpacity(0.7),
+        unselectedLabelColor: AppTheme.backgroundWhite.withValues(alpha: .7),
         labelStyle: const TextStyle(fontWeight: FontWeight.w600),
         unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
         tabs: const [
@@ -203,7 +203,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.primaryBlue.withOpacity(0.2),
+                    color: AppTheme.primaryBlue.withValues(alpha: .2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -238,8 +238,8 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
                       value: progressFardhu,
-                      backgroundColor: AppTheme.backgroundWhite.withOpacity(
-                        0.3,
+                      backgroundColor: AppTheme.backgroundWhite.withValues(
+                        alpha: 0.3,
                       ),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         AppTheme.accentGreen,
@@ -261,7 +261,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.accentGreen.withOpacity(0.2),
+                    color: AppTheme.accentGreen.withValues(alpha: .2),
                     blurRadius: 8,
                     offset: const Offset(0, 2),
                   ),
@@ -296,8 +296,8 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                     borderRadius: BorderRadius.circular(8),
                     child: LinearProgressIndicator(
                       value: progressSunnah,
-                      backgroundColor: AppTheme.backgroundWhite.withOpacity(
-                        0.3,
+                      backgroundColor: AppTheme.backgroundWhite.withValues(
+                        alpha: 0.3,
                       ),
                       valueColor: AlwaysStoppedAnimation<Color>(
                         AppTheme.primaryBlue,
@@ -374,8 +374,8 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
             boxShadow: [
               BoxShadow(
                 color: isActive
-                    ? AppTheme.accentGreen.withOpacity(0.2)
-                    : Colors.grey.withOpacity(0.05),
+                    ? AppTheme.accentGreen.withValues(alpha: .2)
+                    : Colors.grey.withValues(alpha: .05),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),
@@ -391,8 +391,8 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               height: 48,
               decoration: BoxDecoration(
                 color: isActive
-                    ? AppTheme.backgroundWhite.withOpacity(0.2)
-                    : AppTheme.primaryBlue.withOpacity(0.1),
+                    ? AppTheme.backgroundWhite.withValues(alpha: .2)
+                    : AppTheme.primaryBlue.withValues(alpha: .1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
@@ -556,7 +556,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
         border: Border.all(color: Colors.grey.shade200),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.05),
+            color: Colors.grey.withValues(alpha: .05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -571,7 +571,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
           width: 48,
           height: 48,
           decoration: BoxDecoration(
-            color: AppTheme.primaryBlue.withOpacity(0.1),
+            color: AppTheme.primaryBlue.withValues(alpha: .1),
             borderRadius: BorderRadius.circular(12),
           ),
           child: Icon(icon, color: AppTheme.primaryBlue, size: 24),

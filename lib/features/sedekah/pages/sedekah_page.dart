@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import '../../../app/theme.dart';
+import 'package:test_flutter/app/theme.dart';
 
-class ZakatPage extends StatefulWidget {
-  const ZakatPage({super.key});
+class SedekahPage extends StatefulWidget {
+  const SedekahPage({super.key});
 
   @override
-  State<ZakatPage> createState() => _ZakatPageState();
+  State<SedekahPage> createState() => _SedekahPageState();
 }
 
-class _ZakatPageState extends State<ZakatPage> with TickerProviderStateMixin {
+class _SedekahPageState extends State<SedekahPage>
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   // Data tracking sedekah harian

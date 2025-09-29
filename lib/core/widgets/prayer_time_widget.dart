@@ -22,7 +22,7 @@ class PrayerTimeWidget extends StatelessWidget {
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
             color: isActive
-                ? Colors.white.withOpacity(0.2)
+                ? Colors.white.withValues(alpha: .2)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
           ),

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../app/theme.dart';
+import '../../../../app/theme.dart';
 
 class CustomBottomAppBar extends StatelessWidget {
   final int currentIndex;
@@ -14,8 +14,6 @@ class CustomBottomAppBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BottomAppBar(
-      shape: const CircularNotchedRectangle(),
-      notchMargin: 8,
       color: Colors.white,
       elevation: 8,
       child: SizedBox(
@@ -24,10 +22,10 @@ class CustomBottomAppBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(Icons.home_outlined, 'Home', 0),
-            _buildNavItem(Icons.workspace_premium_outlined, 'Premium', 1),
-            const SizedBox(width: 40), // Space for FAB
-            _buildNavItem(Icons.article_outlined, 'Articles', 2),
-            _buildNavItem(Icons.people_outline, 'Community', 3),
+            _buildNavItem(Icons.people_outline, 'Komunitas', 1),
+            _buildNavItem(Icons.article_outlined, 'Artikel', 2),
+            _buildNavItem(Icons.workspace_premium_outlined, 'Premium', 3),
+            _buildNavItem(Icons.person_outline, 'Profile', 4),
           ],
         ),
       ),

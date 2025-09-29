@@ -177,7 +177,7 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
                       gradient: LinearGradient(
                         colors: [
                           AppTheme.primaryBlue,
-                          AppTheme.primaryBlue.withOpacity(0.8),
+                          AppTheme.primaryBlue.withValues(alpha: .8),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
@@ -185,7 +185,7 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
                       borderRadius: BorderRadius.circular(16),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryBlue.withOpacity(0.3),
+                          color: AppTheme.primaryBlue.withValues(alpha: .3),
                           blurRadius: 12,
                           offset: const Offset(0, 4),
                         ),
@@ -212,7 +212,7 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
                         Text(
                           'Aktifkan alarm untuk mengingatkan waktu sholat dengan suara adzan yang merdu',
                           style: TextStyle(
-                            color: Colors.white.withOpacity(0.9),
+                            color: Colors.white.withValues(alpha: .9),
                             fontSize: 14,
                             height: 1.4,
                           ),
@@ -227,13 +227,15 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
                             icon: const Icon(Icons.volume_up, size: 20),
                             label: const Text('Test Suara Adzan'),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.white.withOpacity(0.2),
+                              backgroundColor: Colors.white.withValues(
+                                alpha: .2,
+                              ),
                               foregroundColor: Colors.white,
                               padding: const EdgeInsets.symmetric(vertical: 12),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                                 side: BorderSide(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: .3),
                                 ),
                               ),
                             ),
@@ -275,13 +277,13 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
                         borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isEnabled
-                              ? AppTheme.accentGreen.withOpacity(0.3)
+                              ? AppTheme.accentGreen.withValues(alpha: .3)
                               : Colors.grey.shade200,
                           width: isEnabled ? 2 : 1,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: .05),
                             blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
@@ -297,8 +299,10 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
                           height: 48,
                           decoration: BoxDecoration(
                             color: isEnabled
-                                ? AppTheme.accentGreen.withOpacity(0.1)
-                                : (prayer['color'] as Color).withOpacity(0.1),
+                                ? AppTheme.accentGreen.withValues(alpha: .1)
+                                : (prayer['color'] as Color).withValues(
+                                    alpha: .1,
+                                  ),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Icon(
@@ -341,9 +345,9 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
                           value: isEnabled,
                           onChanged: (value) =>
                               _toggleAlarm(prayer['name'] as String, value),
-                          activeColor: AppTheme.accentGreen,
-                          activeTrackColor: AppTheme.accentGreen.withOpacity(
-                            0.3,
+                          activeThumbColor: AppTheme.accentGreen,
+                          activeTrackColor: AppTheme.accentGreen.withValues(
+                            alpha: 0.3,
                           ),
                         ),
                       ),
@@ -356,10 +360,10 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: AppTheme.accentGreen.withOpacity(0.1),
+                      color: AppTheme.accentGreen.withValues(alpha: .1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppTheme.accentGreen.withOpacity(0.2),
+                        color: AppTheme.accentGreen.withValues(alpha: .2),
                       ),
                     ),
                     child: Column(
