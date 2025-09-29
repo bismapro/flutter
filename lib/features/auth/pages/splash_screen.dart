@@ -123,7 +123,7 @@ class _SplashScreenState extends State<SplashScreen>
                             width: 120,
                             height: 120,
                             decoration: BoxDecoration(
-                              color: Colors.transparent,
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(30),
                               boxShadow: [
                                 BoxShadow(
@@ -166,10 +166,12 @@ class _SplashScreenState extends State<SplashScreen>
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Stay Connected to Your Faith',
+                                'Your prayer partners',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: AppTheme.onPrimary.withOpacity(0.8),
+                                  color: AppTheme.onPrimary.withValues(
+                                    alpha: 0.8,
+                                  ),
                                   fontWeight: FontWeight.w400,
                                 ),
                               ),
@@ -194,7 +196,7 @@ class _SplashScreenState extends State<SplashScreen>
                           width: 200,
                           height: 4,
                           decoration: BoxDecoration(
-                            color: AppTheme.onPrimary.withOpacity(0.3),
+                            color: AppTheme.onPrimary.withValues(alpha: 0.3),
                             borderRadius: BorderRadius.circular(2),
                           ),
                           child: Align(
@@ -215,7 +217,7 @@ class _SplashScreenState extends State<SplashScreen>
                     Text(
                       'Loading...',
                       style: TextStyle(
-                        color: AppTheme.onPrimary.withOpacity(0.7),
+                        color: AppTheme.onPrimary.withValues(alpha: 0.7),
                         fontSize: 14,
                         fontWeight: FontWeight.w400,
                       ),

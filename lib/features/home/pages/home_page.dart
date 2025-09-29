@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:test_flutter/core/widgets/custom_bottom_app_bar.dart';
+import 'package:test_flutter/core/widgets/custom_fab_location.dart';
 import '../../../app/theme.dart';
 
 class HomePage extends StatefulWidget {
@@ -24,74 +26,25 @@ class _HomePageState extends State<HomePage> {
       backgroundColor: AppTheme.backgroundWhite,
       body: _pages[_currentIndex],
       floatingActionButton: SizedBox(
-        // Tentukan ukuran container/area total yang Anda inginkan
-        width: 80.0, // Contoh lebar
-        height: 80.0, // Contoh tinggi
+        width: 55.0,
+        height: 55.0,
         child: FloatingActionButton(
           onPressed: () {
             Navigator.pushNamed(context, '/qibla-compass');
           },
-          // Pastikan `AppTheme.primaryBlue` sudah didefinisikan
           backgroundColor: AppTheme.primaryBlue,
-          child: const Icon(
-            Icons.explore,
-            color: Colors.white,
-            size:
-                42.0, // Icon ini sudah besar, sehingga membutuhkan FAB yang besar juga
-          ),
+          elevation: 4,
+          child: const Icon(Icons.explore, color: Colors.white, size: 28.0),
         ),
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8,
-        color: Colors.white,
-        elevation: 8,
-        child: SizedBox(
-          height: 60,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildNavItem(Icons.home, 'Home', 0),
-              _buildNavItem(Icons.star, 'Premium', 1),
-              const SizedBox(width: 40), // Space for FAB
-              _buildNavItem(Icons.article, 'Artikel', 2),
-              _buildNavItem(Icons.group, 'Komunitas', 3),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildNavItem(IconData icon, String label, int index) {
-    final isSelected = _currentIndex == index;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _currentIndex = index;
-        });
-      },
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            icon,
-            color: isSelected
-                ? AppTheme.primaryBlue
-                : AppTheme.onSurfaceVariant,
-            size: 32,
-          ),
-          const SizedBox(height: 4),
-          // Text(
-          //   label,
-          //   style: TextStyle(
-          //     color: isSelected ? AppTheme.primaryBlue : AppTheme.onSurfaceVariant,
-          //     fontSize: 12,
-          //     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-          //   ),
-          // ),
-        ],
+      floatingActionButtonLocation: CustomCenterDockedFAB(offsetY: 40),
+      bottomNavigationBar: CustomBottomAppBar(
+        currentIndex: _currentIndex,
+        onTabSelected: (index) {
+          setState(() {
+            _currentIndex = index;
+          });
+        },
       ),
     );
   }

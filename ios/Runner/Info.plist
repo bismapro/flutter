@@ -49,5 +49,12 @@
 	<string>Aplikasi ini memerlukan akses lokasi untuk menentukan arah Kiblat yang akurat.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>Aplikasi ini memerlukan akses lokasi untuk menentukan arah Kiblat yang akurat.</string>
+
+	<!-- Background modes (kalau butuh alarm/jadwal/notification jalan saat app mati) -->
+	<key>UIBackgroundModes</key>
+	<array>
+	<string>fetch</string>
+	<string>remote-notification</string>
+	</array>
 </dict>
 </plist>

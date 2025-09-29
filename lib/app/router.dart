@@ -4,14 +4,14 @@ import '../features/auth/pages/welcome_page.dart';
 import '../features/auth/pages/login_page.dart';
 import '../features/auth/pages/signup_page.dart';
 import '../features/home/pages/home_page.dart';
-import '../features/worship/pages/qibla_compass_page.dart';
+import '../features/compass/pages/compass_page.dart';
 import '../features/worship/pages/quran_page.dart';
 import '../features/worship/pages/surah_detail_page.dart';
 import '../features/worship/pages/sholat_page.dart';
 import '../features/worship/pages/puasa_page.dart';
 import '../features/worship/pages/zakat_page.dart';
 import '../features/articles/pages/article_detail_page.dart';
-import '../features/prayer/pages/alarm_settings_page.dart';
+import '../features/alarm/pages/alarm_settings_page.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -41,7 +41,7 @@ class AppRoutes {
       case home:
         return MaterialPageRoute(builder: (_) => const HomePage());
       case qiblaCompass:
-        return MaterialPageRoute(builder: (_) => const QiblaCompassPage());
+        return MaterialPageRoute(builder: (_) => const CompassPage());
       case quran:
         return MaterialPageRoute(builder: (_) => const QuranPage());
       case surahDetail:

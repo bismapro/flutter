@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../app/theme.dart';
-import '../../../services/alarm_service.dart';
+import '../../../data/services/alarm_service.dart';
 
 class AlarmSettingsPage extends StatefulWidget {
   const AlarmSettingsPage({super.key});
