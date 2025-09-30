@@ -71,7 +71,12 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error playing audio: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade400,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -132,7 +137,12 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error loading surah: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: Colors.red.shade400,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -142,90 +152,119 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(
-        0xFF1E293B,
-      ), // Dark blue background like in image
-      appBar: AppBar(
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              widget.surah.namaLatin,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-            Text(
-              '${widget.surah.jumlahAyat} Ayat, ${widget.surah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
-              style: const TextStyle(fontSize: 12, color: Colors.white70),
-            ),
-          ],
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppTheme.primaryBlue.withValues(alpha: 0.03),
+              AppTheme.backgroundWhite,
+            ],
+            stops: const [0.0, 0.3],
+          ),
         ),
-        backgroundColor: const Color(0xFF1E293B),
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios, color: Colors.white),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Custom Header
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                      spreadRadius: -5,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppTheme.primaryBlue.withValues(alpha: 0.1),
+                            AppTheme.accentGreen.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.surah.namaLatin,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.onSurface,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          Text(
+                            '${widget.surah.jumlahAyat} Ayat • ${widget.surah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: AppTheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Text(
+                      widget.surah.nama,
+                      style: const TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.primaryBlue,
+                        fontFamily: 'Arabic',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Content
+              Expanded(
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          color: AppTheme.primaryBlue,
+                        ),
+                      )
+                    : Column(
+                        children: [
+                          // Bismillah (except for At-Taubah)
+                          if (widget.surah.nomor != 9 &&
+                              widget.surah.nomor != 1)
+                            _buildBismillah(),
+
+                          // Ayahs List
+                          Expanded(child: _buildAyahsList()),
+                        ],
+                      ),
+              ),
+
+              // Audio Controls - moved to bottom
+              _buildCompactAudioControls(),
+            ],
+          ),
         ),
-        actions: [],
       ),
-      body: _isLoading
-          ? const Center(
-              child: CircularProgressIndicator(color: AppTheme.primaryBlue),
-            )
-          : Column(
-              children: [
-                // Surah Header
-                // _buildSurahHeader(),
-
-                // Bismillah (except for At-Taubah)
-                if (widget.surah.nomor != 9 && widget.surah.nomor != 1)
-                  _buildBismillah(),
-
-                // Ayahs List
-                Expanded(child: _buildAyahsList()),
-
-                // Audio Controls - moved to bottom
-                _buildCompactAudioControls(),
-              ],
-            ),
     );
   }
-
-  // Widget _buildSurahHeader() {
-  //   return Container(
-  //     width: double.infinity,
-  //     margin: const EdgeInsets.all(0),
-  //     padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
-  //     decoration: BoxDecoration(
-  //       gradient: LinearGradient(
-  //         begin: Alignment.topLeft,
-  //         end: Alignment.bottomRight,
-  //         colors: [
-  //           const Color(0xFF8B5CF6), // Purple color matching the image
-  //           const Color(0xFFA855F7),
-  //         ],
-  //       ),
-  //     ),
-  //     child: Column(
-  //       children: [
-  //         // Surah name
-  //         Text(
-  //           widget.surah.namaLatin,
-  //           style: const TextStyle(
-  //             fontSize: 24,
-  //             fontWeight: FontWeight.bold,
-  //             color: Colors.white,
-  //           ),
-  //         ),
-  //         const SizedBox(height: 4),
-  //         // Surah info
-  //         Text(
-  //           '${widget.surah.jumlahAyat} Ayat, ${widget.surah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
-  //           style: const TextStyle(fontSize: 16, color: Colors.white70),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
 
   Widget _buildCompactAudioControls() {
     return StreamBuilder<bool>(
@@ -245,20 +284,24 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                 return Container(
                   decoration: BoxDecoration(
                     color: Colors.white,
+                    border: Border(
+                      top: BorderSide(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                      ),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.1),
-                        blurRadius: 10,
-                        offset: const Offset(0, -2),
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.12),
+                        blurRadius: 20,
+                        offset: const Offset(0, -4),
+                        spreadRadius: -5,
                       ),
                     ],
                   ),
                   child: SafeArea(
+                    top: false,
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.all(16),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -266,12 +309,12 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                           if (duration.inMilliseconds > 0) ...[
                             SliderTheme(
                               data: SliderTheme.of(context).copyWith(
-                                trackHeight: 2,
+                                trackHeight: 3,
                                 thumbShape: const RoundSliderThumbShape(
-                                  enabledThumbRadius: 6,
+                                  enabledThumbRadius: 7,
                                 ),
                                 overlayShape: const RoundSliderOverlayShape(
-                                  overlayRadius: 12,
+                                  overlayRadius: 14,
                                 ),
                               ),
                               child: Slider(
@@ -282,13 +325,13 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                                 onChanged: _seekTo,
                                 activeColor: AppTheme.primaryBlue,
                                 inactiveColor: AppTheme.primaryBlue.withValues(
-                                  alpha: 0.3,
+                                  alpha: 0.2,
                                 ),
                               ),
                             ),
                             Padding(
                               padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
+                                horizontal: 4,
                               ),
                               child: Row(
                                 mainAxisAlignment:
@@ -296,21 +339,24 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                                 children: [
                                   Text(
                                     _formatDuration(position),
-                                    style: const TextStyle(
-                                      fontSize: 11,
+                                    style: TextStyle(
+                                      fontSize: 12,
                                       color: AppTheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   Text(
                                     _formatDuration(duration),
-                                    style: const TextStyle(
-                                      fontSize: 11,
+                                    style: TextStyle(
+                                      fontSize: 12,
                                       color: AppTheme.onSurfaceVariant,
+                                      fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
+                            const SizedBox(height: 8),
                           ],
 
                           // Main control row
@@ -319,71 +365,115 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                               // Reciter Selection
                               Expanded(
                                 flex: 2,
-                                child: Row(
-                                  children: [
-                                    const Icon(
-                                      Icons.person,
-                                      size: 16,
-                                      color: AppTheme.onSurfaceVariant,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 8,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppTheme.primaryBlue.withValues(
+                                      alpha: 0.05,
                                     ),
-                                    const SizedBox(width: 4),
-                                    Expanded(
-                                      child: DropdownButtonHideUnderline(
-                                        child: DropdownButton<String>(
-                                          value: _selectedReciter,
-                                          isDense: true,
-                                          style: const TextStyle(
-                                            fontSize: 12,
-                                            color: AppTheme.onSurfaceVariant,
-                                          ),
-                                          items: QuranService.getReciters().map(
-                                            (reciter) {
-                                              return DropdownMenuItem<String>(
-                                                value: reciter['id']!,
-                                                child: Text(
-                                                  reciter['name']!,
-                                                  style: const TextStyle(
-                                                    fontSize: 12,
-                                                  ),
-                                                  overflow:
-                                                      TextOverflow.ellipsis,
-                                                ),
-                                              );
-                                            },
-                                          ).toList(),
-                                          onChanged: (String? newValue) {
-                                            if (newValue != null) {
-                                              _changeReciter(newValue);
-                                            }
-                                          },
-                                        ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppTheme.primaryBlue.withValues(
+                                        alpha: 0.1,
                                       ),
                                     ),
-                                  ],
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.person_rounded,
+                                        size: 18,
+                                        color: AppTheme.primaryBlue,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Expanded(
+                                        child: DropdownButtonHideUnderline(
+                                          child: DropdownButton<String>(
+                                            value: _selectedReciter,
+                                            isDense: true,
+                                            isExpanded: true,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: AppTheme.onSurface,
+                                              fontWeight: FontWeight.w500,
+                                            ),
+                                            icon: Icon(
+                                              Icons.arrow_drop_down_rounded,
+                                              color: AppTheme.primaryBlue,
+                                            ),
+                                            items: QuranService.getReciters()
+                                                .map((reciter) {
+                                                  return DropdownMenuItem<
+                                                    String
+                                                  >(
+                                                    value: reciter['id']!,
+                                                    child: Text(
+                                                      reciter['name']!,
+                                                      overflow:
+                                                          TextOverflow.ellipsis,
+                                                    ),
+                                                  );
+                                                })
+                                                .toList(),
+                                            onChanged: (String? newValue) {
+                                              if (newValue != null) {
+                                                _changeReciter(newValue);
+                                              }
+                                            },
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
+
+                              const SizedBox(width: 16),
 
                               // Control Buttons
                               Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  IconButton(
-                                    onPressed: _stop,
-                                    icon: const Icon(Icons.stop),
-                                    iconSize: 24,
-                                    color: AppTheme.onSurfaceVariant,
-                                    constraints: const BoxConstraints(
-                                      minWidth: 40,
-                                      minHeight: 40,
-                                    ),
-                                    padding: EdgeInsets.zero,
-                                  ),
                                   Container(
-                                    width: 50,
-                                    height: 50,
+                                    width: 44,
+                                    height: 44,
                                     decoration: BoxDecoration(
+                                      color: AppTheme.primaryBlue.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: IconButton(
+                                      onPressed: _stop,
+                                      icon: const Icon(Icons.stop_rounded),
+                                      iconSize: 22,
                                       color: AppTheme.primaryBlue,
-                                      shape: BoxShape.circle,
+                                      padding: EdgeInsets.zero,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    width: 56,
+                                    height: 56,
+                                    decoration: BoxDecoration(
+                                      gradient: LinearGradient(
+                                        colors: [
+                                          AppTheme.primaryBlue,
+                                          AppTheme.accentGreen,
+                                        ],
+                                      ),
+                                      borderRadius: BorderRadius.circular(16),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: AppTheme.primaryBlue
+                                              .withValues(alpha: 0.3),
+                                          blurRadius: 12,
+                                          offset: const Offset(0, 4),
+                                        ),
+                                      ],
                                     ),
                                     child: IconButton(
                                       onPressed: _isLoadingAudio
@@ -391,10 +481,10 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                                           : _playPause,
                                       icon: _isLoadingAudio
                                           ? const SizedBox(
-                                              width: 20,
-                                              height: 20,
+                                              width: 24,
+                                              height: 24,
                                               child: CircularProgressIndicator(
-                                                strokeWidth: 2,
+                                                strokeWidth: 2.5,
                                                 valueColor:
                                                     AlwaysStoppedAnimation<
                                                       Color
@@ -403,26 +493,33 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
                                             )
                                           : Icon(
                                               isPlaying
-                                                  ? Icons.pause
-                                                  : Icons.play_arrow,
+                                                  ? Icons.pause_rounded
+                                                  : Icons.play_arrow_rounded,
                                               color: Colors.white,
-                                              size: 28,
+                                              size: 32,
                                             ),
                                       padding: EdgeInsets.zero,
                                     ),
                                   ),
-                                  IconButton(
-                                    onPressed: () {
-                                      // Future: Add next/previous surah functionality
-                                    },
-                                    icon: const Icon(Icons.skip_next),
-                                    iconSize: 24,
-                                    color: AppTheme.onSurfaceVariant,
-                                    constraints: const BoxConstraints(
-                                      minWidth: 40,
-                                      minHeight: 40,
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: AppTheme.accentGreen.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      borderRadius: BorderRadius.circular(12),
                                     ),
-                                    padding: EdgeInsets.zero,
+                                    child: IconButton(
+                                      onPressed: () {
+                                        // Future: Add next/previous surah functionality
+                                      },
+                                      icon: const Icon(Icons.skip_next_rounded),
+                                      iconSize: 22,
+                                      color: AppTheme.accentGreen,
+                                      padding: EdgeInsets.zero,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -443,26 +540,26 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
 
   Widget _buildBismillah() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      margin: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            AppTheme.primaryBlue.withOpacity(0.1),
-            AppTheme.accentGreen.withOpacity(0.1),
+            AppTheme.primaryBlue.withValues(alpha: 0.1),
+            AppTheme.accentGreen.withValues(alpha: 0.1),
           ],
         ),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppTheme.primaryBlue.withOpacity(0.2)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
       ),
       child: const Text(
         'بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ',
         style: TextStyle(
-          fontSize: 18,
+          fontSize: 22,
           fontWeight: FontWeight.w600,
-          color: AppTheme.onSurface,
+          color: AppTheme.primaryBlue,
           letterSpacing: 0.5,
-          height: 1.5,
+          height: 1.8,
         ),
         textAlign: TextAlign.center,
       ),
@@ -471,13 +568,46 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
 
   Widget _buildAyahsList() {
     if (_surahData == null) {
-      return const Center(child: Text('No data available'));
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    AppTheme.accentGreen.withValues(alpha: 0.1),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.menu_book_rounded,
+                size: 64,
+                color: AppTheme.primaryBlue,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Tidak ada data tersedia',
+              style: TextStyle(
+                fontSize: 18,
+                color: AppTheme.onSurface,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     final ayahs = _surahData!['ayat'] as List<dynamic>;
 
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      physics: const BouncingScrollPhysics(),
       itemCount: ayahs.length,
       itemBuilder: (context, index) {
         final ayah = ayahs[index];
@@ -488,51 +618,55 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
 
   Widget _buildAyahCard(Map<String, dynamic> ayah) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 0),
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(20),
-      decoration: const BoxDecoration(
-        color: Color(0xFF1E293B), // Dark blue background like in image
-        border: Border(bottom: BorderSide(color: Color(0xFF334155), width: 1)),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+            spreadRadius: -5,
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Arabic Text with ayah number
+          // Ayah number badge
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: Text(
-                  ayah['teksArab'],
-                  style: const TextStyle(
-                    fontSize: 24,
-                    height: 1.8,
-                    color: Colors.white,
-                    fontWeight: FontWeight.w500,
-                    letterSpacing: 0.5,
-                  ),
-                  textAlign: TextAlign.right,
-                  textDirection: TextDirection.rtl,
-                ),
-              ),
-              const SizedBox(width: 12),
-              // Ayah number in circle
               Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white70, width: 1.5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
                 ),
-                child: Center(
-                  child: Text(
-                    ayah['ayat'].toString(),
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.primaryBlue.withValues(alpha: 0.15),
+                      AppTheme.accentGreen.withValues(alpha: 0.1),
+                    ],
                   ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.circle, size: 8, color: AppTheme.primaryBlue),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Ayat ${ayah['ayat']}',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: AppTheme.primaryBlue,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -540,13 +674,45 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
 
           const SizedBox(height: 16),
 
+          // Arabic Text
+          Text(
+            ayah['teksArab'],
+            style: const TextStyle(
+              fontSize: 26,
+              height: 2.0,
+              color: AppTheme.onSurface,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 0.5,
+            ),
+            textAlign: TextAlign.right,
+            textDirection: TextDirection.rtl,
+          ),
+
+          const SizedBox(height: 16),
+
+          // Divider
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryBlue.withValues(alpha: 0.0),
+                  AppTheme.primaryBlue.withValues(alpha: 0.2),
+                  AppTheme.primaryBlue.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
           // Latin transliteration
           Text(
             ayah['teksLatin'],
-            style: const TextStyle(
-              fontSize: 16,
-              height: 1.5,
-              color: Color(0xFF94A3B8),
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.6,
+              color: AppTheme.onSurfaceVariant,
               fontStyle: FontStyle.italic,
             ),
             textAlign: TextAlign.left,
@@ -556,11 +722,11 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
 
           // Indonesian translation
           Text(
-            '${ayah['ayat']}. ${ayah['teksIndonesia']}',
-            style: const TextStyle(
-              fontSize: 16,
-              height: 1.6,
-              color: Colors.white,
+            ayah['teksIndonesia'],
+            style: TextStyle(
+              fontSize: 15,
+              height: 1.7,
+              color: AppTheme.onSurface.withValues(alpha: 0.9),
               fontWeight: FontWeight.w400,
             ),
             textAlign: TextAlign.left,
@@ -572,29 +738,45 @@ class _SurahDetailPageState extends State<SurahDetailPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              // Check button
+              // Bookmark button
               Container(
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white54, width: 1),
+                  color: AppTheme.accentGreen.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.accentGreen.withValues(alpha: 0.2),
+                  ),
                 ),
-                child: const Icon(Icons.check, color: Colors.white54, size: 20),
+                child: IconButton(
+                  onPressed: () {
+                    // Add bookmark functionality
+                  },
+                  icon: const Icon(Icons.bookmark_border_rounded, size: 20),
+                  color: AppTheme.accentGreen,
+                  padding: EdgeInsets.zero,
+                ),
               ),
-              const SizedBox(width: 12),
-              // Menu button
+              const SizedBox(width: 10),
+              // Share button
               Container(
-                width: 36,
-                height: 36,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white54, width: 1),
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                  ),
                 ),
-                child: const Icon(
-                  Icons.more_horiz,
-                  color: Colors.white54,
-                  size: 20,
+                child: IconButton(
+                  onPressed: () {
+                    // Add share functionality
+                  },
+                  icon: const Icon(Icons.share_outlined, size: 20),
+                  color: AppTheme.primaryBlue,
+                  padding: EdgeInsets.zero,
                 ),
               ),
             ],

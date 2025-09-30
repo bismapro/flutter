@@ -381,6 +381,15 @@ class HomeTabContent extends StatelessWidget {
                                 const SizedBox(width: 14),
                                 _buildEnhancedFeatureButton(
                                   context,
+                                  Icons.access_alarm,
+                                  'Sholat',
+                                  AppTheme.primaryBlue,
+                                  onTap: () =>
+                                      Navigator.pushNamed(context, '/sholat'),
+                                ),
+                                const SizedBox(width: 14),
+                                _buildEnhancedFeatureButton(
+                                  context,
                                   Icons.nightlight_round,
                                   'Puasa',
                                   AppTheme.accentGreen,

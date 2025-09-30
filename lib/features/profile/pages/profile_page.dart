@@ -147,8 +147,6 @@ class _ProfilePageState extends State<ProfilePage> {
                             isTablet: isTablet,
                           ),
 
-                          SizedBox(height: isTablet ? 24 : 20),
-
                           _buildMenuItem(
                             icon: Icons.security,
                             title: 'Ubah Password',
