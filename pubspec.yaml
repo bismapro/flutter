@@ -60,6 +60,7 @@ dependencies:
   timezone: ^0.9.4
   package_info_plus: ^8.0.2
   path_provider: ^2.1.4
+  flutter_islamic_icons: ^1.0.2
 
 dev_dependencies:
   flutter_test:

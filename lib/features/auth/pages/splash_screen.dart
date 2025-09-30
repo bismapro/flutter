@@ -344,7 +344,7 @@ class _SplashScreenState extends State<SplashScreen>
                             return Opacity(
                               opacity: _textFade.value,
                               child: Text(
-                                'Loading your Islamic companion...',
+                                'Loading...',
                                 style: TextStyle(
                                   color: Colors.white.withValues(alpha: 0.9),
                                   fontSize: 15,

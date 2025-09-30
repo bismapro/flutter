@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_islamic_icons/flutter_islamic_icons.dart';
 import '../../../../app/theme.dart';
 
 class CustomBottomAppBar extends StatelessWidget {
@@ -22,10 +23,14 @@ class CustomBottomAppBar extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
             _buildNavItem(Icons.home_outlined, 'Home', 0),
-            _buildNavItem(Icons.people_outline, 'Komunitas', 1),
-            _buildNavItem(Icons.article_outlined, 'Artikel', 2),
-            _buildNavItem(Icons.workspace_premium_outlined, 'Premium', 3),
-            _buildNavItem(Icons.person_outline, 'Profile', 4),
+            _buildNavItem(
+              FlutterIslamicIcons.prayingPerson,
+              'Sholat',
+              1,
+            ), // ← ganti jadi ikon rukuk
+            _buildNavItem(FlutterIslamicIcons.quran2, 'Al-Quran', 2),
+            _buildNavItem(FlutterIslamicIcons.family, 'Monitoring', 3),
+            _buildNavItem(Icons.forum_outlined, 'Komunitas', 4),
           ],
         ),
       ),
