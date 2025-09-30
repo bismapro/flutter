@@ -29,7 +29,7 @@ class _ArtikelPageState extends State<ArtikelPage> {
       'title': 'Keutamaan Membaca Al-Quran di Bulan Ramadhan',
       'summary':
           'Membaca Al-Quran di bulan Ramadhan memiliki pahala yang berlipat ganda. Simak penjelasan lengkapnya dalam artikel ini.',
-      'category': 'Ramadhan',
+      'category': 'Haji',
       'date': '2 hari yang lalu',
       'readTime': '5 min',
       'imageUrl': 'https://picsum.photos/300/200?random=1',

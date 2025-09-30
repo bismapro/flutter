@@ -27,6 +27,8 @@ class _ArtikelDetailPageState extends State<ArtikelDetailPage> {
         return Colors.teal.shade500;
       case 'Al-Quran':
         return AppTheme.primaryBlue;
+      case 'Haji':
+        return Colors.amber.shade700;
       default:
         return AppTheme.primaryBlue;
     }
@@ -46,6 +48,8 @@ class _ArtikelDetailPageState extends State<ArtikelDetailPage> {
         return Icons.people_rounded;
       case 'Al-Quran':
         return Icons.menu_book_rounded;
+      case 'Haji':
+        return Icons.location_on_rounded;
       default:
         return Icons.article_rounded;
     }
@@ -407,6 +411,12 @@ class _ArtikelDetailPageState extends State<ArtikelDetailPage> {
                     ),
                     const SizedBox(height: 32),
 
+                    // Special Haji Section
+                    if (widget.article['category'] == 'Haji') ...[
+                      _buildHajiSpecialSection(categoryColor),
+                      const SizedBox(height: 32),
+                    ],
+
                     // Tags
                     if (widget.article['tags'] != null) ...[
                       Row(
@@ -672,5 +682,516 @@ REFERENSI:
       'Pentingnya Akhlakul Karimah',
     ];
     return titles[index % titles.length];
+  }
+
+  Widget _buildHajiSpecialSection(Color categoryColor) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Section Header
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                categoryColor.withValues(alpha: 0.1),
+                categoryColor.withValues(alpha: 0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: categoryColor.withValues(alpha: 0.3),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: categoryColor.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.place_rounded,
+                  color: categoryColor,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Konten Khusus Haji',
+                      style: TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        color: AppTheme.onSurface,
+                      ),
+                    ),
+                    Text(
+                      'Video live dan panduan lengkap ibadah haji',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: AppTheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Makkah Live HD Section
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: categoryColor.withValues(alpha: 0.2),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: categoryColor.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+                spreadRadius: -4,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.red.withValues(alpha: 0.2),
+                          Colors.red.withValues(alpha: 0.1),
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.live_tv_rounded,
+                      color: Colors.red,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Makkah Live HD',
+                          style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.onSurface,
+                          ),
+                        ),
+                        Text(
+                          'Streaming langsung dari Masjidil Haram',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: AppTheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.red,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 8,
+                          height: 8,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          'LIVE',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Container(
+                  height: 200,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        categoryColor.withValues(alpha: 0.3),
+                        categoryColor.withValues(alpha: 0.1),
+                      ],
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      // Placeholder untuk video thumbnail
+                      Container(
+                        width: double.infinity,
+                        height: double.infinity,
+                        decoration: BoxDecoration(
+                          image: DecorationImage(
+                            image: NetworkImage(
+                              'https://picsum.photos/400/200?random=makkah',
+                            ),
+                            fit: BoxFit.cover,
+                            onError: (exception, stackTrace) {},
+                          ),
+                        ),
+                      ),
+                      // Play button overlay
+                      Center(
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _showMakkahLiveDialog();
+                  },
+                  icon: Icon(Icons.play_circle_filled_rounded),
+                  label: Text('Tonton Makkah Live HD'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+
+        // Haji Guide Quick Access
+        Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: categoryColor.withValues(alpha: 0.2),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: categoryColor.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, 4),
+                spreadRadius: -4,
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: categoryColor.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.menu_book_rounded,
+                      color: categoryColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    'Panduan Haji Lengkap',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              ...List.generate(
+                3,
+                (index) => Container(
+                  margin: const EdgeInsets.only(bottom: 12),
+                  child: InkWell(
+                    onTap: () {
+                      _showHajiGuideDialog(_getHajiGuideTitle(index));
+                    },
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: categoryColor.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: categoryColor.withValues(alpha: 0.2),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: categoryColor.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Icon(
+                              _getHajiGuideIcon(index),
+                              color: categoryColor,
+                              size: 20,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _getHajiGuideTitle(index),
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppTheme.onSurface,
+                                  ),
+                                ),
+                                Text(
+                                  _getHajiGuideSubtitle(index),
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    color: AppTheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Icon(
+                            Icons.arrow_forward_ios_rounded,
+                            color: categoryColor,
+                            size: 16,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showMakkahLiveDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Row(
+          children: [
+            Icon(Icons.live_tv_rounded, color: Colors.red),
+            const SizedBox(width: 8),
+            Text('Makkah Live HD'),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Pilih sumber streaming Makkah Live:',
+              style: TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            _buildLiveStreamOption(
+              'Haramain Live',
+              'Stream resmi dari Haramain',
+              Icons.mosque_rounded,
+            ),
+            const SizedBox(height: 8),
+            _buildLiveStreamOption(
+              'YouTube Live',
+              'Streaming melalui YouTube',
+              Icons.play_circle_rounded,
+            ),
+            const SizedBox(height: 8),
+            _buildLiveStreamOption(
+              'Website Resmi',
+              'Kunjungi website haramain.gov.sa',
+              Icons.web_rounded,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Tutup'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLiveStreamOption(String title, String subtitle, IconData icon) {
+    return InkWell(
+      onTap: () {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Membuka $title...'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      },
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          border: Border.all(color: Colors.grey.shade300),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(icon, color: Colors.red),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showHajiGuideDialog(String title) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: Text(title),
+        content: Text(
+          'Panduan lengkap tentang $title akan ditampilkan di sini. '
+          'Termasuk langkah-langkah detail, doa-doa, dan tips praktis.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Tutup'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Membuka panduan $title...'),
+                  backgroundColor: AppTheme.accentGreen,
+                ),
+              );
+            },
+            child: Text('Baca Lengkap'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _getHajiGuideTitle(int index) {
+    const titles = [
+      'Rukun dan Wajib Haji',
+      'Tata Cara Thawaf',
+      'Panduan Sa\'i',
+    ];
+    return titles[index];
+  }
+
+  String _getHajiGuideSubtitle(int index) {
+    const subtitles = [
+      'Pelajari rukun dan wajib haji',
+      'Langkah-langkah thawaf yang benar',
+      'Panduan lengkap sa\'i antara Shafa dan Marwah',
+    ];
+    return subtitles[index];
+  }
+
+  IconData _getHajiGuideIcon(int index) {
+    const icons = [
+      Icons.checklist_rounded,
+      Icons.refresh_rounded,
+      Icons.directions_walk_rounded,
+    ];
+    return icons[index];
   }
 }
