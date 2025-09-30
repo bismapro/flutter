@@ -35,18 +35,21 @@ class _SedekahPageState extends State<SedekahPage> {
   int get _totalBulanIni {
     final now = DateTime.now();
     return _riwayatSedekah
-        .where((s) =>
-            s['date'].month == now.month && s['date'].year == now.year)
+        .where(
+          (s) => s['date'].month == now.month && s['date'].year == now.year,
+        )
         .fold(0, (sum, item) => sum + (item['amount'] as int));
   }
 
   int get _totalHariIni {
     final now = DateTime.now();
     return _riwayatSedekah
-        .where((s) =>
-            s['date'].day == now.day &&
-            s['date'].month == now.month &&
-            s['date'].year == now.year)
+        .where(
+          (s) =>
+              s['date'].day == now.day &&
+              s['date'].month == now.month &&
+              s['date'].year == now.year,
+        )
         .fold(0, (sum, item) => sum + (item['amount'] as int));
   }
 
@@ -67,9 +70,7 @@ class _SedekahPageState extends State<SedekahPage> {
   void _navigateToAddSedekah() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const AddSedekahPage(),
-      ),
+      MaterialPageRoute(builder: (context) => const AddSedekahPage()),
     );
 
     if (result != null && result is Map<String, dynamic>) {
@@ -374,16 +375,19 @@ class _SedekahPageState extends State<SedekahPage> {
     );
   }
 
-  Widget _buildStatCard(String value, String label, Color color, IconData icon) {
+  Widget _buildStatCard(
+    String value,
+    String label,
+    Color color,
+    IconData icon,
+  ) {
     return Expanded(
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: color.withValues(alpha: 0.2),
-          ),
+          border: Border.all(color: color.withValues(alpha: 0.2)),
           boxShadow: [
             BoxShadow(
               color: color.withValues(alpha: 0.08),
@@ -441,9 +445,7 @@ class _SedekahPageState extends State<SedekahPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppTheme.accentGreen.withValues(alpha: 0.1),
-        ),
+        border: Border.all(color: AppTheme.accentGreen.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
             color: AppTheme.accentGreen.withValues(alpha: 0.08),
@@ -507,7 +509,8 @@ class _SedekahPageState extends State<SedekahPage> {
                       ),
                     ],
                   ),
-                  if (riwayat['note'] != null && riwayat['note'].isNotEmpty) ...[
+                  if (riwayat['note'] != null &&
+                      riwayat['note'].isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       riwayat['note'],
@@ -721,7 +724,9 @@ class _AddSedekahPageState extends State<AddSedekahPage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                              color: AppTheme.primaryBlue.withValues(
+                                alpha: 0.1,
+                              ),
                             ),
                           ),
                           child: DropdownButtonFormField<String>(
@@ -778,7 +783,9 @@ class _AddSedekahPageState extends State<AddSedekahPage> {
                               color: Colors.white,
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                color: AppTheme.primaryBlue.withValues(
+                                  alpha: 0.1,
+                                ),
                               ),
                             ),
                             child: Row(
@@ -790,8 +797,10 @@ class _AddSedekahPageState extends State<AddSedekahPage> {
                                 ),
                                 const SizedBox(width: 16),
                                 Text(
-                                  DateFormat('dd MMMM yyyy', 'id_ID')
-                                      .format(_selectedDate),
+                                  DateFormat(
+                                    'dd MMMM yyyy',
+                                    'id_ID',
+                                  ).format(_selectedDate),
                                   style: const TextStyle(
                                     fontSize: 15,
                                     color: AppTheme.onSurface,
@@ -819,7 +828,9 @@ class _AddSedekahPageState extends State<AddSedekahPage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: AppTheme.accentGreen.withValues(alpha: 0.2),
+                              color: AppTheme.accentGreen.withValues(
+                                alpha: 0.2,
+                              ),
                             ),
                           ),
                           child: TextFormField(
@@ -846,7 +857,10 @@ class _AddSedekahPageState extends State<AddSedekahPage> {
                             onChanged: (value) {
                               String cleanValue = value.replaceAll('.', '');
                               if (cleanValue.isNotEmpty) {
-                                final formatter = NumberFormat('#,###', 'id_ID');
+                                final formatter = NumberFormat(
+                                  '#,###',
+                                  'id_ID',
+                                );
                                 String formatted = formatter.format(
                                   int.parse(cleanValue),
                                 );
@@ -884,7 +898,9 @@ class _AddSedekahPageState extends State<AddSedekahPage> {
                             color: Colors.white,
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(
-                              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                              color: AppTheme.primaryBlue.withValues(
+                                alpha: 0.1,
+                              ),
                             ),
                           ),
                           child: TextFormField(
@@ -923,7 +939,9 @@ class _AddSedekahPageState extends State<AddSedekahPage> {
                             borderRadius: BorderRadius.circular(16),
                             boxShadow: [
                               BoxShadow(
-                                color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                                color: AppTheme.primaryBlue.withValues(
+                                  alpha: 0.3,
+                                ),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
                               ),

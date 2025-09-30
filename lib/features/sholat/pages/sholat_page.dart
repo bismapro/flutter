@@ -123,15 +123,31 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
 
   String get formattedDate {
     final months = [
-      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
     ];
     return '${selectedDate.day} ${months[selectedDate.month - 1]} ${selectedDate.year}';
   }
 
   String get dayName {
     final days = [
-      'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
     ];
     return days[selectedDate.weekday - 1];
   }
@@ -213,9 +229,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                 child: Column(
                   children: [
                     Text(
-                      isToday
-                          ? 'Hari ini'
-                          : dayName,
+                      isToday ? 'Hari ini' : dayName,
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: isSmallScreen ? 16 : 18,
@@ -748,8 +762,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                   GestureDetector(
                     onTap: () {
                       setState(() {
-                        prayerData['alarmActive'] =
-                            !prayerData['alarmActive'];
+                        prayerData['alarmActive'] = !prayerData['alarmActive'];
                       });
                     },
                     child: Container(

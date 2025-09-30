@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
 import 'package:test_flutter/features/artikel/pages/artikel_page.dart';
 import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
+import 'package:test_flutter/features/monitoring/pages/monitoring_page.dart';
 import 'package:test_flutter/features/premium/pages/premium_page.dart';
 import 'package:test_flutter/features/profile/pages/profile_page.dart';
+import 'package:test_flutter/features/tahajud/pages/tahajud_page.dart';
 import '../../../app/theme.dart';
 
 class HomePage extends StatefulWidget {
@@ -20,7 +22,8 @@ class _HomePageState extends State<HomePage> {
     const HomeTabContent(),
     const KomunitasPage(),
     const ArtikelPage(),
-    const PremiumPage(),
+    const MonitoringPage(),
+    // const TahajudPage(),
     const ProfilePage(),
   ];
 
