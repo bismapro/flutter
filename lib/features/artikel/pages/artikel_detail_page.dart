@@ -699,9 +699,7 @@ REFERENSI:
               ],
             ),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: categoryColor.withValues(alpha: 0.3),
-            ),
+            border: Border.all(color: categoryColor.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
@@ -751,9 +749,7 @@ REFERENSI:
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: categoryColor.withValues(alpha: 0.2),
-            ),
+            border: Border.all(color: categoryColor.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
                 color: categoryColor.withValues(alpha: 0.1),
@@ -920,9 +916,7 @@ REFERENSI:
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: categoryColor.withValues(alpha: 0.2),
-            ),
+            border: Border.all(color: categoryColor.withValues(alpha: 0.2)),
             boxShadow: [
               BoxShadow(
                 color: categoryColor.withValues(alpha: 0.1),
@@ -1038,9 +1032,7 @@ REFERENSI:
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Row(
           children: [
             Icon(Icons.live_tv_rounded, color: Colors.red),
@@ -1113,17 +1105,11 @@ REFERENSI:
                 children: [
                   Text(
                     title,
-                    style: TextStyle(
-                      fontWeight: FontWeight.w600,
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
                   ),
                   Text(
                     subtitle,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
                   ),
                 ],
               ),
@@ -1138,9 +1124,7 @@ REFERENSI:
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(title),
         content: Text(
           'Panduan lengkap tentang $title akan ditampilkan di sini. '

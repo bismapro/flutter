@@ -87,29 +87,29 @@ class HomeTabContent extends StatelessWidget {
           ),
 
           // Background image with custom positioning
-          Positioned(
-            top: -40, // Adjust this value to control vertical position
-            left: 0,
-            right: 0,
-            height:
-                MediaQuery.of(context).size.height *
-                0.6, // Control image height
-            child: Container(
-              decoration: BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage("assets/images/background/bg-1.png"),
-                  fit: BoxFit.cover,
-                  alignment: Alignment.topCenter,
-                  colorFilter: ColorFilter.mode(
-                    Colors.white.withValues(
-                      alpha: 0.01,
-                    ), // transparan banget, nyatu dengan background
-                    BlendMode.srcOver, // campur halus dengan background
-                  ),
-                ),
-              ),
-            ),
-          ),
+          // Positioned(
+          //   top: -40, // Adjust this value to control vertical position
+          //   left: 0,
+          //   right: 0,
+          //   height:
+          //       MediaQuery.of(context).size.height *
+          //       0.6, // Control image height
+          //   child: Container(
+          //     decoration: BoxDecoration(
+          //       image: DecorationImage(
+          //         image: AssetImage("assets/images/background/bg-1.png"),
+          //         fit: BoxFit.cover,
+          //         alignment: Alignment.topCenter,
+          //         colorFilter: ColorFilter.mode(
+          //           Colors.white.withValues(
+          //             alpha: 0.01,
+          //           ), // transparan banget, nyatu dengan background
+          //           BlendMode.srcOver, // campur halus dengan background
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          // ),
 
           // Top gradient section with prayer times
           SafeArea(
@@ -395,7 +395,7 @@ class HomeTabContent extends StatelessWidget {
                                   context,
                                   Icons.nightlight_round,
                                   'Puasa',
-                                  AppTheme.accentGreen,
+                                  AppTheme.primaryBlue,
                                   onTap: () =>
                                       Navigator.pushNamed(context, '/puasa'),
                                 ),
@@ -415,7 +415,7 @@ class HomeTabContent extends StatelessWidget {
                                   context,
                                   Icons.volunteer_activism_rounded,
                                   'Sedekah',
-                                  AppTheme.accentGreen,
+                                  AppTheme.primaryBlue,
                                   onTap: () =>
                                       Navigator.pushNamed(context, '/zakat'),
                                 ),
@@ -434,200 +434,205 @@ class HomeTabContent extends StatelessWidget {
                           const SizedBox(height: 36),
 
                           // Ngaji Online Section - Enhanced
-                          _buildSectionHeader(
-                            context,
-                            'Ngaji Online',
-                            Icons.play_circle_rounded,
-                            AppTheme.accentGreen,
-                          ),
-                          const SizedBox(height: 16),
+                          // _buildSectionHeader(
+                          //   context,
+                          //   'Ngaji Online',
+                          //   Icons.play_circle_rounded,
+                          //   AppTheme.accentGreen,
+                          // ),
+                          // const SizedBox(height: 16),
 
                           // Enhanced Live Stream Card
-                          Container(
-                            height: 220,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(20),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryBlue.withValues(
-                                    alpha: 0.15,
-                                  ),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 8),
-                                  spreadRadius: -5,
-                                ),
-                              ],
-                            ),
-                            child: ClipRRect(
-                              borderRadius: BorderRadius.circular(20),
-                              child: Stack(
-                                children: [
-                                  // Image
-                                  Image.network(
-                                    'https://picsum.photos/400/220?random=1',
-                                    width: double.infinity,
-                                    height: double.infinity,
-                                    fit: BoxFit.cover,
-                                  ),
-                                  // Gradient overlay
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      gradient: LinearGradient(
-                                        colors: [
-                                          Colors.black.withValues(alpha: 0.2),
-                                          Colors.transparent,
-                                          Colors.black.withValues(alpha: 0.8),
-                                        ],
-                                        begin: Alignment.topCenter,
-                                        end: Alignment.bottomCenter,
-                                      ),
-                                    ),
-                                  ),
-                                  // Live Badge
-                                  Positioned(
-                                    top: 16,
-                                    left: 16,
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.red,
-                                        borderRadius: BorderRadius.circular(20),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: Colors.red.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                            blurRadius: 8,
-                                            spreadRadius: 2,
-                                          ),
-                                        ],
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Container(
-                                            width: 6,
-                                            height: 6,
-                                            decoration: const BoxDecoration(
-                                              color: Colors.white,
-                                              shape: BoxShape.circle,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          const Text(
-                                            'LIVE',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                  // Play button
-                                  Center(
-                                    child: Container(
-                                      width: 60,
-                                      height: 60,
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        shape: BoxShape.circle,
-                                        border: Border.all(
-                                          color: Colors.white,
-                                          width: 2,
-                                        ),
-                                      ),
-                                      child: const Icon(
-                                        Icons.play_arrow_rounded,
-                                        color: Colors.white,
-                                        size: 36,
-                                      ),
-                                    ),
-                                  ),
-                                  // Bottom info
-                                  Positioned(
-                                    bottom: 16,
-                                    left: 16,
-                                    right: 16,
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.spaceBetween,
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              const Text(
-                                                'Kajian Tafsir Al-Quran',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                maxLines: 1,
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Ustadz Ahmad Fauzi',
-                                                style: TextStyle(
-                                                  color: Colors.white
-                                                      .withValues(alpha: 0.9),
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 12,
-                                            vertical: 6,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.black.withValues(
-                                              alpha: 0.5,
-                                            ),
-                                            borderRadius: BorderRadius.circular(
-                                              20,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              const Icon(
-                                                Icons.remove_red_eye_rounded,
-                                                color: Colors.white,
-                                                size: 16,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              const Text(
-                                                '3.6K',
-                                                style: TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 13,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                          // GestureDetector(
+                          //   onTap: () {
+                          //     Navigator.pushNamed(context, '/ngaji-online');
+                          //   },
+                          //   child: Container(
+                          //     height: 220,
+                          //     decoration: BoxDecoration(
+                          //       borderRadius: BorderRadius.circular(20),
+                          //       boxShadow: [
+                          //         BoxShadow(
+                          //           color: AppTheme.primaryBlue.withValues(
+                          //             alpha: 0.15,
+                          //           ),
+                          //           blurRadius: 20,
+                          //           offset: const Offset(0, 8),
+                          //           spreadRadius: -5,
+                          //         ),
+                          //       ],
+                          //     ),
+                          //   child: ClipRRect(
+                          //     borderRadius: BorderRadius.circular(20),
+                          //     child: Stack(
+                          //       children: [
+                          //         // Image
+                          //         Image.network(
+                          //           'https://picsum.photos/400/220?random=1',
+                          //           width: double.infinity,
+                          //           height: double.infinity,
+                          //           fit: BoxFit.cover,
+                          //         ),
+                          //         // Gradient overlay
+                          //         Container(
+                          //           decoration: BoxDecoration(
+                          //             gradient: LinearGradient(
+                          //               colors: [
+                          //                 Colors.black.withValues(alpha: 0.2),
+                          //                 Colors.transparent,
+                          //                 Colors.black.withValues(alpha: 0.8),
+                          //               ],
+                          //               begin: Alignment.topCenter,
+                          //               end: Alignment.bottomCenter,
+                          //             ),
+                          //           ),
+                          //         ),
+                          //         // Live Badge
+                          //         Positioned(
+                          //           top: 16,
+                          //           left: 16,
+                          //           child: Container(
+                          //             padding: const EdgeInsets.symmetric(
+                          //               horizontal: 12,
+                          //               vertical: 6,
+                          //             ),
+                          //             decoration: BoxDecoration(
+                          //               color: Colors.red,
+                          //               borderRadius: BorderRadius.circular(20),
+                          //               boxShadow: [
+                          //                 BoxShadow(
+                          //                   color: Colors.red.withValues(
+                          //                     alpha: 0.5,
+                          //                   ),
+                          //                   blurRadius: 8,
+                          //                   spreadRadius: 2,
+                          //                 ),
+                          //               ],
+                          //             ),
+                          //             child: Row(
+                          //               mainAxisSize: MainAxisSize.min,
+                          //               children: [
+                          //                 Container(
+                          //                   width: 6,
+                          //                   height: 6,
+                          //                   decoration: const BoxDecoration(
+                          //                     color: Colors.white,
+                          //                     shape: BoxShape.circle,
+                          //                   ),
+                          //                 ),
+                          //                 const SizedBox(width: 6),
+                          //                 const Text(
+                          //                   'LIVE',
+                          //                   style: TextStyle(
+                          //                     color: Colors.white,
+                          //                     fontSize: 12,
+                          //                     fontWeight: FontWeight.bold,
+                          //                   ),
+                          //                 ),
+                          //               ],
+                          //             ),
+                          //           ),
+                          //         ),
+                          //         // Play button
+                          //         Center(
+                          //           child: Container(
+                          //             width: 60,
+                          //             height: 60,
+                          //             decoration: BoxDecoration(
+                          //               color: Colors.white.withValues(
+                          //                 alpha: 0.3,
+                          //               ),
+                          //               shape: BoxShape.circle,
+                          //               border: Border.all(
+                          //                 color: Colors.white,
+                          //                 width: 2,
+                          //               ),
+                          //             ),
+                          //             child: const Icon(
+                          //               Icons.play_arrow_rounded,
+                          //               color: Colors.white,
+                          //               size: 36,
+                          //             ),
+                          //           ),
+                          //         ),
+                          //         // Bottom info
+                          //         Positioned(
+                          //           bottom: 16,
+                          //           left: 16,
+                          //           right: 16,
+                          //           child: Row(
+                          //             mainAxisAlignment:
+                          //                 MainAxisAlignment.spaceBetween,
+                          //             children: [
+                          //               Expanded(
+                          //                 child: Column(
+                          //                   crossAxisAlignment:
+                          //                       CrossAxisAlignment.start,
+                          //                   children: [
+                          //                     const Text(
+                          //                       'Kajian Tafsir Al-Quran',
+                          //                       style: TextStyle(
+                          //                         color: Colors.white,
+                          //                         fontSize: 16,
+                          //                         fontWeight: FontWeight.bold,
+                          //                       ),
+                          //                       maxLines: 1,
+                          //                       overflow: TextOverflow.ellipsis,
+                          //                     ),
+                          //                     const SizedBox(height: 4),
+                          //                     Text(
+                          //                       'Ustadz Ahmad Fauzi',
+                          //                       style: TextStyle(
+                          //                         color: Colors.white
+                          //                             .withValues(alpha: 0.9),
+                          //                         fontSize: 13,
+                          //                       ),
+                          //                     ),
+                          //                   ],
+                          //                 ),
+                          //               ),
+                          //               Container(
+                          //                 padding: const EdgeInsets.symmetric(
+                          //                   horizontal: 12,
+                          //                   vertical: 6,
+                          //                 ),
+                          //                 decoration: BoxDecoration(
+                          //                   color: Colors.black.withValues(
+                          //                     alpha: 0.5,
+                          //                   ),
+                          //                   borderRadius: BorderRadius.circular(
+                          //                     20,
+                          //                   ),
+                          //                 ),
+                          //                 child: Row(
+                          //                   children: [
+                          //                     const Icon(
+                          //                       Icons.remove_red_eye_rounded,
+                          //                       color: Colors.white,
+                          //                       size: 16,
+                          //                     ),
+                          //                     const SizedBox(width: 4),
+                          //                     const Text(
+                          //                       '3.6K',
+                          //                       style: TextStyle(
+                          //                         color: Colors.white,
+                          //                         fontSize: 13,
+                          //                         fontWeight: FontWeight.w600,
+                          //                       ),
+                          //                     ),
+                          //                   ],
+                          //                 ),
+                          //               ),
+                          //             ],
+                          //           ),
+                          //         ),
+                          //       ],
+                          //     ),
+                          //   ),
+                          // ),
+                          // ),
 
-                          const SizedBox(height: 36),
+                          // const SizedBox(height: 36),
 
                           // Latest Articles Section - Enhanced
                           _buildSectionHeader(
@@ -2274,32 +2279,49 @@ class AllFeaturesSheet extends StatelessWidget {
   ) {
     final features = [
       _FeatureData(
-        Icons.menu_book_rounded,
+        Icons.menu_book_rounded, // kitab
         'Al-Quran',
         AppTheme.accentGreen,
         '/quran',
       ),
       _FeatureData(
-        Icons.nightlight_round,
+        Icons.access_time_filled, // waktu
+        'Sholat',
+        AppTheme.accentGreen,
+        '/sholat',
+      ),
+      _FeatureData(
+        Icons.fastfood_rounded, // makanan = simbol puasa
         'Puasa',
         AppTheme.accentGreen,
         '/puasa',
       ),
       _FeatureData(
-        Icons.explore_outlined,
+        Icons.explore_outlined, // kompas
         'Qibla',
         AppTheme.accentGreen,
         '/qibla-compass',
       ),
       _FeatureData(
-        Icons.volunteer_activism_rounded,
+        Icons.volunteer_activism_rounded, // tangan hati
         'Sedekah',
         AppTheme.accentGreen,
         '/zakat',
       ),
-
       _FeatureData(
-        Icons.alarm_rounded,
+        Icons.family_restroom, // keluarga
+        'Monitoring Keluarga',
+        AppTheme.accentGreen,
+        '/monitoring',
+      ),
+      _FeatureData(
+        Icons.nightlight, // bulan malam
+        'Tahajud Challenge',
+        AppTheme.accentGreen,
+        '/tahajud',
+      ),
+      _FeatureData(
+        Icons.alarm_rounded, // alarm default
         'Alarm',
         AppTheme.accentGreen,
         '/alarm-settings',
