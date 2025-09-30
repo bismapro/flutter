@@ -10,152 +10,251 @@ class SholatPage extends StatefulWidget {
 
 class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
   late TabController _tabController;
-  late ScrollController _scrollController;
   DateTime selectedDate = DateTime.now();
-  bool _showAlert = true;
-  bool _isScrolled = false;
 
-  // Data tracking sholat (untuk demo)
-  final Map<String, bool> _sholatFardhuStatus = {
-    'Fajr': false,
-    'Subuh': false,
-    'Dzuhur': false,
-    'Ashar': false,
-    'Maghrib': false,
-    'Isha': false,
+  final Map<String, Map<String, dynamic>> _sholatWajibData = {
+    'Subuh': {
+      'time': '04:13',
+      'completed': false,
+      'alarmActive': false,
+      'icon': Icons.wb_sunny_outlined,
+      'color': Colors.orange.shade400,
+    },
+    'Dzuhur': {
+      'time': '11:37',
+      'completed': false,
+      'alarmActive': true,
+      'icon': Icons.wb_sunny,
+      'color': Colors.amber.shade600,
+    },
+    'Ashar': {
+      'time': '14:44',
+      'completed': false,
+      'alarmActive': false,
+      'icon': Icons.wb_cloudy,
+      'color': Colors.blue.shade400,
+    },
+    'Maghrib': {
+      'time': '17:41',
+      'completed': false,
+      'alarmActive': false,
+      'icon': Icons.wb_twilight,
+      'color': Colors.deepOrange.shade400,
+    },
+    'Isya': {
+      'time': '18:50',
+      'completed': false,
+      'alarmActive': false,
+      'icon': Icons.nights_stay,
+      'color': Colors.indigo.shade400,
+    },
   };
 
-  final Map<String, bool> _sholatSunnahStatus = {
-    'Tahajud': false,
-    'Dhuha': false,
-    'Qabliyah Subuh': false,
-    'Qabliyah Dzuhur': false,
-    'Ba\'diyah Dzuhur': false,
-    'Qabliyah Ashar': false,
-    'Ba\'diyah Maghrib': false,
-    'Qabliyah Isya': false,
-    'Ba\'diyah Isya': false,
-    'Witir': false,
+  final Map<String, Map<String, dynamic>> _sholatSunnahData = {
+    'Tahajud': {
+      'time': '03:00 - 05:00',
+      'completed': false,
+      'icon': Icons.bedtime,
+    },
+    'Dhuha': {
+      'time': '07:00 - 11:00',
+      'completed': false,
+      'icon': Icons.wb_sunny,
+    },
+    'Qabliyah Subuh': {
+      'time': '05:00 - 05:30',
+      'completed': false,
+      'icon': Icons.wb_sunny_outlined,
+    },
+    'Qabliyah Dzuhur': {
+      'time': '12:00 - 12:15',
+      'completed': false,
+      'icon': Icons.wb_sunny,
+    },
+    'Ba\'diyah Dzuhur': {
+      'time': '12:45 - 15:30',
+      'completed': false,
+      'icon': Icons.wb_sunny,
+    },
+    'Qabliyah Ashar': {
+      'time': '15:00 - 15:30',
+      'completed': false,
+      'icon': Icons.wb_cloudy,
+    },
+    'Ba\'diyah Maghrib': {
+      'time': '18:45 - 19:30',
+      'completed': false,
+      'icon': Icons.wb_twilight,
+    },
+    'Qabliyah Isya': {
+      'time': '19:30 - 19:45',
+      'completed': false,
+      'icon': Icons.nights_stay,
+    },
+    'Ba\'diyah Isya': {
+      'time': '20:15 - 23:00',
+      'completed': false,
+      'icon': Icons.nights_stay,
+    },
+    'Witir': {
+      'time': '20:00 - 05:00',
+      'completed': false,
+      'icon': Icons.nights_stay,
+    },
   };
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _scrollController = ScrollController();
-    _scrollController.addListener(() {
-      setState(() {
-        _isScrolled = _scrollController.offset > 50;
-      });
-    });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    _scrollController.dispose();
     super.dispose();
+  }
+
+  int get completedWajibCount {
+    return _sholatWajibData.values
+        .where((data) => data['completed'] == true)
+        .length;
+  }
+
+  String get formattedDate {
+    final months = [
+      'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+      'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+    ];
+    return '${selectedDate.day} ${months[selectedDate.month - 1]} ${selectedDate.year}';
+  }
+
+  String get dayName {
+    final days = [
+      'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+    ];
+    return days[selectedDate.weekday - 1];
+  }
+
+  String get hijriDate {
+    // Simplified - dalam implementasi nyata gunakan package hijri
+    return '8 Rabiul Akhir 1447';
+  }
+
+  bool get isToday {
+    final now = DateTime.now();
+    return selectedDate.year == now.year &&
+        selectedDate.month == now.month &&
+        selectedDate.day == now.day;
   }
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.of(context).size;
+    final isSmallScreen = size.width < 360;
+
     return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
-      appBar: AppBar(
-        title: const Text(
-          'Date and Time',
-          style: TextStyle(
-            color: AppTheme.onSurface,
-            fontWeight: FontWeight.w500,
-            fontSize: 18,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppTheme.primaryBlue,
+              AppTheme.primaryBlue.withValues(alpha: 0.9),
+              AppTheme.accentGreen.withValues(alpha: 0.8),
+            ],
+            stops: const [0.0, 0.5, 1.0],
           ),
         ),
-        backgroundColor: _isScrolled
-            ? AppTheme.backgroundWhite.withValues(alpha: .95)
-            : AppTheme.backgroundWhite,
-        iconTheme: const IconThemeData(color: AppTheme.onSurface),
-        elevation: _isScrolled ? 4 : 0,
-        centerTitle: true,
-        bottom: PreferredSize(
-          preferredSize: const Size.fromHeight(50),
-          child: _buildTabBar(),
-        ),
-      ),
-      body: Stack(
-        children: [
-          Column(
+        child: SafeArea(
+          child: Column(
             children: [
-              // Calendar Header (tanpa week calendar)
-              _buildCalendarHeader(),
-              const SizedBox(height: 20),
-
-              // Progress cards (separate)
-              _buildProgressCards(),
-              const SizedBox(height: 20),
-
-              // Tab Content
-              Expanded(
-                child: TabBarView(
-                  controller: _tabController,
-                  children: [_buildFardhuTab(), _buildSunnahTab()],
-                ),
-              ),
+              _buildHeader(isSmallScreen),
+              _buildLocationAndStatus(isSmallScreen),
+              _buildCurrentPrayerTime(isSmallScreen),
+              Expanded(child: _buildPrayerTimesList(isSmallScreen)),
             ],
           ),
-
-          // Alert Widget
-        ],
+        ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.pushNamed(context, '/alarm-settings');
-        },
-        backgroundColor: AppTheme.accentGreen,
-        child: const Icon(Icons.alarm, color: AppTheme.backgroundWhite),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
     );
   }
 
-  Widget _buildCalendarHeader() {
+  Widget _buildHeader(bool isSmallScreen) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
       child: Column(
         children: [
-          // Date Display
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    selectedDate = selectedDate.subtract(
-                      const Duration(days: 1),
-                    );
-                  });
-                },
-                icon: const Icon(
-                  Icons.chevron_left,
-                  color: AppTheme.onSurfaceVariant,
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedDate = selectedDate.subtract(
+                        const Duration(days: 1),
+                      );
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.chevron_left_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
               ),
-              Text(
-                _formatDateHeader(selectedDate),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.onSurface,
+              Expanded(
+                child: Column(
+                  children: [
+                    Text(
+                      isToday
+                          ? 'Hari ini'
+                          : dayName,
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isSmallScreen ? 16 : 18,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      formattedDate,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: isSmallScreen ? 13 : 14,
+                      ),
+                    ),
+                    Text(
+                      hijriDate,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        fontSize: isSmallScreen ? 12 : 13,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              IconButton(
-                onPressed: () {
-                  setState(() {
-                    selectedDate = selectedDate.add(const Duration(days: 1));
-                  });
-                },
-                icon: const Icon(
-                  Icons.chevron_right,
-                  color: AppTheme.onSurfaceVariant,
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: IconButton(
+                  onPressed: () {
+                    setState(() {
+                      selectedDate = selectedDate.add(const Duration(days: 1));
+                    });
+                  },
+                  icon: const Icon(
+                    Icons.chevron_right_rounded,
+                    color: Colors.white,
+                    size: 28,
+                  ),
                 ),
               ),
             ],
@@ -165,148 +264,81 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildTabBar() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0),
-      decoration: const BoxDecoration(color: AppTheme.primaryBlue),
-      child: TabBar(
-        controller: _tabController,
-        indicatorColor: AppTheme.backgroundWhite,
-        labelColor: AppTheme.backgroundWhite,
-        unselectedLabelColor: AppTheme.backgroundWhite.withValues(alpha: .7),
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600),
-        unselectedLabelStyle: const TextStyle(fontWeight: FontWeight.w500),
-        tabs: const [
-          Tab(text: 'Sholat Fardhu'),
-          Tab(text: 'Sholat Sunnah'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProgressCards() {
-    int completedFardhu = _sholatFardhuStatus.values.where((v) => v).length;
-    int completedSunnah = _sholatSunnahStatus.values.where((v) => v).length;
-    double progressFardhu = completedFardhu / 6.0;
-    double progressSunnah = completedSunnah / 10.0;
-
+  Widget _buildLocationAndStatus(bool isSmallScreen) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
       child: Row(
         children: [
-          // Fardhu Progress
           Expanded(
             child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.primaryBlue,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryBlue.withValues(alpha: .2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
+              padding: EdgeInsets.symmetric(
+                horizontal: isSmallScreen ? 12 : 16,
+                vertical: isSmallScreen ? 6 : 8,
               ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Fardhu',
-                        style: TextStyle(
-                          color: AppTheme.backgroundWhite,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        '$completedFardhu/6',
-                        style: const TextStyle(
-                          color: AppTheme.backgroundWhite,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
+                  Icon(
+                    Icons.location_on_rounded,
+                    color: Colors.white,
+                    size: isSmallScreen ? 16 : 18,
                   ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progressFardhu,
-                      backgroundColor: AppTheme.backgroundWhite.withValues(
-                        alpha: 0.3,
+                  SizedBox(width: isSmallScreen ? 6 : 8),
+                  Flexible(
+                    child: Text(
+                      'Purwokerto',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: isSmallScreen ? 12 : 14,
+                        fontWeight: FontWeight.w500,
                       ),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppTheme.accentGreen,
-                      ),
-                      minHeight: 6,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          // Sunnah Progress
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppTheme.accentGreen,
-                borderRadius: BorderRadius.circular(16),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.accentGreen.withValues(alpha: .2),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
+          SizedBox(width: isSmallScreen ? 8 : 12),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 12 : 16,
+              vertical: isSmallScreen ? 6 : 8,
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.accentGreen,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: AppTheme.accentGreen.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  color: Colors.white,
+                  size: isSmallScreen ? 14 : 16,
+                ),
+                SizedBox(width: isSmallScreen ? 4 : 6),
+                Text(
+                  'KEMENAG',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isSmallScreen ? 12 : 14,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      const Text(
-                        'Sunnah',
-                        style: TextStyle(
-                          color: AppTheme.backgroundWhite,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      Text(
-                        '$completedSunnah/10',
-                        style: const TextStyle(
-                          color: AppTheme.backgroundWhite,
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(8),
-                    child: LinearProgressIndicator(
-                      value: progressSunnah,
-                      backgroundColor: AppTheme.backgroundWhite.withValues(
-                        alpha: 0.3,
-                      ),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        AppTheme.primaryBlue,
-                      ),
-                      minHeight: 6,
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         ],
@@ -314,152 +346,439 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildFardhuTab() {
-    final prayerTimes = [
-      {
-        'name': 'Fajr',
-        'time': '5:41 AM',
-        'icon': Icons.wb_sunny_outlined,
-        'isActive': true,
-      },
-      {
-        'name': 'Subuh',
-        'time': '5:41 AM',
-        'icon': Icons.wb_sunny_outlined,
-        'isActive': false,
-      },
-      {
-        'name': 'Dzuhur',
-        'time': '1:30 PM',
-        'icon': Icons.wb_sunny,
-        'isActive': false,
-      },
-      {
-        'name': 'Asr',
-        'time': '5:00 PM',
-        'icon': Icons.wb_cloudy,
-        'isActive': false,
-      },
-      {
-        'name': 'Maghrib',
-        'time': '6:35 PM',
-        'icon': Icons.wb_twilight,
-        'isActive': false,
-      },
-      {
-        'name': 'Isha',
-        'time': '8:30 PM',
-        'icon': Icons.nights_stay,
-        'isActive': false,
-      },
-    ];
+  Widget _buildCurrentPrayerTime(bool isSmallScreen) {
+    return Container(
+      margin: EdgeInsets.all(isSmallScreen ? 16 : 20),
+      child: Row(
+        children: [
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Waktu Sholat Sekarang',
+                    style: TextStyle(
+                      color: Colors.white.withValues(alpha: 0.8),
+                      fontSize: isSmallScreen ? 12 : 14,
+                    ),
+                  ),
+                  SizedBox(height: isSmallScreen ? 6 : 8),
+                  Row(
+                    children: [
+                      Text(
+                        'Dzuhur',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: isSmallScreen ? 18 : 20,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.all(6),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [
+                              Colors.amber.shade400,
+                              Colors.amber.shade600,
+                            ],
+                          ),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Icon(
+                          Icons.wb_sunny,
+                          color: Colors.white,
+                          size: isSmallScreen ? 16 : 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isSmallScreen ? 2 : 4),
+                  Text(
+                    '11:37',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: isSmallScreen ? 28 : 32,
+                      fontWeight: FontWeight.bold,
+                      height: 1.2,
+                    ),
+                  ),
+                  SizedBox(height: isSmallScreen ? 6 : 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      'Ashar dalam 2j 25m',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: isSmallScreen ? 11 : 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(width: isSmallScreen ? 12 : 16),
+          Container(
+            padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
+            ),
+            child: Column(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: AppTheme.accentGreen.withValues(alpha: 0.3),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    Icons.check_circle_rounded,
+                    color: AppTheme.accentGreen,
+                    size: isSmallScreen ? 28 : 32,
+                  ),
+                ),
+                SizedBox(height: isSmallScreen ? 10 : 12),
+                Text(
+                  '$completedWajibCount/5',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: isSmallScreen ? 20 : 24,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                Text(
+                  'selesai',
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.8),
+                    fontSize: isSmallScreen ? 11 : 12,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
+  Widget _buildPrayerTimesList(bool isSmallScreen) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.backgroundWhite,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(32),
+          topRight: Radius.circular(32),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, -5),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: EdgeInsets.only(top: 16, bottom: 8),
+            width: 50,
+            height: 5,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryBlue.withValues(alpha: 0.3),
+                  AppTheme.accentGreen.withValues(alpha: 0.3),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(3),
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.symmetric(
+              horizontal: isSmallScreen ? 16 : 20,
+              vertical: isSmallScreen ? 12 : 16,
+            ),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryBlue.withValues(alpha: 0.05),
+                  AppTheme.accentGreen.withValues(alpha: 0.05),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: TabBar(
+              controller: _tabController,
+              indicator: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelColor: Colors.white,
+              unselectedLabelColor: AppTheme.onSurface,
+              labelStyle: TextStyle(
+                fontWeight: FontWeight.w600,
+                fontSize: isSmallScreen ? 13 : 14,
+              ),
+              tabs: const [
+                Tab(text: 'Sholat Wajib'),
+                Tab(text: 'Sholat Sunnah'),
+              ],
+            ),
+          ),
+          Container(
+            margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
+            padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 10 : 12),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryBlue.withValues(alpha: 0.08),
+                  AppTheme.accentGreen.withValues(alpha: 0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.wb_sunny_outlined,
+                  size: isSmallScreen ? 14 : 16,
+                  color: AppTheme.primaryBlue,
+                ),
+                SizedBox(width: isSmallScreen ? 6 : 8),
+                Text(
+                  'Imsak 04:03',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppTheme.onSurface,
+                    fontSize: isSmallScreen ? 12 : 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                SizedBox(width: isSmallScreen ? 12 : 16),
+                Container(
+                  width: 1,
+                  height: 16,
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                ),
+                SizedBox(width: isSmallScreen ? 12 : 16),
+                Icon(
+                  Icons.wb_sunny,
+                  size: isSmallScreen ? 14 : 16,
+                  color: AppTheme.accentGreen,
+                ),
+                SizedBox(width: isSmallScreen ? 6 : 8),
+                Text(
+                  'Terbit 05:25',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppTheme.onSurface,
+                    fontSize: isSmallScreen ? 12 : 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildWajibTab(isSmallScreen),
+                _buildSunnahTab(isSmallScreen),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWajibTab(bool isSmallScreen) {
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      itemCount: prayerTimes.length,
+      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
+      itemCount: _sholatWajibData.length,
+      physics: const BouncingScrollPhysics(),
       itemBuilder: (context, index) {
-        final prayer = prayerTimes[index];
-        final isCompleted = _sholatFardhuStatus[prayer['name']] ?? false;
-        final isActive = prayer['isActive'] as bool;
+        final prayerName = _sholatWajibData.keys.elementAt(index);
+        final prayerData = _sholatWajibData[prayerName]!;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: isActive ? AppTheme.accentGreen : AppTheme.backgroundWhite,
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: isActive ? AppTheme.accentGreen : Colors.grey.shade200,
-              width: 1,
+              color: prayerData['completed']
+                  ? AppTheme.accentGreen.withValues(alpha: 0.3)
+                  : Colors.grey.shade200,
+              width: prayerData['completed'] ? 2 : 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: isActive
-                    ? AppTheme.accentGreen.withValues(alpha: .2)
-                    : Colors.grey.withValues(alpha: .05),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
+                color: prayerData['completed']
+                    ? AppTheme.accentGreen.withValues(alpha: 0.1)
+                    : Colors.grey.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
               ),
             ],
           ),
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
-            leading: Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: isActive
-                    ? AppTheme.backgroundWhite.withValues(alpha: .2)
-                    : AppTheme.primaryBlue.withValues(alpha: .1),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(
-                prayer['icon'] as IconData,
-                color: isActive
-                    ? AppTheme.backgroundWhite
-                    : AppTheme.primaryBlue,
-                size: 24,
-              ),
-            ),
-            title: Text(
-              prayer['name'] as String,
-              style: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: 18,
-                color: isActive ? AppTheme.backgroundWhite : AppTheme.onSurface,
-              ),
-            ),
-            trailing: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  prayer['time'] as String,
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                    color: isActive
-                        ? AppTheme.backgroundWhite
-                        : AppTheme.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Transform.scale(
-                  scale: 1.3,
-                  child: Checkbox(
-                    value: isCompleted,
-                    onChanged: (value) {
+          child: Material(
+            color: Colors.transparent,
+            child: Padding(
+              padding: EdgeInsets.all(isSmallScreen ? 14 : 16),
+              child: Row(
+                children: [
+                  // Checklist
+                  GestureDetector(
+                    onTap: () {
                       setState(() {
-                        _sholatFardhuStatus[prayer['name'] as String] =
-                            value ?? false;
+                        prayerData['completed'] = !prayerData['completed'];
                       });
-                      if (value == true) {
-                        _showCompletionFeedback(prayer['name'] as String);
-                        // Show alert when prayer is completed
-                        setState(() {
-                          _showAlert = true;
-                        });
+                      if (prayerData['completed']) {
+                        _showCompletionFeedback(prayerName);
                       }
                     },
-                    activeColor: isActive
-                        ? AppTheme.backgroundWhite
-                        : AppTheme.accentGreen,
-                    checkColor: isActive
-                        ? AppTheme.accentGreen
-                        : AppTheme.backgroundWhite,
-                    side: BorderSide(
-                      color: isActive
-                          ? AppTheme.backgroundWhite
-                          : Colors.grey.shade400,
-                      width: 2,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(6),
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: prayerData['completed']
+                            ? AppTheme.accentGreen
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: prayerData['completed']
+                              ? AppTheme.accentGreen
+                              : Colors.grey.shade400,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: prayerData['completed']
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 16,
+                            )
+                          : null,
                     ),
                   ),
-                ),
-              ],
+                  SizedBox(width: isSmallScreen ? 12 : 16),
+                  Container(
+                    width: isSmallScreen ? 48 : 52,
+                    height: isSmallScreen ? 48 : 52,
+                    decoration: BoxDecoration(
+                      gradient: prayerData['completed']
+                          ? LinearGradient(
+                              colors: [
+                                AppTheme.accentGreen,
+                                AppTheme.accentGreen.withValues(alpha: 0.8),
+                              ],
+                            )
+                          : LinearGradient(
+                              colors: [
+                                (prayerData['color'] as Color).withValues(
+                                  alpha: 0.2,
+                                ),
+                                (prayerData['color'] as Color).withValues(
+                                  alpha: 0.1,
+                                ),
+                              ],
+                            ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      prayerData['completed']
+                          ? Icons.check_circle_rounded
+                          : prayerData['icon'],
+                      color: prayerData['completed']
+                          ? Colors.white
+                          : prayerData['color'],
+                      size: isSmallScreen ? 24 : 28,
+                    ),
+                  ),
+                  SizedBox(width: isSmallScreen ? 12 : 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          prayerName,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 15 : 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          prayerData['time'],
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 13 : 14,
+                            color: AppTheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        prayerData['alarmActive'] =
+                            !prayerData['alarmActive'];
+                      });
+                    },
+                    child: Container(
+                      padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
+                      decoration: BoxDecoration(
+                        gradient: prayerData['alarmActive']
+                            ? LinearGradient(
+                                colors: [
+                                  AppTheme.primaryBlue,
+                                  AppTheme.primaryBlue.withValues(alpha: 0.8),
+                                ],
+                              )
+                            : null,
+                        color: prayerData['alarmActive']
+                            ? null
+                            : Colors.grey.shade200,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.alarm_rounded,
+                        color: prayerData['alarmActive']
+                            ? Colors.white
+                            : Colors.grey.shade600,
+                        size: isSmallScreen ? 20 : 22,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         );
@@ -467,176 +786,147 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildSunnahTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSunnahSection('Sholat Malam', [
-            _buildSunnahSholatCard('Tahajud', '03:00 - 05:00', Icons.bedtime),
-            _buildSunnahSholatCard('Witir', '20:00 - 05:00', Icons.nights_stay),
-          ]),
-          const SizedBox(height: 24),
-          _buildSunnahSection('Sholat Siang', [
-            _buildSunnahSholatCard('Dhuha', '07:00 - 11:00', Icons.wb_sunny),
-          ]),
-          const SizedBox(height: 24),
-          _buildSunnahSection('Sholat Rawatib', [
-            _buildSunnahSholatCard(
-              'Qabliyah Subuh',
-              '05:00 - 05:30',
-              Icons.wb_sunny_outlined,
-            ),
-            _buildSunnahSholatCard(
-              'Qabliyah Dzuhur',
-              '12:00 - 12:15',
-              Icons.wb_sunny,
-            ),
-            _buildSunnahSholatCard(
-              'Ba\'diyah Dzuhur',
-              '12:45 - 15:30',
-              Icons.wb_sunny,
-            ),
-            _buildSunnahSholatCard(
-              'Qabliyah Ashar',
-              '15:00 - 15:30',
-              Icons.wb_cloudy,
-            ),
-            _buildSunnahSholatCard(
-              'Ba\'diyah Maghrib',
-              '18:45 - 19:30',
-              Icons.wb_twilight,
-            ),
-            _buildSunnahSholatCard(
-              'Qabliyah Isya',
-              '19:30 - 19:45',
-              Icons.nights_stay,
-            ),
-            _buildSunnahSholatCard(
-              'Ba\'diyah Isya',
-              '20:15 - 23:00',
-              Icons.nights_stay,
-            ),
-          ]),
-          const SizedBox(height: 100), // Extra space for navigation
-        ],
-      ),
-    );
-  }
+  Widget _buildSunnahTab(bool isSmallScreen) {
+    return ListView.builder(
+      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
+      itemCount: _sholatSunnahData.length,
+      physics: const BouncingScrollPhysics(),
+      itemBuilder: (context, index) {
+        final prayerName = _sholatSunnahData.keys.elementAt(index);
+        final prayerData = _sholatSunnahData[prayerName]!;
 
-  Widget _buildSunnahSection(String title, List<Widget> children) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Padding(
-          padding: const EdgeInsets.only(left: 4, bottom: 16),
-          child: Text(
-            title,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.onSurface,
-            ),
-          ),
-        ),
-        ...children,
-      ],
-    );
-  }
-
-  Widget _buildSunnahSholatCard(String name, String time, IconData icon) {
-    bool isCompleted = _sholatSunnahStatus[name] ?? false;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey.shade200),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha: .05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 12,
-        ),
-        leading: Container(
-          width: 48,
-          height: 48,
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
           decoration: BoxDecoration(
-            color: AppTheme.primaryBlue.withValues(alpha: .1),
-            borderRadius: BorderRadius.circular(12),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: prayerData['completed']
+                  ? AppTheme.accentGreen.withValues(alpha: 0.3)
+                  : Colors.grey.shade200,
+              width: prayerData['completed'] ? 2 : 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: prayerData['completed']
+                    ? AppTheme.accentGreen.withValues(alpha: 0.1)
+                    : Colors.grey.withValues(alpha: 0.08),
+                blurRadius: 12,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
-          child: Icon(icon, color: AppTheme.primaryBlue, size: 24),
-        ),
-        title: Text(
-          name,
-          style: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-            color: AppTheme.onSurface,
-          ),
-        ),
-        subtitle: Text(
-          time,
-          style: TextStyle(fontSize: 14, color: AppTheme.onSurfaceVariant),
-        ),
-        trailing: Transform.scale(
-          scale: 1.3,
-          child: Checkbox(
-            value: isCompleted,
-            onChanged: (value) {
-              setState(() {
-                _sholatSunnahStatus[name] = value ?? false;
-              });
-              if (value == true) {
-                _showCompletionFeedback(name);
-              }
-            },
-            activeColor: AppTheme.accentGreen,
-            checkColor: AppTheme.backgroundWhite,
-            side: BorderSide(color: Colors.grey.shade400, width: 2),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(6),
+          child: Material(
+            color: Colors.transparent,
+            child: Padding(
+              padding: EdgeInsets.all(isSmallScreen ? 14 : 16),
+              child: Row(
+                children: [
+                  // Checklist
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        prayerData['completed'] = !prayerData['completed'];
+                      });
+                      if (prayerData['completed']) {
+                        _showCompletionFeedback(prayerName);
+                      }
+                    },
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: prayerData['completed']
+                            ? AppTheme.accentGreen
+                            : Colors.transparent,
+                        border: Border.all(
+                          color: prayerData['completed']
+                              ? AppTheme.accentGreen
+                              : Colors.grey.shade400,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: prayerData['completed']
+                          ? const Icon(
+                              Icons.check,
+                              color: Colors.white,
+                              size: 16,
+                            )
+                          : null,
+                    ),
+                  ),
+                  SizedBox(width: isSmallScreen ? 12 : 16),
+                  Container(
+                    width: isSmallScreen ? 48 : 52,
+                    height: isSmallScreen ? 48 : 52,
+                    decoration: BoxDecoration(
+                      gradient: prayerData['completed']
+                          ? LinearGradient(
+                              colors: [
+                                AppTheme.accentGreen,
+                                AppTheme.accentGreen.withValues(alpha: 0.8),
+                              ],
+                            )
+                          : LinearGradient(
+                              colors: [
+                                AppTheme.primaryBlue.withValues(alpha: 0.15),
+                                AppTheme.accentGreen.withValues(alpha: 0.15),
+                              ],
+                            ),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Icon(
+                      prayerData['completed']
+                          ? Icons.check_circle_rounded
+                          : prayerData['icon'],
+                      color: prayerData['completed']
+                          ? Colors.white
+                          : AppTheme.primaryBlue,
+                      size: isSmallScreen ? 24 : 28,
+                    ),
+                  ),
+                  SizedBox(width: isSmallScreen ? 12 : 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          prayerName,
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 15 : 16,
+                            fontWeight: FontWeight.w600,
+                            color: AppTheme.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          prayerData['time'],
+                          style: TextStyle(
+                            fontSize: isSmallScreen ? 12 : 13,
+                            color: AppTheme.onSurfaceVariant,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
-  }
-
-  String _formatDateHeader(DateTime date) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
-    ];
-    return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
   void _showCompletionFeedback(String sholatName) {
     final feedbacks = [
-      'Alhamdulillahi rabbil alamiin! 🤲',
-      'Barakallahu fiik! ✨',
-      'Semoga berkah sholat $sholatName nya! 🕌',
-      'Istiqomah selalu ya! 💚',
-      'Sholat adalah tiang agama! 🕊️',
+      'Alhamdulillah! Sholat $sholatName tercatat',
+      'Barakallahu fiik! Semoga diterima',
+      'Masya Allah, istiqomah terus ya',
+      'Semoga berkah sholat ${sholatName}nya',
+      'Subhanallah, terus semangat beribadah',
     ];
 
     final randomFeedback =
@@ -644,11 +934,37 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(randomFeedback),
-        backgroundColor: AppTheme.primaryBlue,
+        content: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.check_circle_rounded,
+                color: Colors.white,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                randomFeedback,
+                style: const TextStyle(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: AppTheme.accentGreen,
         duration: const Duration(seconds: 3),
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
       ),
     );
   }

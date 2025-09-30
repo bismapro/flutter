@@ -4,10 +4,9 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'dart:math' as math;
 import 'dart:async';
 
-// Updated AppTheme to match Welcome Page
+// Import theme from your app
 class AppTheme {
   static const Color primaryBlue = Color(0xFF2196F3);
-  static const Color primaryBlueDark = Color(0xFF1976D2);
   static const Color accentGreen = Color(0xFF4CAF50);
   static const Color backgroundWhite = Color(0xFFFAFAFA);
   static const Color surfaceWhite = Color(0xFFFFFFFF);
@@ -304,25 +303,93 @@ class _CompassPageState extends State<CompassPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text(
-          'Arah Qiblat',
-          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
-        ),
-        backgroundColor: AppTheme.primaryBlue,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        actions: [
-          IconButton(
-            onPressed: _initializeCompass,
-            icon: const Icon(Icons.refresh),
-            tooltip: 'Refresh Lokasi',
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppTheme.primaryBlue.withValues(alpha: 0.03),
+              AppTheme.backgroundWhite,
+            ],
+            stops: const [0.0, 0.3],
           ),
-        ],
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Header
+              Container(
+                padding: const EdgeInsets.all(24.0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppTheme.primaryBlue.withValues(alpha: 0.1),
+                            AppTheme.accentGreen.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: Icon(
+                        Icons.explore_rounded,
+                        color: AppTheme.primaryBlue,
+                        size: 28,
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Arah Kiblat',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.onSurface,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          Text(
+                            'Temukan arah kiblat',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: AppTheme.onSurfaceVariant,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [
+                            AppTheme.accentGreen.withValues(alpha: 0.1),
+                            AppTheme.primaryBlue.withValues(alpha: 0.1),
+                          ],
+                        ),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        onPressed: _initializeCompass,
+                        icon: const Icon(Icons.refresh_rounded),
+                        color: AppTheme.accentGreen,
+                        tooltip: 'Refresh Lokasi',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Expanded(child: _buildBody()),
+            ],
+          ),
+        ),
       ),
-      body: _buildBody(),
     );
   }
 
@@ -332,13 +399,33 @@ class _CompassPageState extends State<CompassPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const CircularProgressIndicator(color: AppTheme.accentGreen),
+            Container(
+              padding: const EdgeInsets.all(24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    AppTheme.accentGreen.withValues(alpha: 0.1),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: SizedBox(
+                width: 48,
+                height: 48,
+                child: CircularProgressIndicator(
+                  color: AppTheme.primaryBlue,
+                  strokeWidth: 3,
+                ),
+              ),
+            ),
             const SizedBox(height: 24),
             Text(
               _status,
               style: const TextStyle(
                 fontSize: 16,
                 color: AppTheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
               ),
               textAlign: TextAlign.center,
             ),
@@ -355,23 +442,25 @@ class _CompassPageState extends State<CompassPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Container(
-                padding: const EdgeInsets.all(20),
+                padding: const EdgeInsets.all(24),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade100,
+                  gradient: LinearGradient(
+                    colors: [Colors.red.shade50, Colors.red.shade100],
+                  ),
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  Icons.location_off,
-                  size: 60,
-                  color: Colors.grey.shade500,
+                  Icons.location_off_rounded,
+                  size: 64,
+                  color: Colors.red.shade400,
                 ),
               ),
               const SizedBox(height: 24),
               Text(
-                'Error:',
+                'Izin Lokasi Diperlukan',
                 style: TextStyle(
                   fontSize: 20,
-                  color: AppTheme.errorColor,
+                  color: Colors.red.shade700,
                   fontWeight: FontWeight.bold,
                 ),
                 textAlign: TextAlign.center,
@@ -380,7 +469,7 @@ class _CompassPageState extends State<CompassPage> {
               Text(
                 _status,
                 style: const TextStyle(
-                  fontSize: 16,
+                  fontSize: 15,
                   color: AppTheme.onSurfaceVariant,
                   height: 1.5,
                 ),
@@ -389,8 +478,11 @@ class _CompassPageState extends State<CompassPage> {
               const SizedBox(height: 32),
               ElevatedButton.icon(
                 onPressed: _initializeCompass,
-                icon: const Icon(Icons.refresh),
-                label: const Text('Coba Lagi'),
+                icon: const Icon(Icons.refresh_rounded, size: 22),
+                label: const Text(
+                  'Coba Lagi',
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.accentGreen,
                   foregroundColor: Colors.white,
@@ -401,6 +493,7 @@ class _CompassPageState extends State<CompassPage> {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
+                  elevation: 0,
                 ),
               ),
             ],
@@ -410,13 +503,13 @@ class _CompassPageState extends State<CompassPage> {
     }
 
     return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Column(
         children: [
-          const SizedBox(height: 20),
           _buildLocationInfo(),
           const SizedBox(height: 30),
           _buildCompass(),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           _buildQiblaInfo(),
           const SizedBox(height: 20),
           _buildDisclaimer(),
@@ -428,68 +521,77 @@ class _CompassPageState extends State<CompassPage> {
 
   Widget _buildLocationInfo() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [AppTheme.primaryBlue, AppTheme.primaryBlueDark],
+          colors: [
+            AppTheme.primaryBlue.withValues(alpha: 0.1),
+            AppTheme.accentGreen.withValues(alpha: 0.1),
+          ],
         ),
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.2),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
-            spreadRadius: -5,
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
       ),
       child: Column(
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(Icons.location_on, color: AppTheme.accentGreen, size: 16),
-              const SizedBox(width: 4),
-              const Text(
+              Icon(
+                Icons.location_on_rounded,
+                color: AppTheme.accentGreen,
+                size: 18,
+              ),
+              const SizedBox(width: 6),
+              Text(
                 'Lokasi Real-time',
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white70,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppTheme.onSurfaceVariant,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             _cityName.isNotEmpty ? _cityName : 'Mencari lokasi...',
             style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.primaryBlue,
+              letterSpacing: -0.5,
             ),
             textAlign: TextAlign.center,
           ),
-          const SizedBox(height: 4),
-          const Text(
+          const SizedBox(height: 6),
+          Text(
             'INDONESIA',
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w400,
-              color: Colors.white70,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.onSurfaceVariant,
               letterSpacing: 2.0,
             ),
             textAlign: TextAlign.center,
           ),
           if (_currentPosition != null) ...[
-            const SizedBox(height: 8),
-            Text(
-              'GPS: ${_currentPosition!.latitude.toStringAsFixed(6)}, ${_currentPosition!.longitude.toStringAsFixed(6)}',
-              style: const TextStyle(fontSize: 10, color: Colors.white54),
-              textAlign: TextAlign.center,
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.7),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'GPS: ${_currentPosition!.latitude.toStringAsFixed(6)}, ${_currentPosition!.longitude.toStringAsFixed(6)}',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: AppTheme.onSurfaceVariant,
+                  fontFamily: 'monospace',
+                ),
+                textAlign: TextAlign.center,
+              ),
             ),
           ],
         ],
@@ -500,111 +602,157 @@ class _CompassPageState extends State<CompassPage> {
   Widget _buildCompass() {
     double qiblaAngle = (_qiblaDirection - _compassHeading) * math.pi / 180;
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      child: Center(
-        child: SizedBox(
-          width: 300,
-          height: 300,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              Container(
-                width: 300,
-                height: 300,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: AppTheme.accentGreen, width: 10),
+    return Center(
+      child: SizedBox(
+        width: 320,
+        height: 320,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // Outer border with gradient
+            Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [AppTheme.accentGreen, AppTheme.primaryBlue],
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                    blurRadius: 20,
+                    offset: const Offset(0, 8),
+                  ),
+                ],
               ),
-              Container(
+            ),
+
+            // Inner blue ring
+            Container(
+              width: 300,
+              height: 300,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: AppTheme.primaryBlue,
+              ),
+            ),
+
+            // White compass face (rotates with heading)
+            Transform.rotate(
+              angle: -_compassHeading * math.pi / 180,
+              child: Container(
                 width: 280,
                 height: 280,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.primaryBlue,
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.15),
+                      blurRadius: 30,
+                      offset: const Offset(0, 10),
+                      spreadRadius: -10,
+                    ),
+                  ],
+                ),
+                child: CustomPaint(
+                  size: const Size(280, 280),
+                  painter: CompassFacePainter(),
                 ),
               ),
-              Transform.rotate(
-                angle: -_compassHeading * math.pi / 180,
+            ),
+
+            // Cardinal directions (rotate with compass)
+            Transform.rotate(
+              angle: -_compassHeading * math.pi / 180,
+              child: _buildCardinalDirections(),
+            ),
+
+            // Qibla needle (points to Kaaba)
+            Transform.rotate(
+              angle: qiblaAngle,
+              child: CustomPaint(
+                size: const Size(280, 280),
+                painter: QiblaNeedlePainter(),
+              ),
+            ),
+
+            // Kaaba emoji indicator
+            Transform.rotate(
+              angle: qiblaAngle,
+              child: Transform.translate(
+                offset: const Offset(0, -100),
                 child: Container(
-                  width: 260,
-                  height: 260,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
                   decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppTheme.surfaceWhite,
+                    color: AppTheme.onSurface.withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Text('🕋', style: TextStyle(fontSize: 20)),
+                ),
+              ),
+            ),
+
+            // Center dot
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
+                ),
+                border: Border.all(color: Colors.white, width: 3),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+            ),
+
+            // Calibration warning
+            if (!_isCompassCalibrated)
+              Positioned(
+                bottom: 8,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.orange.shade400,
+                    borderRadius: BorderRadius.circular(8),
                     boxShadow: [
                       BoxShadow(
-                        color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                        blurRadius: 40,
-                        offset: const Offset(0, 10),
-                        spreadRadius: -5,
+                        color: Colors.orange.withValues(alpha: 0.3),
+                        blurRadius: 8,
                       ),
                     ],
                   ),
-                  child: CustomPaint(
-                    size: const Size(260, 260),
-                    painter: CompassFacePainter(),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.sync_rounded, color: Colors.white, size: 14),
+                      const SizedBox(width: 6),
+                      const Text(
+                        'Kalibrasi kompas',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              Transform.rotate(
-                angle: -_compassHeading * math.pi / 180,
-                child: _buildCardinalDirections(),
-              ),
-              Transform.rotate(
-                angle: qiblaAngle,
-                child: CustomPaint(
-                  size: const Size(260, 260),
-                  painter: QiblaNeedlePainter(),
-                ),
-              ),
-              Transform.rotate(
-                angle: qiblaAngle,
-                child: Transform.translate(
-                  offset: const Offset(0, -80),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: AppTheme.onSurface.withValues(alpha: 0.8),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text('🕋', style: TextStyle(fontSize: 18)),
-                  ),
-                ),
-              ),
-              Container(
-                width: 10,
-                height: 10,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppTheme.primaryBlue,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-              ),
-              if (!_isCompassCalibrated)
-                Positioned(
-                  bottom: 0,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.orange,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: const Text(
-                      'Kalibrasi kompas',
-                      style: TextStyle(color: Colors.white, fontSize: 10),
-                    ),
-                  ),
-                ),
-            ],
-          ),
+          ],
         ),
       ),
     );
@@ -612,18 +760,30 @@ class _CompassPageState extends State<CompassPage> {
 
   Widget _buildCardinalDirections() {
     return SizedBox(
-      width: 260,
-      height: 260,
+      width: 280,
+      height: 280,
       child: Stack(
         alignment: Alignment.center,
         children: [
+          // North
           Positioned(
-            top: 10,
+            top: 15,
             child: Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.primaryBlue,
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.primaryBlue,
+                    AppTheme.primaryBlue.withValues(alpha: 0.8),
+                  ],
+                ),
                 shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                  ),
+                ],
               ),
               child: const Text(
                 'N',
@@ -635,12 +795,13 @@ class _CompassPageState extends State<CompassPage> {
               ),
             ),
           ),
+          // South
           Positioned(
-            bottom: 10,
+            bottom: 15,
             child: Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.onSurfaceVariant,
+                color: AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
                 shape: BoxShape.circle,
               ),
               child: const Text(
@@ -653,12 +814,13 @@ class _CompassPageState extends State<CompassPage> {
               ),
             ),
           ),
+          // East
           Positioned(
-            right: 10,
+            right: 15,
             child: Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.onSurfaceVariant,
+                color: AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
                 shape: BoxShape.circle,
               ),
               child: const Text(
@@ -671,12 +833,13 @@ class _CompassPageState extends State<CompassPage> {
               ),
             ),
           ),
+          // West
           Positioned(
-            left: 10,
+            left: 15,
             child: Container(
-              padding: const EdgeInsets.all(6),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: AppTheme.onSurfaceVariant,
+                color: AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
                 shape: BoxShape.circle,
               ),
               child: const Text(
@@ -696,63 +859,137 @@ class _CompassPageState extends State<CompassPage> {
 
   Widget _buildQiblaInfo() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.surfaceWhite,
-        borderRadius: BorderRadius.circular(32),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.1)),
         boxShadow: [
           BoxShadow(
             color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-            blurRadius: 40,
-            offset: const Offset(0, 10),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
             spreadRadius: -5,
           ),
         ],
       ),
       child: Column(
         children: [
-          Text(
-            'Qiblat ${_qiblaDirection.toStringAsFixed(1)}° dari Utara',
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: AppTheme.onSurface,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.accentGreen.withValues(alpha: 0.15),
+                      AppTheme.accentGreen.withValues(alpha: 0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  Icons.explore_rounded,
+                  color: AppTheme.accentGreen,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                '${_qiblaDirection.toStringAsFixed(1)}°',
+                style: const TextStyle(
+                  fontSize: 32,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryBlue,
+                  letterSpacing: -1,
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 8),
           Text(
-            'Jarak ke Ka\'bah ± ${_distanceToKaaba.toStringAsFixed(0)} KM',
-            style: const TextStyle(
-              fontSize: 16,
+            'dari Utara',
+            style: TextStyle(
+              fontSize: 15,
               fontWeight: FontWeight.w500,
               color: AppTheme.onSurfaceVariant,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
+          Container(
+            height: 1,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.primaryBlue.withValues(alpha: 0.0),
+                  AppTheme.primaryBlue.withValues(alpha: 0.2),
+                  AppTheme.primaryBlue.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                _isCompassCalibrated ? Icons.check_circle : Icons.warning,
-                size: 16,
-                color: _isCompassCalibrated
-                    ? AppTheme.accentGreen
-                    : Colors.orange,
+                Icons.mosque_rounded,
+                size: 18,
+                color: AppTheme.onSurfaceVariant,
               ),
-              const SizedBox(width: 6),
+              const SizedBox(width: 8),
               Text(
-                _isCompassCalibrated
-                    ? 'Kompas terkalibrasi'
-                    : 'Goyang perangkat untuk kalibrasi',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: _isCompassCalibrated
-                      ? AppTheme.accentGreen
-                      : Colors.orange,
+                'Jarak ke Ka\'bah ± ${_distanceToKaaba.toStringAsFixed(0)} KM',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppTheme.onSurfaceVariant,
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: _isCompassCalibrated
+                  ? AppTheme.accentGreen.withValues(alpha: 0.1)
+                  : Colors.orange.shade50,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _isCompassCalibrated
+                    ? AppTheme.accentGreen.withValues(alpha: 0.3)
+                    : Colors.orange.shade200,
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  _isCompassCalibrated
+                      ? Icons.check_circle_rounded
+                      : Icons.warning_rounded,
+                  size: 16,
+                  color: _isCompassCalibrated
+                      ? AppTheme.accentGreen
+                      : Colors.orange.shade700,
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  _isCompassCalibrated
+                      ? 'Kompas terkalibrasi'
+                      : 'Goyang perangkat untuk kalibrasi',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: _isCompassCalibrated
+                        ? AppTheme.accentGreen
+                        : Colors.orange.shade700,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -761,26 +998,40 @@ class _CompassPageState extends State<CompassPage> {
 
   Widget _buildDisclaimer() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 30),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppTheme.primaryBlue.withValues(alpha: 0.05),
+        gradient: LinearGradient(
+          colors: [
+            AppTheme.primaryBlue.withValues(alpha: 0.05),
+            AppTheme.accentGreen.withValues(alpha: 0.05),
+          ],
+        ),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.2)),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
-          Icon(Icons.info_outline, color: AppTheme.primaryBlue, size: 16),
-          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              Icons.info_outline_rounded,
+              color: AppTheme.primaryBlue,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              'Jauhkan perangkat dari objek yang berbahan besi atau logam, agar lebih akurat.',
+              'Jauhkan perangkat dari objek berbahan besi atau logam agar lebih akurat.',
               style: TextStyle(
-                fontSize: 12,
+                fontSize: 13,
                 color: AppTheme.onSurfaceVariant,
-                height: 1.4,
+                height: 1.5,
               ),
-              textAlign: TextAlign.center,
             ),
           ),
         ],
@@ -806,8 +1057,10 @@ class CompassFacePainter extends CustomPainter {
       final endY = center.dy + endRadius * math.sin(angle);
 
       final linePaint = Paint()
-        ..color = i % 30 == 0 ? Colors.grey.shade700 : Colors.grey.shade400
-        ..strokeWidth = i % 30 == 0 ? 2 : 1;
+        ..color = i % 30 == 0
+            ? AppTheme.onSurface.withValues(alpha: 0.6)
+            : AppTheme.onSurfaceVariant.withValues(alpha: 0.3)
+        ..strokeWidth = i % 30 == 0 ? 2.5 : 1.5;
 
       canvas.drawLine(Offset(startX, startY), Offset(endX, endY), linePaint);
     }
@@ -822,28 +1075,50 @@ class QiblaNeedlePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final center = Offset(size.width / 2, size.height / 2);
 
+    // Gradient for needle
     final needlePaint = Paint()
-      ..color = AppTheme.accentGreen
+      ..shader = LinearGradient(
+        colors: [
+          AppTheme.accentGreen,
+          AppTheme.accentGreen.withValues(alpha: 0.8),
+        ],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      ).createShader(Rect.fromCircle(center: center, radius: 100))
       ..style = PaintingStyle.fill;
 
     final path = Path();
-    path.moveTo(center.dx, center.dy - 90);
-    path.lineTo(center.dx - 8, center.dy - 60);
-    path.lineTo(center.dx - 3, center.dy - 60);
-    path.lineTo(center.dx - 3, center.dy + 60);
-    path.lineTo(center.dx + 3, center.dy + 60);
-    path.lineTo(center.dx + 3, center.dy - 60);
-    path.lineTo(center.dx + 8, center.dy - 60);
+    path.moveTo(center.dx, center.dy - 100);
+    path.lineTo(center.dx - 10, center.dy - 65);
+    path.lineTo(center.dx - 4, center.dy - 65);
+    path.lineTo(center.dx - 4, center.dy + 65);
+    path.lineTo(center.dx + 4, center.dy + 65);
+    path.lineTo(center.dx + 4, center.dy - 65);
+    path.lineTo(center.dx + 10, center.dy - 65);
     path.close();
 
     canvas.drawPath(path, needlePaint);
 
+    // White outline
     final outlinePaint = Paint()
       ..color = Colors.white
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
+      ..strokeWidth = 2.5;
 
     canvas.drawPath(path, outlinePaint);
+
+    // Needle tip highlight
+    final tipPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.3)
+      ..style = PaintingStyle.fill;
+
+    final tipPath = Path();
+    tipPath.moveTo(center.dx, center.dy - 100);
+    tipPath.lineTo(center.dx - 10, center.dy - 65);
+    tipPath.lineTo(center.dx + 10, center.dy - 65);
+    tipPath.close();
+
+    canvas.drawPath(tipPath, tipPaint);
   }
 
   @override

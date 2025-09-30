@@ -133,13 +133,17 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                       Container(
                         decoration: BoxDecoration(
                           color: Colors.white,
-                          borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                          borderRadius: BorderRadius.circular(
+                            isTablet ? 14 : 12,
+                          ),
                           border: Border.all(
                             color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                           ),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                              color: AppTheme.primaryBlue.withValues(
+                                alpha: 0.08,
+                              ),
                               blurRadius: 12,
                               offset: const Offset(0, 2),
                             ),
@@ -458,8 +462,8 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                 itemCount: 30, // 30 days of Ramadan
                 itemBuilder: (context, index) {
                   final day = index + 1;
-                  final dayData = widget.puasaData != null 
-                      ? _getRamadhanDayData(day) 
+                  final dayData = widget.puasaData != null
+                      ? _getRamadhanDayData(day)
                       : _ramadhanProgress[day];
                   final isCompleted = dayData?['status'] == 'completed';
                   final isToday = day == 6; // Current day for demo
@@ -1103,9 +1107,13 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryBlue,
                         foregroundColor: Colors.white,
-                        padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
+                        padding: EdgeInsets.symmetric(
+                          vertical: isTablet ? 16 : 14,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                          borderRadius: BorderRadius.circular(
+                            isTablet ? 14 : 12,
+                          ),
                         ),
                         elevation: 0,
                         shadowColor: Colors.transparent,
@@ -1128,9 +1136,13 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                         side: BorderSide(
                           color: AppTheme.primaryBlue.withValues(alpha: 0.3),
                         ),
-                        padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
+                        padding: EdgeInsets.symmetric(
+                          vertical: isTablet ? 16 : 14,
+                        ),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                          borderRadius: BorderRadius.circular(
+                            isTablet ? 14 : 12,
+                          ),
                         ),
                       ),
                       child: Text(
@@ -1177,12 +1189,16 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
 
   Map<String, dynamic>? _getRamadhanDayData(int day) {
     if (widget.puasaData == null) return null;
-    
+
     // Create Ramadan date for this year (approximate)
     final now = DateTime.now();
     final ramadanDate = DateTime(now.year, 3, day); // Assuming March for demo
-    final dateKey = DateTime(ramadanDate.year, ramadanDate.month, ramadanDate.day);
-    
+    final dateKey = DateTime(
+      ramadanDate.year,
+      ramadanDate.month,
+      ramadanDate.day,
+    );
+
     return widget.puasaData![dateKey];
   }
 
