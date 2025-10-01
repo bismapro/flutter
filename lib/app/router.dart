@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:test_flutter/features/alarm/pages/alarm_settings_page.dart';
 import 'package:test_flutter/features/artikel/pages/artikel_detail_page.dart';
+import 'package:test_flutter/features/artikel/pages/artikel_page.dart';
 import 'package:test_flutter/features/auth/pages/login_page.dart';
 import 'package:test_flutter/features/auth/pages/signup_page.dart';
 import 'package:test_flutter/features/auth/pages/splash_screen.dart';
@@ -35,6 +36,7 @@ class AppRoutes {
   static const String articleDetail = '/article-detail';
   static const String alarmSettings = '/alarm-settings';
   static const String profile = '/profile';
+  static const String article = '/article';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -68,6 +70,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const MonitoringPage());
       case tahajud:
         return MaterialPageRoute(builder: (_) => const TahajudPage());
+      case article:
+        return MaterialPageRoute(builder: (_) => const ArtikelPage());
       case articleDetail:
         return MaterialPageRoute(
           builder: (_) =>

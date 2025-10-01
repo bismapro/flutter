@@ -196,33 +196,39 @@ class HomeTabContent extends StatelessWidget {
                     horizontal: MediaQuery.of(context).size.width * 0.04,
                   ),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    mainAxisSize: MainAxisSize.max,
                     children: [
                       _buildPrayerTimeWidget(
+                        context,
                         'Fajr',
                         '04:41',
                         Icons.nightlight_round,
                         true,
                       ),
                       _buildPrayerTimeWidget(
+                        context,
                         'Dzuhr',
                         '12:00',
                         Icons.wb_sunny_rounded,
                         false,
                       ),
                       _buildPrayerTimeWidget(
+                        context,
                         'Asr',
                         '15:14',
                         Icons.wb_twilight_rounded,
                         false,
                       ),
                       _buildPrayerTimeWidget(
+                        context,
                         'Maghrib',
                         '18:02',
                         Icons.wb_sunny_outlined,
                         false,
                       ),
                       _buildPrayerTimeWidget(
+                        context,
                         'Isha',
                         '19:11',
                         Icons.dark_mode_rounded,
@@ -665,79 +671,83 @@ class HomeTabContent extends StatelessWidget {
   }
 
   Widget _buildPrayerTimeWidget(
+    BuildContext context,
     String name,
     String time,
     IconData icon,
     bool isActive,
   ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final screenWidth = MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery.of(context).size.width;
 
-        // Responsive sizing
-        double containerSize = 44;
-        double iconSize = 20;
-        double nameFontSize = 12;
-        double timeFontSize = 11;
-        double spacing = 6;
+    // Responsive sizing
+    double containerSize = 44;
+    double iconSize = 20;
+    double nameFontSize = 12;
+    double timeFontSize = 11;
+    double spacing = 6;
 
-        if (screenWidth < 360) {
-          containerSize = 36;
-          iconSize = 18;
-          nameFontSize = 10;
-          timeFontSize = 9;
-          spacing = 4;
-        } else if (screenWidth >= 400) {
-          containerSize = 48;
-          iconSize = 22;
-          nameFontSize = 14;
-          timeFontSize = 12;
-          spacing = 8;
-        }
+    if (screenWidth < 360) {
+      containerSize = 36;
+      iconSize = 18;
+      nameFontSize = 10;
+      timeFontSize = 9;
+      spacing = 4;
+    } else if (screenWidth >= 400) {
+      containerSize = 48;
+      iconSize = 22;
+      nameFontSize = 14;
+      timeFontSize = 12;
+      spacing = 8;
+    }
 
-        return Flexible(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                name,
-                style: TextStyle(
-                  color: isActive ? Colors.white : Colors.white70,
-                  fontSize: nameFontSize,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-              SizedBox(height: spacing),
-              Container(
-                width: containerSize,
-                height: containerSize,
-                decoration: BoxDecoration(
-                  color: isActive
-                      ? Colors.white.withValues(alpha: .3)
-                      : Colors.white.withValues(alpha: .1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Icon(icon, color: Colors.white, size: iconSize),
-              ),
-              SizedBox(height: spacing),
-              Text(
-                time,
-                style: TextStyle(
-                  color: isActive ? Colors.white : Colors.white70,
-                  fontSize: timeFontSize,
-                  fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ],
+    return SizedBox(
+      width: containerSize + 16, // Fixed width to prevent overflow
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            name,
+            style: TextStyle(
+              color: isActive ? Colors.white : Colors.white70,
+              fontSize: nameFontSize,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
           ),
-        );
-      },
+          SizedBox(height: spacing),
+          Container(
+            width: containerSize,
+            height: containerSize,
+            decoration: BoxDecoration(
+              color: isActive
+                  ? Colors.white.withValues(alpha: .3)
+                  : Colors.white.withValues(alpha: .1),
+              borderRadius: BorderRadius.circular(12),
+              border: isActive
+                  ? Border.all(
+                      color: Colors.white.withValues(alpha: 0.5),
+                      width: 1,
+                    )
+                  : null,
+            ),
+            child: Icon(icon, color: Colors.white, size: iconSize),
+          ),
+          SizedBox(height: spacing),
+          Text(
+            time,
+            style: TextStyle(
+              color: isActive ? Colors.white : Colors.white70,
+              fontSize: timeFontSize,
+              fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
+            ),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
     );
   }
 
@@ -906,6 +916,12 @@ class AllFeaturesSheet extends StatelessWidget {
         'Alarm',
         AppTheme.accentGreen,
         '/alarm-settings',
+      ),
+      _FeatureData(
+        Icons.article, // tetap pakai material
+        'Artikel',
+        AppTheme.accentGreen,
+        '/article',
       ),
     ];
 
