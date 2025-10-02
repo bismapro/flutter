@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/profile/profile_provider.dart';
 import 'edit_profile_page.dart';
@@ -380,12 +381,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               Navigator.pop(context);
               // Use auth provider to logout
               ref.read(authProvider.notifier).logout();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Anda telah keluar dari aplikasi'),
-                  backgroundColor: Colors.orange,
-                ),
+
+              showMessageToast(
+                context,
+                message: 'Anda telah keluar dari aplikasi',
               );
+
+              Navigator.pushReplacementNamed(context, '/welcome');
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red,

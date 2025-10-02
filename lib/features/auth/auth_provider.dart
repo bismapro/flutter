@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/storage_helper.dart';
@@ -22,49 +23,87 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
     logger.fine('Checking auth status...');
 
     try {
-      // Coba ambil user dari server
-      final response = await AuthService.getCurrentUser();
-      final data = response['data'];
-
+      final data = await _getUserWithSingleRefresh();
       if (data != null) {
-        // Kalau sukses ambil dari server
+        // Sukses ambil dari server
         state = {
           'status': AuthState.authenticated,
           'user': data,
           'error': null,
         };
-
-        // Sync ulang user ke storage biar up-to-date
+        // Sync ke storage agar up to date
         await StorageHelper.saveUser(data);
-      } else {
-        state = {
-          'status': AuthState.unauthenticated,
-          'user': null,
-          'error': null,
-        };
+        return;
       }
+
+      // Jika sampai sini berarti tidak dapat user dari server (401 sesudah refresh / null)
+      await _fallbackToStorageOrUnauth();
+    } on DioException catch (e) {
+      logger.warning('Network/Dio error: ${e.type} ${e.response?.statusCode}');
+      // Offline/timeouts atau error lain → fallback
+      await _fallbackToStorageOrUnauth();
     } catch (e) {
-      logger.warning('Tidak ada internet, coba pakai local storage...');
+      logger.warning('Unknown error: $e');
+      await _fallbackToStorageOrUnauth(error: 'Failed to check auth status');
+    }
+  }
 
-      // Kalau gagal (offline), cek apakah ada data user di storage
-      final localUser = await StorageHelper.getUser();
-      final localToken = await StorageHelper.getToken();
+  /// Coba GET /current-user sekali; jika 401 → refresh token sekali → retry.
+  /// return: map user bila sukses, atau null bila gagal.
+  Future<Map<String, dynamic>?> _getUserWithSingleRefresh() async {
+    try {
+      final resp = await AuthService.getCurrentUser();
+      final data = resp['data'] as Map<String, dynamic>?;
+      if (data != null) return data;
+      return null;
+    } on DioException catch (e) {
+      final code = e.response?.statusCode;
+      if (code == 401) {
+        logger.fine('Access token 401 → try refresh once');
+        try {
+          final r = await AuthService.refresh(); // pastikan ada endpoint ini
+          final newAccess = r['access_token'] as String?;
 
-      if (localUser != null && localToken != null) {
-        // Anggap masih authenticated (offline mode)
-        state = {
-          'status': AuthState.authenticated,
-          'user': localUser,
-          'error': null,
-        };
-      } else {
-        // Tidak ada data local, berarti belum login
-        state = {
-          'status': AuthState.unauthenticated,
-          'user': null,
-          'error': 'Offline dan tidak ada data user',
-        };
+          if (newAccess == null || newAccess.isEmpty) {
+            logger.fine('Refresh failed: empty access token');
+            return null;
+          }
+
+          // Simpan token baru
+          await StorageHelper.saveToken(newAccess);
+
+          // Retry get current user
+          final retry = await AuthService.getCurrentUser();
+          final data2 = retry['data'] as Map<String, dynamic>?;
+          return data2;
+        } catch (e2) {
+          logger.warning('Refresh attempt failed: $e2');
+          return null; // biar caller fallback ke storage
+        }
       }
+      rethrow; // error selain 401: lempar ke caller (akan fallback)
+    }
+  }
+
+  /// Fallback ke storage (mode offline) atau set unauthenticated bila tidak ada data.
+  Future<void> _fallbackToStorageOrUnauth({String? error}) async {
+    logger.warning('Fallback to local storage...');
+
+    final localUser = await StorageHelper.getUser();
+    final localToken = await StorageHelper.getToken();
+
+    if (localUser != null && localToken != null && localToken.isNotEmpty) {
+      state = {
+        'status': AuthState.authenticated,
+        'user': localUser,
+        'error': null,
+      };
+    } else {
+      state = {
+        'status': AuthState.unauthenticated,
+        'user': null,
+        'error': error,
+      };
     }
   }
 

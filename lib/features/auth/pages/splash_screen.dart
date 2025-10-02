@@ -1,17 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/features/auth/auth_provider.dart';
+import 'package:test_flutter/features/auth/pages/welcome_page.dart';
+import 'package:test_flutter/features/home/pages/home_page.dart';
 import '../../../app/theme.dart';
 
-class SplashScreen extends StatefulWidget {
+class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State<SplashScreen> createState() => _SplashScreenState();
+  ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen>
+class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _logoController;
   late AnimationController _textController;
@@ -23,25 +28,71 @@ class _SplashScreenState extends State<SplashScreen>
   late Animation<double> _progress;
   late Animation<double> _pulse;
 
+  // ignore: unused_field
+  ProviderSubscription<Map<String, dynamic>>? _authSub;
+  bool _navigated = false;
+
   @override
   void initState() {
     super.initState();
 
+    // (1) Trigger cek status auth
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(authProvider.notifier).checkAuthStatus();
+    });
+
+    // (2) LISTEN menggunakan listenManual (boleh di initState)
+    _authSub = ref.listenManual<Map<String, dynamic>>(authProvider, (
+      prev,
+      next,
+    ) async {
+      if (_navigated) return; // guard
+
+      final status = next['status'] as AuthState?;
+      logger.fine('Splash listen: $status');
+
+      Future<void> navigate(Widget page) async {
+        if (mounted && !_navigated) {
+          _navigated = true;
+          // beri jeda dikit biar animasi kebaca
+          await Future<void>.delayed(const Duration(milliseconds: 350));
+          if (!mounted) return;
+          Navigator.of(
+            context,
+          ).pushReplacement(MaterialPageRoute(builder: (_) => page));
+        }
+      }
+
+      switch (status) {
+        case AuthState.authenticated:
+          await navigate(const HomePage());
+          break;
+        case AuthState.unauthenticated:
+        case AuthState.isRegistered:
+        case AuthState.error:
+          await navigate(const WelcomePage());
+          break;
+        case AuthState.initial:
+        case AuthState.loading:
+        default:
+          // tetap di splash
+          break;
+      }
+    });
+
+    // --- INISIALISASI ANIMASI (tanpa auto-navigate di akhir!) ---
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
     );
-
     _textController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-
     _progressController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
     );
-
     _pulseController = AnimationController(
       duration: const Duration(milliseconds: 2000),
       vsync: this,
@@ -50,15 +101,12 @@ class _SplashScreenState extends State<SplashScreen>
     _logoScale = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.elasticOut),
     );
-
     _textFade = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _textController, curve: Curves.easeInOut),
     );
-
     _progress = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _progressController, curve: Curves.easeInOut),
     );
-
     _pulse = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
@@ -73,10 +121,21 @@ class _SplashScreenState extends State<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 200));
     _progressController.forward();
 
-    await Future.delayed(const Duration(milliseconds: 2500));
-    if (mounted) {
-      Navigator.of(context).pushReplacementNamed('/welcome');
-    }
+    // ⚠️ HAPUS auto-navigate default berikut supaya tidak bentrok:
+    // await Future.delayed(const Duration(milliseconds: 2500));
+    // if (mounted) {
+    //   Navigator.of(context).pushReplacementNamed('/welcome');
+    // }
+
+    // (Opsional) Fallback kalau 5 detik belum ada keputusan dari auth:
+    Future.delayed(const Duration(seconds: 5), () {
+      if (mounted && !_navigated) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(builder: (_) => const WelcomePage()),
+        );
+        _navigated = true;
+      }
+    });
   }
 
   @override

@@ -49,6 +49,20 @@ class AuthService {
     }
   }
 
+  static Future<Map<String, dynamic>> refresh() async {
+    try {
+      final response = await ApiClient.dio.post('/auth/refresh');
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Refresh token failed';
+
+      final error = ApiClient.parseDioError(e, errorMessage);
+
+      throw Exception(error);
+    }
+  }
+
   static Future<Map<String, dynamic>> getCurrentUser() async {
     try {
       final response = await ApiClient.dio.post('/auth/me');
