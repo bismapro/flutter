@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
+import 'package:test_flutter/core/utils/responsive_helper.dart';
 import '../../../app/theme.dart';
 
 class WelcomePage extends StatefulWidget {
@@ -52,7 +53,6 @@ class _WelcomePageState extends State<WelcomePage>
       CurvedAnimation(parent: _scaleController, curve: Curves.elasticOut),
     );
 
-    // Start animations
     _fadeController.forward();
     _slideController.forward();
     _scaleController.forward();
@@ -66,11 +66,321 @@ class _WelcomePageState extends State<WelcomePage>
     super.dispose();
   }
 
+  // double _gapSmall(BuildContext context) =>
+  //     ResponsiveHelper.isSmallScreen(context) ? 12 : 16;
+  double _gapMedium(BuildContext context) =>
+      ResponsiveHelper.isSmallScreen(context) ? 20 : 28;
+  double _fieldHeight(BuildContext context) =>
+      ResponsiveHelper.isSmallScreen(context) ? 52 : 56;
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.height < 700;
+    final isSmall = ResponsiveHelper.isSmallScreen(context);
+    final isMedium = ResponsiveHelper.isMediumScreen(context);
+    final isLarge = ResponsiveHelper.isLargeScreen(context);
+    final isXL = ResponsiveHelper.isExtraLargeScreen(context);
 
+    final pagePadding = ResponsiveHelper.getResponsivePadding(context);
+    final useTwoColumns =
+        MediaQuery.of(context).size.width >= ResponsiveHelper.largeScreenSize;
+
+    // Sizing adaptif
+    final logoSize = isSmall
+        ? 110.0
+        : isMedium
+        ? 140.0
+        : 150.0;
+    final appNameSize = ResponsiveHelper.adaptiveTextSize(
+      context,
+      isSmall ? 32 : 38,
+    );
+    final cardRadius = isXL ? 36.0 : 32.0;
+    final cardPadding = isSmall
+        ? 28.0
+        : isMedium
+        ? 36.0
+        : 40.0;
+    final maxContentWidth = isXL
+        ? 700.0
+        : isLarge
+        ? 640.0
+        : 600.0;
+    final maxHeroWidth = isXL
+        ? 520.0
+        : isLarge
+        ? 460.0
+        : 420.0;
+
+    // HEADER (logo + nama app)
+    final header = Column(
+      children: [
+        SizedBox(height: isSmall ? 70 : 90),
+        FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: Container(
+              width: logoSize,
+              height: logoSize,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.2),
+                    blurRadius: 30,
+                    offset: const Offset(0, 10),
+                    spreadRadius: -5,
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(8),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(20),
+                child: Image.asset(AppConfig.appLogo, fit: BoxFit.cover),
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: isSmall ? 20 : 28),
+        FadeTransition(
+          opacity: _fadeAnimation,
+          child: ShaderMask(
+            shaderCallback: (bounds) => LinearGradient(
+              colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
+            ).createShader(bounds),
+            child: Text(
+              AppConfig.appName,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: appNameSize,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                letterSpacing: -1.2,
+              ),
+            ),
+          ),
+        ),
+        SizedBox(height: isSmall ? 40 : 60),
+      ],
+    );
+
+    // KONTEN UTAMA (card fitur)
+    final mainCard = Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: maxContentWidth),
+        child: SlideTransition(
+          position: _slideAnimation,
+          child: FadeTransition(
+            opacity: _fadeAnimation,
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.all(cardPadding),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(cardRadius),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                    blurRadius: 40,
+                    offset: const Offset(0, 10),
+                    spreadRadius: -5,
+                  ),
+                ],
+              ),
+              child: Column(
+                children: [
+                  ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: maxHeroWidth),
+                    child: Column(
+                      children: [
+                        Text(
+                          'Stay Connected to\nYour Faith',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.adaptiveTextSize(
+                              context,
+                              24,
+                            ),
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.onSurface,
+                            height: 1.3,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
+                        SizedBox(height: isSmall ? 12 : 16),
+                        Text(
+                          'Prayer times, Qibla direction, Islamic calendar\nand community - all in one place',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: ResponsiveHelper.adaptiveTextSize(
+                              context,
+                              15,
+                            ),
+                            color: AppTheme.onSurfaceVariant,
+                            height: 1.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: isSmall ? 20 : 24),
+
+                  // Fitur: otomatis jadi 2 kolom pada layar besar
+                  LayoutBuilder(
+                    builder: (context, c) {
+                      final twoCol = c.maxWidth >= 520;
+                      if (twoCol) {
+                        return Wrap(
+                          spacing: 16,
+                          runSpacing: 12,
+                          children: const [
+                            _FeatureChip(text: 'Accurate prayer times'),
+                            _FeatureChip(text: 'Find nearest mosques'),
+                            _FeatureChip(text: 'Read Al-Quran & Hadith'),
+                          ],
+                        );
+                      }
+                      return Column(
+                        children: const [
+                          _FeatureRow(text: 'Accurate prayer times'),
+                          SizedBox(height: 12),
+                          _FeatureRow(text: 'Find nearest mosques'),
+                          SizedBox(height: 12),
+                          _FeatureRow(text: 'Read Al-Quran & Hadith'),
+                        ],
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    // TOMBOL BAWAH
+    final bottomButtons = SlideTransition(
+      position: Tween<Offset>(begin: const Offset(0, 0.5), end: Offset.zero)
+          .animate(
+            CurvedAnimation(
+              parent: _slideController,
+              curve: const Interval(0.3, 1.0, curve: Curves.easeOut),
+            ),
+          ),
+      child: FadeTransition(
+        opacity: _fadeAnimation,
+        child: Column(
+          children: [
+            SizedBox(
+              width: double.infinity,
+              height: _fieldHeight(context),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pushNamed(context, '/login'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppTheme.primaryBlue,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  elevation: 0,
+                  shadowColor: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Get Started',
+                      style: TextStyle(
+                        fontSize: ResponsiveHelper.adaptiveTextSize(
+                          context,
+                          16,
+                        ),
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    const Icon(Icons.arrow_forward_rounded, size: 20),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              height: _fieldHeight(context),
+              child: OutlinedButton(
+                onPressed: () => Navigator.pushNamed(context, '/home'),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.3),
+                    width: 2,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: Text(
+                  'Continue as Guest',
+                  style: TextStyle(
+                    color: AppTheme.primaryBlue,
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: _gapMedium(context)),
+          ],
+        ),
+      ),
+    );
+
+    // PANEL KIRI (hiasan) khusus layar besar
+    final leftPane = AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.all(isXL ? 32 : 24),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.35),
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.mosque_rounded,
+            size: isXL ? 120 : 96,
+            color: AppTheme.accentGreen.withValues(alpha: 0.9),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'All-in-One Muslim Companion',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 22),
+              fontWeight: FontWeight.w700,
+              color: AppTheme.onSurface,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Prayer times, Qibla, Quran, and community features to support your daily worship.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
+              color: AppTheme.onSurfaceVariant,
+              height: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+
+    // ================== SCAFFOLD ==================
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -87,303 +397,125 @@ class _WelcomePageState extends State<WelcomePage>
         ),
         child: SafeArea(
           child: Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: 24.0,
-              vertical: isSmallScreen ? 20.0 : 24.0,
-            ),
-            child: Column(
-              children: [
-                Expanded(
-                  child: SingleChildScrollView(
-                    child: Column(
-                      children: [
-                        SizedBox(height: isSmallScreen ? 40 : 60),
-
-                        // Animated Logo
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: ScaleTransition(
-                            scale: _scaleAnimation,
-                            child: Container(
-                              width: isSmallScreen ? 90 : 110,
-                              height: isSmallScreen ? 90 : 110,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(28),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryBlue.withValues(
-                                      alpha: 0.2,
-                                    ),
-                                    blurRadius: 30,
-                                    offset: const Offset(0, 10),
-                                    spreadRadius: -5,
-                                  ),
-                                ],
-                              ),
-                              padding: const EdgeInsets.all(8),
-                              child: ClipRRect(
-                                borderRadius: BorderRadius.circular(20),
-                                child: Image.asset(
-                                  AppConfig.appLogo,
-                                  fit: BoxFit.cover,
-                                ),
-                              ),
-                            ),
+            padding: pagePadding,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                if (useTwoColumns) {
+                  // Layar besar: 2 kolom
+                  return Row(
+                    children: [
+                      Expanded(
+                        flex: 6,
+                        child: Padding(
+                          padding: EdgeInsets.only(
+                            right: pagePadding.right / 2,
                           ),
-                        ),
-                        SizedBox(height: isSmallScreen ? 20 : 28),
-
-                        // App Name with Animation
-                        FadeTransition(
-                          opacity: _fadeAnimation,
-                          child: ShaderMask(
-                            shaderCallback: (bounds) => LinearGradient(
-                              colors: [
-                                AppTheme.primaryBlue,
-                                AppTheme.accentGreen,
-                              ],
-                            ).createShader(bounds),
-                            child: Text(
-                              AppConfig.appName,
-                              style: TextStyle(
-                                fontSize: isSmallScreen ? 32 : 38,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                                letterSpacing: -1.2,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: isSmallScreen ? 40 : 60),
-
-                        // Main Content with Slide Animation
-                        SlideTransition(
-                          position: _slideAnimation,
-                          child: FadeTransition(
-                            opacity: _fadeAnimation,
-                            child: Container(
-                              width: double.infinity,
-                              padding: EdgeInsets.all(isSmallScreen ? 28 : 36),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(32),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryBlue.withValues(
-                                      alpha: 0.08,
-                                    ),
-                                    blurRadius: 40,
-                                    offset: const Offset(0, 10),
-                                    spreadRadius: -5,
-                                  ),
-                                ],
-                              ),
-                              child: Column(
-                                children: [
-                                  // Icon row
-                                  // Row(
-                                  //   mainAxisAlignment:
-                                  //       MainAxisAlignment.spaceEvenly,
-                                  //   children: [
-                                  //     _buildFeatureIcon(
-                                  //       Icons.access_time_rounded,
-                                  //       AppTheme.primaryBlue,
-                                  //     ),
-                                  //     _buildFeatureIcon(
-                                  //       Icons.explore_outlined,
-                                  //       AppTheme.accentGreen,
-                                  //     ),
-                                  //     _buildFeatureIcon(
-                                  //       Icons.calendar_month_rounded,
-                                  //       AppTheme.primaryBlue,
-                                  //     ),
-                                  //     _buildFeatureIcon(
-                                  //       Icons.people_rounded,
-                                  //       AppTheme.accentGreen,
-                                  //     ),
-                                  //   ],
-                                  // ),
-                                  // SizedBox(height: isSmallScreen ? 24 : 28),
-
-                                  Text(
-                                    'Stay Connected to\nYour Faith',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: isSmallScreen ? 20 : 24,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.onSurface,
-                                      height: 1.3,
-                                      letterSpacing: -0.5,
-                                    ),
-                                  ),
-                                  SizedBox(height: isSmallScreen ? 12 : 16),
-
-                                  Text(
-                                    'Prayer times, Qibla direction, Islamic calendar\nand community - all in one place',
-                                    textAlign: TextAlign.center,
-                                    style: TextStyle(
-                                      fontSize: isSmallScreen ? 13 : 15,
-                                      color: AppTheme.onSurfaceVariant,
-                                      height: 1.5,
-                                    ),
-                                  ),
-
-                                  SizedBox(height: isSmallScreen ? 20 : 24),
-
-                                  // Features list
-                                  _buildFeatureRow(
-                                    Icons.check_circle_rounded,
-                                    'Accurate prayer times',
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildFeatureRow(
-                                    Icons.check_circle_rounded,
-                                    'Find nearest mosques',
-                                  ),
-                                  const SizedBox(height: 12),
-                                  _buildFeatureRow(
-                                    Icons.check_circle_rounded,
-                                    'Read Al-Quran & Hadith',
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: isSmallScreen ? 30 : 40),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Bottom Buttons with Animation
-                SlideTransition(
-                  position:
-                      Tween<Offset>(
-                        begin: const Offset(0, 0.5),
-                        end: Offset.zero,
-                      ).animate(
-                        CurvedAnimation(
-                          parent: _slideController,
-                          curve: const Interval(
-                            0.3,
-                            1.0,
-                            curve: Curves.easeOut,
-                          ),
+                          child: leftPane,
                         ),
                       ),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Column(
-                      children: [
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/login');
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppTheme.primaryBlue,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              elevation: 0,
-                              shadowColor: AppTheme.primaryBlue.withValues(
-                                alpha: 0.3,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text(
-                                  'Get Started',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    letterSpacing: 0.5,
-                                  ),
+                      Expanded(
+                        flex: 5,
+                        child: Column(
+                          children: [
+                            Expanded(
+                              child: SingleChildScrollView(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: pagePadding.horizontal / 2,
                                 ),
-                                const SizedBox(width: 8),
-                                Icon(Icons.arrow_forward_rounded, size: 20),
-                              ],
+                                child: Column(children: [header, mainCard]),
+                              ),
                             ),
-                          ),
+                            bottomButtons,
+                          ],
                         ),
-                        const SizedBox(height: 14),
-
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: OutlinedButton(
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/home');
-                            },
-                            style: OutlinedButton.styleFrom(
-                              side: BorderSide(
-                                color: AppTheme.primaryBlue.withValues(
-                                  alpha: 0.3,
-                                ),
-                                width: 2,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: Text(
-                              'Continue as Guest',
-                              style: TextStyle(
-                                color: AppTheme.primaryBlue,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                          ),
+                      ),
+                    ],
+                  );
+                } else {
+                  // Mobile / tablet kecil: 1 kolom
+                  return Column(
+                    children: [
+                      Expanded(
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.symmetric(horizontal: 8),
+                          child: Column(children: [header, mainCard]),
                         ),
-                        SizedBox(height: isSmallScreen ? 20 : 24),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+                      ),
+                      bottomButtons,
+                    ],
+                  );
+                }
+              },
             ),
           ),
         ),
       ),
     );
   }
+}
 
-  Widget _buildFeatureIcon(IconData icon, Color color) {
-    return Container(
-      width: 48,
-      height: 48,
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(14),
-      ),
-      child: Icon(icon, color: color, size: 24),
-    );
-  }
+// ===== Komponen kecil responsif =====
 
-  Widget _buildFeatureRow(IconData icon, String text) {
+class _FeatureRow extends StatelessWidget {
+  const _FeatureRow({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, color: AppTheme.accentGreen, size: 20),
+        Icon(Icons.check_circle_rounded, color: AppTheme.accentGreen, size: 20),
         const SizedBox(width: 12),
         Expanded(
           child: Text(
             text,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
               color: AppTheme.onSurface,
               fontWeight: FontWeight.w500,
             ),
           ),
         ),
       ],
+    );
+  }
+}
+
+class _FeatureChip extends StatelessWidget {
+  const _FeatureChip({required this.text});
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minWidth: 220),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppTheme.accentGreen.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(
+          color: AppTheme.accentGreen.withValues(alpha: 0.15),
+          width: 1,
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle_rounded, size: 18),
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              text,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
+                color: AppTheme.onSurface,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

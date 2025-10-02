@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/services/audio_notification_service.dart';
 
 // Simplified audio service untuk background playback dengan notification
@@ -80,7 +81,7 @@ class QuranAudioService {
         onStop: () => stop(),
       );
     } catch (e) {
-      print('Error playing audio: $e');
+      logger.fine('Error playing audio: $e');
       throw e;
     }
   }

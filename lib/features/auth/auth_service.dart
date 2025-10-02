@@ -1,0 +1,51 @@
+import 'package:dio/dio.dart';
+import 'package:test_flutter/core/utils/api_client.dart';
+
+class AuthService {
+  static Future<Map<String, dynamic>> login(
+    String email,
+    String password,
+  ) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/auth/login',
+        data: {'email': email, 'password': password},
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Login failed';
+
+      final error = ApiClient.parseDioError(e, errorMessage);
+
+      throw Exception(error);
+    }
+  }
+
+  static Future<Map<String, dynamic>> register(
+    String name,
+    String email,
+    String password,
+    String confirmationPassword,
+  ) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/auth/register',
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          'password_confirmation': confirmationPassword,
+        },
+      );
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Register failed';
+
+      final error = ApiClient.parseDioError(e, errorMessage);
+
+      throw Exception(error);
+    }
+  }
+}

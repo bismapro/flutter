@@ -4,6 +4,8 @@ import 'package:flutter_compass/flutter_compass.dart';
 import 'dart:math' as math;
 import 'dart:async';
 
+import 'package:test_flutter/core/utils/logger.dart';
+
 // Import theme from your app
 class AppTheme {
   static const Color primaryBlue = Color(0xFF2196F3);
@@ -212,7 +214,7 @@ class _CompassPageState extends State<CompassPage> {
             }
           },
           onError: (error) {
-            debugPrint('Location update error: $error');
+            logger.fine('Location update error: $error');
           },
         );
   }

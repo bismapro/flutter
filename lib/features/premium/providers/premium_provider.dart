@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import '../models/child_data.dart';
 
 /// Provider untuk mengelola state premium dashboard
@@ -64,7 +65,7 @@ class PremiumProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {
-        print('Error adding child: $e');
+        logger.fine('Error adding child: $e');
       }
       rethrow;
     } finally {
@@ -84,7 +85,7 @@ class PremiumProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {
-        print('Error removing child: $e');
+        logger.fine('Error removing child: $e');
       }
       rethrow;
     } finally {
@@ -107,7 +108,7 @@ class PremiumProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error updating child: $e');
+        logger.fine('Error updating child: $e');
       }
       rethrow;
     } finally {
@@ -125,7 +126,7 @@ class PremiumProvider extends ChangeNotifier {
 
       // In real implementation, this would send notification to child
       if (kDebugMode) {
-        print('Reward sent to $childName: $message');
+        logger.fine('Reward sent to $childName: $message');
       }
 
       // Could update badge count here
@@ -141,7 +142,7 @@ class PremiumProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (kDebugMode) {
-        print('Error sending reward: $e');
+        logger.fine('Error sending reward: $e');
       }
       rethrow;
     } finally {
@@ -161,7 +162,7 @@ class PremiumProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       if (kDebugMode) {
-        print('Error refreshing data: $e');
+        logger.fine('Error refreshing data: $e');
       }
       rethrow;
     } finally {

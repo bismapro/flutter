@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 
@@ -225,7 +226,7 @@ class AlarmService {
       await audioPlayer.stop(); // Stop any currently playing audio
       await audioPlayer.play(AssetSource('audio/adzan.mp3'));
     } catch (e) {
-      debugPrint('Error playing adzan: $e');
+      logger.fine('Error playing adzan: $e');
     }
   }
 
@@ -237,7 +238,7 @@ class AlarmService {
     try {
       await audioPlayer.stop();
     } catch (e) {
-      debugPrint('Error stopping adzan: $e');
+      logger.fine('Error stopping adzan: $e');
     }
   }
 

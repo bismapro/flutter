@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import '../../../app/theme.dart';
 import '../../../data/services/alarm_service.dart';
 
@@ -66,7 +67,7 @@ class _AlarmSettingsPageState extends State<AlarmSettingsPage> {
         _isLoading = false;
       });
     } catch (e) {
-      debugPrint('Error loading alarm states: $e');
+      logger.fine('Error loading alarm states: $e');
       setState(() {
         _isLoading = false;
       });
