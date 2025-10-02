@@ -86,10 +86,10 @@ class _WelcomePageState extends State<WelcomePage>
 
     // Sizing adaptif
     final logoSize = isSmall
-        ? 110.0
+        ? 90.0
         : isMedium
-        ? 140.0
-        : 150.0;
+        ? 110.0
+        : 120.0;
     final appNameSize = ResponsiveHelper.adaptiveTextSize(
       context,
       isSmall ? 32 : 38,
@@ -114,7 +114,7 @@ class _WelcomePageState extends State<WelcomePage>
     // HEADER (logo + nama app)
     final header = Column(
       children: [
-        SizedBox(height: isSmall ? 70 : 90),
+        SizedBox(height: isSmall ? 40 : 60),
         FadeTransition(
           opacity: _fadeAnimation,
           child: ScaleTransition(
@@ -161,7 +161,7 @@ class _WelcomePageState extends State<WelcomePage>
             ),
           ),
         ),
-        SizedBox(height: isSmall ? 40 : 60),
+        SizedBox(height: isSmall ? 20 : 40),
       ],
     );
 

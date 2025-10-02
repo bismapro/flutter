@@ -1,13 +1,16 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
-import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/auth/pages/welcome_page.dart';
 import 'package:test_flutter/features/home/pages/home_page.dart';
 import '../../../app/theme.dart';
+
+// Target hasil keputusan auth
+enum _Target { unknown, home, welcome }
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -18,6 +21,11 @@ class SplashScreen extends ConsumerStatefulWidget {
 
 class _SplashScreenState extends ConsumerState<SplashScreen>
     with TickerProviderStateMixin {
+  ProviderSubscription<Map<String, dynamic>>? _authSub;
+  bool _animationsDone = false;
+  bool _navigated = false;
+  _Target _target = _Target.unknown;
+
   late AnimationController _logoController;
   late AnimationController _textController;
   late AnimationController _progressController;
@@ -28,59 +36,39 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   late Animation<double> _progress;
   late Animation<double> _pulse;
 
-  // ignore: unused_field
-  ProviderSubscription<Map<String, dynamic>>? _authSub;
-  bool _navigated = false;
-
   @override
   void initState() {
     super.initState();
 
-    // (1) Trigger cek status auth
+    // 1) Trigger cek status auth
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(authProvider.notifier).checkAuthStatus();
     });
 
-    // (2) LISTEN menggunakan listenManual (boleh di initState)
+    // 2) Listen auth → tentukan TARGET SAJA (tidak navigate di sini)
     _authSub = ref.listenManual<Map<String, dynamic>>(authProvider, (
       prev,
       next,
-    ) async {
-      if (_navigated) return; // guard
-
+    ) {
       final status = next['status'] as AuthState?;
-      logger.fine('Splash listen: $status');
-
-      Future<void> navigate(Widget page) async {
-        if (mounted && !_navigated) {
-          _navigated = true;
-          // beri jeda dikit biar animasi kebaca
-          await Future<void>.delayed(const Duration(milliseconds: 350));
-          if (!mounted) return;
-          Navigator.of(
-            context,
-          ).pushReplacement(MaterialPageRoute(builder: (_) => page));
-        }
-      }
-
       switch (status) {
         case AuthState.authenticated:
-          await navigate(const HomePage());
+          _target = _Target.home;
           break;
         case AuthState.unauthenticated:
         case AuthState.isRegistered:
         case AuthState.error:
-          await navigate(const WelcomePage());
+          _target = _Target.welcome;
           break;
         case AuthState.initial:
         case AuthState.loading:
         default:
-          // tetap di splash
-          break;
+          _target = _Target.unknown;
       }
+      _maybeNavigate(); // cek apakah animasi sudah selesai
     });
 
-    // --- INISIALISASI ANIMASI (tanpa auto-navigate di akhir!) ---
+    // 3) Init animasi
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -114,32 +102,35 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _startAnimations();
   }
 
-  void _startAnimations() async {
-    _logoController.forward();
-    await Future.delayed(const Duration(milliseconds: 400));
-    _textController.forward();
+  // Jalankan animasi berurut dan tandai selesai
+  Future<void> _startAnimations() async {
+    await _logoController.forward();
     await Future.delayed(const Duration(milliseconds: 200));
-    _progressController.forward();
+    await _textController.forward();
+    await _progressController.forward(); // selesai progress bar
 
-    // ⚠️ HAPUS auto-navigate default berikut supaya tidak bentrok:
-    // await Future.delayed(const Duration(milliseconds: 2500));
-    // if (mounted) {
-    //   Navigator.of(context).pushReplacementNamed('/welcome');
-    // }
+    _animationsDone = true;
+    _maybeNavigate();
+  }
 
-    // (Opsional) Fallback kalau 5 detik belum ada keputusan dari auth:
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted && !_navigated) {
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute(builder: (_) => const WelcomePage()),
-        );
-        _navigated = true;
-      }
-    });
+  // Navigate hanya kalau KEDUA syarat terpenuhi: animasi selesai & target jelas
+  void _maybeNavigate() {
+    if (!mounted || _navigated) return;
+    if (!_animationsDone) return;
+    if (_target == _Target.unknown) return;
+
+    _navigated = true;
+    final page = (_target == _Target.home)
+        ? const HomePage()
+        : const WelcomePage();
+    Navigator.of(
+      context,
+    ).pushReplacement(MaterialPageRoute(builder: (_) => page));
   }
 
   @override
   void dispose() {
+    _authSub?.close();
     _logoController.dispose();
     _textController.dispose();
     _progressController.dispose();
@@ -159,15 +150,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     return 168; // XL
   }
 
-  double _progressWidth(BuildContext context) {
-    final w = ResponsiveHelper.getScreenWidth(context);
-    // max 320, min 200, proporsional terhadap lebar layar
-    final target = w * 0.4;
-    return target.clamp(200, 320);
-  }
-
   double _bgCircleBig(BuildContext context) {
-    final w = ResponsiveHelper.getScreenWidth(context);
+    final w = MediaQuery.sizeOf(context).width;
     if (w >= ResponsiveHelper.extraLargeScreenSize) return 520;
     if (w >= ResponsiveHelper.largeScreenSize) return 440;
     if (w >= ResponsiveHelper.mediumScreenSize) return 360;
@@ -175,7 +159,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   double _bgCircleSmall(BuildContext context) {
-    final w = ResponsiveHelper.getScreenWidth(context);
+    final w = MediaQuery.sizeOf(context).width;
     if (w >= ResponsiveHelper.extraLargeScreenSize) return 360;
     if (w >= ResponsiveHelper.largeScreenSize) return 300;
     if (w >= ResponsiveHelper.mediumScreenSize) return 260;
@@ -192,22 +176,20 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       ),
     );
 
-    final pagePadding = ResponsiveHelper.getResponsivePadding(context);
+    final screenW = MediaQuery.sizeOf(context).width;
+    final isNarrow = screenW <= 360; // penting: 360 ikut kategori sempit
+    final horizontalPad = isNarrow ? 16.0 : (screenW < 600 ? 24.0 : 32.0);
     final logoSize = _logoSize(context);
-    final titleSize = ResponsiveHelper.adaptiveTextSize(
-      context,
-      44, // base
-    );
+    final titleSize = ResponsiveHelper.adaptiveTextSize(context, 44);
     final subtitleSize = ResponsiveHelper.adaptiveTextSize(context, 17);
-    final iconSize = ResponsiveHelper.isSmallScreen(context) ? 20.0 : 22.0;
-    final featureSpacing = ResponsiveHelper.isSmallScreen(context)
-        ? 18.0
-        : 24.0;
+    final iconSize = isNarrow ? 20.0 : 22.0;
+    final featureSpacing = isNarrow ? 18.0 : 24.0;
 
     final big = _bgCircleBig(context);
     final small = _bgCircleSmall(context);
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       body: Container(
         width: double.infinity,
         height: double.infinity,
@@ -225,7 +207,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ),
         child: Stack(
           children: [
-            // Animated background circles (ukuran & posisi responsif)
+            // Animated background circles
             Positioned(
               top: -small / 3,
               right: -small / 3,
@@ -267,252 +249,287 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ),
             ),
 
-            // Main content
+            // Main content (selalu center + lebar dibatasi)
             SafeArea(
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: pagePadding.horizontal / 2,
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // Logo
-                          AnimatedBuilder(
-                            animation: _logoScale,
-                            builder: (context, child) {
-                              return Transform.scale(
-                                scale: _logoScale.value,
-                                child: Container(
-                                  width: logoSize,
-                                  height: logoSize,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(32),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.white.withValues(
-                                          alpha: 0.3,
-                                        ),
-                                        blurRadius: 40,
-                                        spreadRadius: 10,
-                                      ),
-                                      BoxShadow(
-                                        color: Colors.black.withValues(
-                                          alpha: 0.2,
-                                        ),
-                                        blurRadius: 20,
-                                        offset: const Offset(0, 10),
-                                      ),
-                                    ],
-                                  ),
-                                  padding: const EdgeInsets.all(8),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(24),
-                                    child: Image.asset(
-                                      AppConfig.appLogo,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 480),
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: horizontalPad),
+                    child: LayoutBuilder(
+                      builder: (context, inner) {
+                        final innerW =
+                            inner.maxWidth; // lebar konten yang sesungguhnya
+                        final barWidth = math.max(
+                          200.0,
+                          math.min(innerW * 0.7, 320.0),
+                        );
+                        final canWrap = innerW <= 360; // penting: 360 ikut wrap
 
-                          SizedBox(height: _gapMedium(context) + 12),
-
-                          // Title + Subtitle
-                          AnimatedBuilder(
-                            animation: _textFade,
-                            builder: (context, child) {
-                              return Opacity(
-                                opacity: _textFade.value,
-                                child: Column(
-                                  children: [
-                                    ShaderMask(
-                                      shaderCallback: (bounds) =>
-                                          LinearGradient(
-                                            colors: [
-                                              Colors.white,
-                                              Colors.white.withValues(
-                                                alpha: 0.9,
+                        return Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Expanded(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                crossAxisAlignment: CrossAxisAlignment.center,
+                                children: [
+                                  // Logo
+                                  AnimatedBuilder(
+                                    animation: _logoScale,
+                                    builder: (context, child) {
+                                      return Transform.scale(
+                                        scale: _logoScale.value,
+                                        child: Container(
+                                          width: logoSize,
+                                          height: logoSize,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              32,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.3,
+                                                ),
+                                                blurRadius: 40,
+                                                spreadRadius: 10,
+                                              ),
+                                              BoxShadow(
+                                                color: Colors.black.withValues(
+                                                  alpha: 0.2,
+                                                ),
+                                                blurRadius: 20,
+                                                offset: const Offset(0, 10),
                                               ),
                                             ],
-                                          ).createShader(bounds),
-                                      child: Text(
-                                        AppConfig.appName,
-                                        textAlign: TextAlign.center,
-                                        style: TextStyle(
-                                          fontSize: titleSize,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                          letterSpacing: -1.5,
+                                          ),
+                                          padding: const EdgeInsets.all(8),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(
+                                              24,
+                                            ),
+                                            child: Image.asset(
+                                              AppConfig.appLogo,
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
                                         ),
-                                      ),
-                                    ),
-                                    SizedBox(height: _gapSmall(context)),
-                                    Text(
-                                      'Your prayer partners',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: subtitleSize,
-                                        color: Colors.white.withValues(
-                                          alpha: 0.85,
-                                        ),
-                                        fontWeight: FontWeight.w400,
-                                        letterSpacing: 0.5,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-
-                          SizedBox(height: _gapMedium(context)),
-
-                          // Feature icons (wrap untuk layar sempit)
-                          AnimatedBuilder(
-                            animation: _textFade,
-                            builder: (context, child) {
-                              return Opacity(
-                                opacity: _textFade.value * 0.8,
-                                child: LayoutBuilder(
-                                  builder: (context, c) {
-                                    final canWrap = c.maxWidth < 360;
-                                    final children = [
-                                      _buildFeatureIcon(
-                                        Icons.access_time_rounded,
-                                        iconSize,
-                                      ),
-                                      SizedBox(
-                                        width: featureSpacing,
-                                        height: featureSpacing,
-                                      ),
-                                      _buildFeatureIcon(
-                                        Icons.menu_book_rounded,
-                                        iconSize,
-                                      ),
-                                      SizedBox(
-                                        width: featureSpacing,
-                                        height: featureSpacing,
-                                      ),
-                                      _buildFeatureIcon(
-                                        Icons.explore_outlined,
-                                        iconSize,
-                                      ),
-                                      SizedBox(
-                                        width: featureSpacing,
-                                        height: featureSpacing,
-                                      ),
-                                      _buildFeatureIcon(
-                                        Icons.people_rounded,
-                                        iconSize,
-                                      ),
-                                    ];
-
-                                    if (canWrap) {
-                                      return Wrap(
-                                        alignment: WrapAlignment.center,
-                                        runSpacing: 12,
-                                        children: children,
                                       );
-                                    }
-                                    return Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: children,
-                                    );
-                                  },
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
+                                    },
+                                  ),
 
-                    // Progress
-                    Padding(
-                      padding: EdgeInsets.all(
-                        ResponsiveHelper.isSmallScreen(context) ? 28 : 40,
-                      ),
-                      child: Column(
-                        children: [
-                          AnimatedBuilder(
-                            animation: _progress,
-                            builder: (context, child) {
-                              final barWidth = _progressWidth(context);
-                              return Container(
-                                width: barWidth,
-                                height: 6,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.2),
-                                  borderRadius: BorderRadius.circular(3),
-                                ),
-                                child: Stack(
-                                  children: [
-                                    Align(
-                                      alignment: Alignment.centerLeft,
-                                      child: Container(
-                                        width: barWidth * _progress.value,
+                                  SizedBox(height: _gapMedium(context) + 12),
+
+                                  // Title + Subtitle
+                                  AnimatedBuilder(
+                                    animation: _textFade,
+                                    builder: (context, child) {
+                                      return Opacity(
+                                        opacity: _textFade.value,
+                                        child: Column(
+                                          children: [
+                                            ShaderMask(
+                                              shaderCallback: (bounds) =>
+                                                  LinearGradient(
+                                                    colors: [
+                                                      Colors.white,
+                                                      Colors.white.withValues(
+                                                        alpha: 0.9,
+                                                      ),
+                                                    ],
+                                                  ).createShader(bounds),
+                                              child: Text(
+                                                AppConfig.appName,
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontSize: titleSize,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.white,
+                                                  letterSpacing: -1.5,
+                                                ),
+                                              ),
+                                            ),
+                                            SizedBox(
+                                              height: _gapSmall(context),
+                                            ),
+                                            Text(
+                                              'Your prayer partners',
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: subtitleSize,
+                                                color: Colors.white.withValues(
+                                                  alpha: 0.85,
+                                                ),
+                                                fontWeight: FontWeight.w400,
+                                                letterSpacing: 0.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    },
+                                  ),
+
+                                  SizedBox(height: _gapMedium(context)),
+
+                                  // Feature icons : wrap pada ≤ 360 agar tetap center
+                                  AnimatedBuilder(
+                                    animation: _textFade,
+                                    builder: (context, child) {
+                                      return Opacity(
+                                        opacity: _textFade.value * 0.8,
+                                        child: canWrap
+                                            ? Wrap(
+                                                alignment: WrapAlignment.center,
+                                                runSpacing: 12,
+                                                spacing: featureSpacing,
+                                                children: [
+                                                  _buildFeatureIcon(
+                                                    Icons.access_time_rounded,
+                                                    iconSize,
+                                                  ),
+                                                  _buildFeatureIcon(
+                                                    Icons.menu_book_rounded,
+                                                    iconSize,
+                                                  ),
+                                                  _buildFeatureIcon(
+                                                    Icons.explore_outlined,
+                                                    iconSize,
+                                                  ),
+                                                  _buildFeatureIcon(
+                                                    Icons.people_rounded,
+                                                    iconSize,
+                                                  ),
+                                                ],
+                                              )
+                                            : Row(
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
+                                                children: [
+                                                  _buildFeatureIcon(
+                                                    Icons.access_time_rounded,
+                                                    iconSize,
+                                                  ),
+                                                  SizedBox(
+                                                    width: featureSpacing,
+                                                  ),
+                                                  _buildFeatureIcon(
+                                                    Icons.menu_book_rounded,
+                                                    iconSize,
+                                                  ),
+                                                  SizedBox(
+                                                    width: featureSpacing,
+                                                  ),
+                                                  _buildFeatureIcon(
+                                                    Icons.explore_outlined,
+                                                    iconSize,
+                                                  ),
+                                                  SizedBox(
+                                                    width: featureSpacing,
+                                                  ),
+                                                  _buildFeatureIcon(
+                                                    Icons.people_rounded,
+                                                    iconSize,
+                                                  ),
+                                                ],
+                                              ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Progress
+                            Padding(
+                              padding: EdgeInsets.all(isNarrow ? 28 : 40),
+                              child: Column(
+                                children: [
+                                  AnimatedBuilder(
+                                    animation: _progress,
+                                    builder: (context, child) {
+                                      return Container(
+                                        width: barWidth,
                                         height: 6,
                                         decoration: BoxDecoration(
-                                          gradient: LinearGradient(
-                                            colors: [
-                                              Colors.white,
-                                              Colors.white.withValues(
-                                                alpha: 0.85,
-                                              ),
-                                            ],
+                                          color: Colors.white.withValues(
+                                            alpha: 0.2,
                                           ),
                                           borderRadius: BorderRadius.circular(
                                             3,
                                           ),
-                                          boxShadow: [
-                                            BoxShadow(
-                                              color: Colors.white.withValues(
-                                                alpha: 0.45,
+                                        ),
+                                        child: Stack(
+                                          children: [
+                                            Align(
+                                              alignment: Alignment.centerLeft,
+                                              child: Container(
+                                                width:
+                                                    barWidth * _progress.value,
+                                                height: 6,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [
+                                                      Colors.white,
+                                                      Colors.white.withValues(
+                                                        alpha: 0.85,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  borderRadius:
+                                                      BorderRadius.circular(3),
+                                                  boxShadow: [
+                                                    BoxShadow(
+                                                      color: Colors.white
+                                                          .withValues(
+                                                            alpha: 0.45,
+                                                          ),
+                                                      blurRadius: 8,
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
-                                              blurRadius: 8,
                                             ),
                                           ],
                                         ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            },
-                          ),
-                          SizedBox(height: _gapSmall(context) + 4),
-                          AnimatedBuilder(
-                            animation: _textFade,
-                            builder: (context, child) {
-                              return Opacity(
-                                opacity: _textFade.value,
-                                child: Text(
-                                  'Loading...',
-                                  style: TextStyle(
-                                    color: Colors.white.withValues(alpha: 0.9),
-                                    fontSize: ResponsiveHelper.adaptiveTextSize(
-                                      context,
-                                      15,
-                                    ),
-                                    fontWeight: FontWeight.w500,
-                                    letterSpacing: 0.3,
+                                      );
+                                    },
                                   ),
-                                ),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
+                                  SizedBox(height: _gapSmall(context) + 4),
+                                  AnimatedBuilder(
+                                    animation: _textFade,
+                                    builder: (context, child) {
+                                      return Opacity(
+                                        opacity: _textFade.value,
+                                        child: Text(
+                                          'Loading...',
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(
+                                              alpha: 0.9,
+                                            ),
+                                            fontSize:
+                                                ResponsiveHelper.adaptiveTextSize(
+                                                  context,
+                                                  15,
+                                                ),
+                                            fontWeight: FontWeight.w500,
+                                            letterSpacing: 0.3,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      },
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
