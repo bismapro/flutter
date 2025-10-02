@@ -48,4 +48,35 @@ class AuthService {
       throw Exception(error);
     }
   }
+
+  static Future<Map<String, dynamic>> getCurrentUser() async {
+    try {
+      final response = await ApiClient.dio.post('/auth/me');
+
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Get current user failed';
+
+      final error = ApiClient.parseDioError(e, errorMessage);
+
+      throw Exception(error);
+    }
+  }
+
+  static Future<bool> logout() async {
+    try {
+      final response = await ApiClient.dio.post('/auth/logout');
+
+      if (response.data['success'] == true) {
+        return true;
+      }
+      return false;
+    } on DioException catch (e) {
+      String errorMessage = 'Logout failed';
+
+      final error = ApiClient.parseDioError(e, errorMessage);
+
+      throw Exception(error);
+    }
+  }
 }

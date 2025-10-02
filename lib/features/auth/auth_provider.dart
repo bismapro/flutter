@@ -18,40 +18,25 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
 
   // Check if user is already logged in
   Future<void> checkAuthStatus() async {
-    // First set loading state
     state = {...state, 'status': AuthState.loading};
     logger.fine('Checking auth status...');
 
     try {
-      // First, check if token exists
-      final token = await StorageHelper.getToken();
-      logger.fine('Token from storage: ${token != null ? 'exists' : 'null'}');
+      // Coba ambil user dari server
+      final response = await AuthService.getCurrentUser();
+      final data = response['data'];
 
-      if (token == null || token.isEmpty) {
-        logger.fine('No token found, setting unauthenticated');
-        state = {
-          'status': AuthState.unauthenticated,
-          'user': null,
-          'error': null,
-        };
-        return;
-      }
-
-      final user = await StorageHelper.getUser();
-
-      logger.fine('User data from storage: ${user}');
-
-      // Only consider authenticated if we have all user data
-      if (user != null) {
-        logger.fine('All user data found, setting authenticated');
+      if (data != null) {
+        // Kalau sukses ambil dari server
         state = {
           'status': AuthState.authenticated,
-          'user': user,
+          'user': data,
           'error': null,
         };
-        return;
+
+        // Sync ulang user ke storage biar up-to-date
+        await StorageHelper.saveUser(data);
       } else {
-        logger.fine('Missing user data, setting unauthenticated');
         state = {
           'status': AuthState.unauthenticated,
           'user': null,
@@ -59,12 +44,27 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
         };
       }
     } catch (e) {
-      logger.fine('Error checking auth status: ${e}');
-      state = {
-        'status': AuthState.unauthenticated,
-        'user': null,
-        'error': 'Failed to check auth status',
-      };
+      logger.warning('Tidak ada internet, coba pakai local storage...');
+
+      // Kalau gagal (offline), cek apakah ada data user di storage
+      final localUser = await StorageHelper.getUser();
+      final localToken = await StorageHelper.getToken();
+
+      if (localUser != null && localToken != null) {
+        // Anggap masih authenticated (offline mode)
+        state = {
+          'status': AuthState.authenticated,
+          'user': localUser,
+          'error': null,
+        };
+      } else {
+        // Tidak ada data local, berarti belum login
+        state = {
+          'status': AuthState.unauthenticated,
+          'user': null,
+          'error': 'Offline dan tidak ada data user',
+        };
+      }
     }
   }
 
@@ -131,7 +131,12 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
   }
 
   // Register
-  Future<void> register(String name, String email, String password, String confirmationPassword) async {
+  Future<void> register(
+    String name,
+    String email,
+    String password,
+    String confirmationPassword,
+  ) async {
     try {
       state = {...state, 'status': AuthState.loading, 'error': null};
       // Call API
@@ -159,15 +164,24 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
     state = {...state, 'status': AuthState.loading};
 
     try {
-      // Hapus data user dari storage
-      await StorageHelper.clearUserData();
+      // Call API
+      final response = await AuthService.logout();
 
-      // Update state ke unauthenticated
-      state = {
-        'status': AuthState.unauthenticated,
-        'user': null,
-        'error': null,
-      };
+      if (response == true) {
+        logger.fine('Logout successful on server');
+
+        // Hapus data user dari storage
+        await StorageHelper.clearUserData();
+
+        // Update state ke unauthenticated
+        state = {
+          'status': AuthState.unauthenticated,
+          'user': null,
+          'error': null,
+        };
+      } else {
+        throw Exception('Logout failed');
+      }
     } catch (e) {
       state = {
         'status': AuthState.error,
