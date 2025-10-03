@@ -13,9 +13,70 @@ class KomunitasService {
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       String errorMessage = 'Failed to fetch latest articles';
-
       final error = ApiClient.parseDioError(e, errorMessage);
+      throw Exception(error);
+    }
+  }
 
+  static Future<Map<String, dynamic>> getArtikelById(String id) async {
+    try {
+      final response = await ApiClient.dio.get('/komunitas/artikel/$id');
+      logger.fine('Get artikel by id response', response.data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to fetch article detail';
+      final error = ApiClient.parseDioError(e, errorMessage);
+      throw Exception(error);
+    }
+  }
+
+  static Future<Map<String, dynamic>> addComment({
+    required String artikelId,
+    required String content,
+    bool isAnonymous = false,
+  }) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/komunitas/artikel/$artikelId/komentar',
+        data: {'content': content, 'is_anonymous': isAnonymous},
+      );
+      logger.fine('Add comment response', response.data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to add comment';
+      final error = ApiClient.parseDioError(e, errorMessage);
+      throw Exception(error);
+    }
+  }
+
+  static Future<Map<String, dynamic>> toggleLike(String artikelId) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/komunitas/artikel/$artikelId/like',
+      );
+      logger.fine('Toggle like response', response.data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to toggle like';
+      final error = ApiClient.parseDioError(e, errorMessage);
+      throw Exception(error);
+    }
+  }
+
+  static Future<Map<String, dynamic>> getComments({
+    required String artikelId,
+    int page = 1,
+  }) async {
+    try {
+      final response = await ApiClient.dio.get(
+        '/komunitas/artikel/$artikelId/komentar',
+        queryParameters: {'page': page},
+      );
+      logger.fine('Get comments response', response.data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to fetch comments';
+      final error = ApiClient.parseDioError(e, errorMessage);
       throw Exception(error);
     }
   }

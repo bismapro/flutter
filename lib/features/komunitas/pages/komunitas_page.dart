@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
-import 'package:test_flutter/data/models/komunitas_artikel.dart';
+import 'package:test_flutter/data/models/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/komunitas/komunitas_provider.dart';
 import '../../../app/theme.dart';
@@ -89,7 +89,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             'category': item.kategori,
             'authorId': item.userId.toString(),
             'authorName': 'guest',
-            'date': item.createdAt.toIso8601String(),
+            'date': item.formattedDate,
             'likes': item.jumlahLike,
             'likedBy': [],
             'comments': item.jumlahKomentar,
@@ -1028,11 +1028,11 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                     ],
                   ),
                   const Spacer(),
-                  Icon(
-                    Icons.share_outlined,
-                    color: AppTheme.onSurfaceVariant,
-                    size: 20,
-                  ),
+                  // Icon(
+                  //   Icons.share_outlined,
+                  //   color: AppTheme.onSurfaceVariant,
+                  //   size: 20,
+                  // ),
                 ],
               ),
             ),
