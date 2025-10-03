@@ -1,4 +1,7 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
@@ -93,7 +96,9 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             'likes': item.jumlahLike,
             'likedBy': [],
             'comments': item.jumlahKomentar,
-            'imageUrl': null,
+            'imageUrl': (item.gambar.isNotEmpty)
+                ? ("${dotenv.env['STORAGE_URL']}/${item.gambar[0]}")
+                : null,
           },
         )
         .toList();
@@ -946,13 +951,10 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Image.network(
-                    post['imageUrl'],
-                    width: double.infinity,
-                    height: imageHeight,
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
+                  child: Stack(
+                    children: [
+                      // Blur placeholder
+                      Container(
                         width: double.infinity,
                         height: imageHeight,
                         decoration: BoxDecoration(
@@ -962,15 +964,62 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                               categoryColor.withValues(alpha: 0.05),
                             ],
                           ),
-                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(
-                          Icons.image_rounded,
-                          size: ResponsiveHelper.adaptiveTextSize(context, 44),
-                          color: categoryColor.withValues(alpha: 0.4),
+                        child: Center(
+                          child: Icon(
+                            Icons.image_rounded,
+                            size: ResponsiveHelper.adaptiveTextSize(
+                              context,
+                              44,
+                            ),
+                            color: categoryColor.withValues(alpha: 0.3),
+                          ),
                         ),
-                      );
-                    },
+                      ),
+
+                      // Network image
+                      Image.network(
+                        post['imageUrl'],
+                        width: double.infinity,
+                        height: imageHeight,
+                        fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) {
+                            return child;
+                          }
+                          return ImageFiltered(
+                            imageFilter: ImageFilter.blur(
+                              sigmaX: 12,
+                              sigmaY: 12,
+                            ),
+                            child: child,
+                          );
+                        },
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            width: double.infinity,
+                            height: imageHeight,
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  categoryColor.withValues(alpha: 0.1),
+                                  categoryColor.withValues(alpha: 0.05),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: Icon(
+                              Icons.broken_image_rounded,
+                              size: ResponsiveHelper.adaptiveTextSize(
+                                context,
+                                44,
+                              ),
+                              color: categoryColor.withValues(alpha: 0.4),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
                   ),
                 ),
               ),

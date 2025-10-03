@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/data/models/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/komunitas/komunitas_service.dart';
@@ -133,16 +134,15 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
       setState(() => _isLoadingComments = false);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal memuat komentar: ${e.toString()}'),
-            backgroundColor: Colors.red.shade400,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        );
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          showMessageToast(
+            context,
+            message: 'Gagal memuat komentar: ${e.toString()}',
+            type: ToastType.error,
+            duration: const Duration(seconds: 4),
+          );
+          ref.read(authProvider.notifier).clearError();
+        });
       }
     }
   }
