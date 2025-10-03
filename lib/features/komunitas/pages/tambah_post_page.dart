@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_flutter/core/utils/responsive_helper.dart';
 import '../../../app/theme.dart';
 
 class TambahPostPage extends StatefulWidget {
@@ -33,11 +34,9 @@ class _TambahPostPageState extends State<TambahPostPage>
       duration: const Duration(milliseconds: 600),
       vsync: this,
     );
-
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeOut),
     );
-
     _slideAnimation =
         Tween<Offset>(begin: const Offset(0, 0.3), end: Offset.zero).animate(
           CurvedAnimation(
@@ -45,7 +44,6 @@ class _TambahPostPageState extends State<TambahPostPage>
             curve: Curves.easeOutCubic,
           ),
         );
-
     _animationController.forward();
   }
 
@@ -97,8 +95,6 @@ class _TambahPostPageState extends State<TambahPostPage>
     }
 
     setState(() => _isLoading = true);
-
-    // Simulate network delay
     await Future.delayed(const Duration(milliseconds: 1500));
 
     final newPost = {
@@ -106,8 +102,8 @@ class _TambahPostPageState extends State<TambahPostPage>
       'title': _titleController.text.trim(),
       'content': _contentController.text.trim(),
       'category': _selectedCategory,
-      'authorId': 'user_123', // Current user ID
-      'authorName': 'Muhammad Ahmad', // Current user name
+      'authorId': 'user_123',
+      'authorName': 'Muhammad Ahmad',
       'date': 'Baru saja',
       'likes': 0,
       'likedBy': [],
@@ -116,11 +112,8 @@ class _TambahPostPageState extends State<TambahPostPage>
     };
 
     setState(() => _isLoading = false);
-
-    // Return the new post to the previous page
     Navigator.pop(context, newPost);
 
-    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: const Text('Post berhasil dibuat!'),
@@ -132,10 +125,32 @@ class _TambahPostPageState extends State<TambahPostPage>
     );
   }
 
+  // ===== Responsiveness helpers =====
+  double _maxWidth(BuildContext context) {
+    if (ResponsiveHelper.isExtraLargeScreen(context)) return 900;
+    if (ResponsiveHelper.isLargeScreen(context)) return 820;
+    if (ResponsiveHelper.isMediumScreen(context)) return 680;
+    return double.infinity; // mobile full width
+  }
+
+  double _editorHeight(BuildContext context) {
+    if (ResponsiveHelper.isExtraLargeScreen(context)) return 280;
+    if (ResponsiveHelper.isLargeScreen(context)) return 260;
+    if (ResponsiveHelper.isMediumScreen(context)) return 240;
+    return 200;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final categoryColor = _getCategoryColor(_selectedCategory);
-    final categoryIcon = _getCategoryIcon(_selectedCategory);
+    final catColor = _getCategoryColor(_selectedCategory);
+    final catIcon = _getCategoryIcon(_selectedCategory);
+
+    final pad = ResponsiveHelper.getResponsivePadding(context);
+    final titleSize = ResponsiveHelper.adaptiveTextSize(context, 20);
+    final subSize = ResponsiveHelper.adaptiveTextSize(context, 13);
+    final labelSize = ResponsiveHelper.adaptiveTextSize(context, 18);
+    final bodySize = ResponsiveHelper.adaptiveTextSize(context, 15);
+    final inputHintSize = ResponsiveHelper.adaptiveTextSize(context, 14);
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -153,9 +168,9 @@ class _TambahPostPageState extends State<TambahPostPage>
         child: SafeArea(
           child: Column(
             children: [
-              // Custom App Bar
+              // AppBar
               Container(
-                padding: const EdgeInsets.all(16),
+                padding: EdgeInsets.all(pad.left.clamp(12, 20)),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   boxShadow: [
@@ -167,462 +182,452 @@ class _TambahPostPageState extends State<TambahPostPage>
                     ),
                   ],
                 ),
-                child: Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            AppTheme.primaryBlue.withValues(alpha: 0.1),
-                            AppTheme.accentGreen.withValues(alpha: 0.1),
-                          ],
-                        ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: () => Navigator.pop(context),
-                        icon: const Icon(Icons.arrow_back_rounded),
-                        color: AppTheme.primaryBlue,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Buat Post Baru',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppTheme.onSurface,
-                              letterSpacing: -0.3,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: _maxWidth(context)),
+                    child: Row(
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                AppTheme.accentGreen.withValues(alpha: 0.1),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: () => Navigator.pop(context),
+                            icon: const Icon(Icons.arrow_back_rounded),
+                            color: AppTheme.primaryBlue,
+                            iconSize: ResponsiveHelper.adaptiveTextSize(
+                              context,
+                              22,
                             ),
                           ),
-                          Text(
-                            'Berbagi cerita dan pengalaman',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: AppTheme.onSurfaceVariant,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          colors: [
-                            categoryColor.withValues(alpha: 0.1),
-                            categoryColor.withValues(alpha: 0.05),
-                          ],
                         ),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        onPressed: _handleSubmit,
-                        icon: _isLoading
-                            ? SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    categoryColor,
-                                  ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Buat Post Baru',
+                                style: TextStyle(
+                                  fontSize: titleSize,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppTheme.onSurface,
+                                  letterSpacing: -0.3,
                                 ),
-                              )
-                            : const Icon(Icons.check_rounded),
-                        color: categoryColor,
-                      ),
+                              ),
+                              Text(
+                                'Berbagi cerita dan pengalaman',
+                                style: TextStyle(
+                                  fontSize: subSize,
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                catColor.withValues(alpha: 0.1),
+                                catColor.withValues(alpha: 0.05),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: IconButton(
+                            onPressed: _handleSubmit,
+                            icon: _isLoading
+                                ? SizedBox(
+                                    width: 20,
+                                    height: 20,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        catColor,
+                                      ),
+                                    ),
+                                  )
+                                : const Icon(Icons.check_rounded),
+                            color: catColor,
+                            iconSize: ResponsiveHelper.adaptiveTextSize(
+                              context,
+                              22,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                  ],
+                  ),
                 ),
               ),
 
               // Content
               Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(20),
-                  physics: const BouncingScrollPhysics(),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // Category Selection
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: categoryColor.withValues(alpha: 0.1),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: categoryColor.withValues(alpha: 0.08),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 4),
-                                  spreadRadius: -5,
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: BoxConstraints(maxWidth: _maxWidth(context)),
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: ResponsiveHelper.isSmallScreen(context)
+                            ? 16
+                            : 20,
+                        vertical: ResponsiveHelper.isSmallScreen(context)
+                            ? 16
+                            : 20,
+                      ),
+                      physics: const BouncingScrollPhysics(),
+                      child: FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Kategori
+                              _CardBlock(
+                                borderColor: catColor.withValues(alpha: 0.1),
+                                shadowColor: catColor.withValues(alpha: 0.08),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: categoryColor.withValues(
-                                          alpha: 0.15,
+                                    Row(
+                                      children: [
+                                        _IconBadge(
+                                          color: catColor,
+                                          icon: catIcon,
+                                          size:
+                                              ResponsiveHelper.adaptiveTextSize(
+                                                context,
+                                                22,
+                                              ),
                                         ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(
-                                        categoryIcon,
-                                        color: categoryColor,
-                                        size: 22,
-                                      ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Kategori Post',
+                                          style: TextStyle(
+                                            fontSize: labelSize,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.onSurface,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    const SizedBox(width: 12),
-                                    const Text(
-                                      'Kategori Post',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.onSurface,
-                                        letterSpacing: -0.3,
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 12,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: catColor.withValues(alpha: 0.05),
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(
+                                          color: catColor.withValues(
+                                            alpha: 0.2,
+                                          ),
+                                        ),
+                                      ),
+                                      child: DropdownButtonHideUnderline(
+                                        child: DropdownButton<String>(
+                                          value: _selectedCategory,
+                                          isExpanded: true,
+                                          icon: Icon(
+                                            Icons.arrow_drop_down_rounded,
+                                            color: catColor,
+                                          ),
+                                          style: TextStyle(
+                                            color: AppTheme.onSurface,
+                                            fontSize: bodySize,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          items: _categories.map((category) {
+                                            final color = _getCategoryColor(
+                                              category,
+                                            );
+                                            final icon = _getCategoryIcon(
+                                              category,
+                                            );
+                                            return DropdownMenuItem(
+                                              value: category,
+                                              child: Row(
+                                                children: [
+                                                  Icon(
+                                                    icon,
+                                                    color: color,
+                                                    size: 18,
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Text(category),
+                                                ],
+                                              ),
+                                            );
+                                          }).toList(),
+                                          onChanged: (value) => setState(
+                                            () => _selectedCategory = value!,
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 16,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: categoryColor.withValues(
-                                      alpha: 0.05,
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Judul
+                              _CardBlock(
+                                borderColor: AppTheme.primaryBlue.withValues(
+                                  alpha: 0.1,
+                                ),
+                                shadowColor: AppTheme.primaryBlue.withValues(
+                                  alpha: 0.08,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        _IconBadge(
+                                          color: AppTheme.primaryBlue,
+                                          icon: Icons.title_rounded,
+                                          size:
+                                              ResponsiveHelper.adaptiveTextSize(
+                                                context,
+                                                22,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Judul Post',
+                                          style: TextStyle(
+                                            fontSize: labelSize,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.onSurface,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                      ],
                                     ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: categoryColor.withValues(
-                                        alpha: 0.2,
+                                    const SizedBox(height: 16),
+                                    TextField(
+                                      controller: _titleController,
+                                      decoration: InputDecoration(
+                                        hintText:
+                                            'Masukkan judul post yang menarik...',
+                                        hintStyle: TextStyle(
+                                          fontSize: inputHintSize,
+                                          color: AppTheme.onSurfaceVariant
+                                              .withValues(alpha: 0.6),
+                                        ),
+                                        filled: true,
+                                        fillColor: AppTheme.primaryBlue
+                                            .withValues(alpha: 0.05),
+                                        border: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide.none,
+                                        ),
+                                        focusedBorder: OutlineInputBorder(
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          borderSide: BorderSide(
+                                            color: AppTheme.primaryBlue,
+                                            width: 2,
+                                          ),
+                                        ),
+                                        contentPadding: const EdgeInsets.all(
+                                          16,
+                                        ),
                                       ),
-                                    ),
-                                  ),
-                                  child: DropdownButtonHideUnderline(
-                                    child: DropdownButton<String>(
-                                      value: _selectedCategory,
-                                      isExpanded: true,
-                                      icon: Icon(
-                                        Icons.arrow_drop_down_rounded,
-                                        color: categoryColor,
-                                      ),
+                                      maxLines: 2,
                                       style: TextStyle(
-                                        color: AppTheme.onSurface,
-                                        fontSize: 16,
+                                        fontSize: bodySize,
                                         fontWeight: FontWeight.w500,
                                       ),
-                                      items: _categories.map((category) {
-                                        final color = _getCategoryColor(
-                                          category,
-                                        );
-                                        final icon = _getCategoryIcon(category);
-                                        return DropdownMenuItem(
-                                          value: category,
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                icon,
-                                                color: color,
-                                                size: 18,
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(category),
-                                            ],
-                                          ),
-                                        );
-                                      }).toList(),
-                                      onChanged: (value) {
-                                        setState(() {
-                                          _selectedCategory = value!;
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 20),
-
-                          // Title Input
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppTheme.primaryBlue.withValues(
-                                  alpha: 0.1,
-                                ),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.primaryBlue.withValues(
-                                    alpha: 0.08,
-                                  ),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 4),
-                                  spreadRadius: -5,
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
-                                        color: AppTheme.primaryBlue.withValues(
-                                          alpha: 0.15,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(
-                                        Icons.title_rounded,
-                                        color: AppTheme.primaryBlue,
-                                        size: 22,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    const Text(
-                                      'Judul Post',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.onSurface,
-                                        letterSpacing: -0.3,
-                                      ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
-                                TextField(
-                                  controller: _titleController,
-                                  decoration: InputDecoration(
-                                    hintText:
-                                        'Masukkan judul post yang menarik...',
-                                    hintStyle: TextStyle(
-                                      color: AppTheme.onSurfaceVariant
-                                          .withValues(alpha: 0.6),
-                                    ),
-                                    filled: true,
-                                    fillColor: AppTheme.primaryBlue.withValues(
-                                      alpha: 0.05,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                    focusedBorder: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                      borderSide: BorderSide(
-                                        color: AppTheme.primaryBlue,
-                                        width: 2,
-                                      ),
-                                    ),
-                                    contentPadding: const EdgeInsets.all(16),
-                                  ),
-                                  maxLines: 2,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                              ),
 
-                          const SizedBox(height: 20),
+                              const SizedBox(height: 16),
 
-                          // Content Input
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(20),
-                              border: Border.all(
-                                color: AppTheme.accentGreen.withValues(
+                              // Konten
+                              _CardBlock(
+                                borderColor: AppTheme.accentGreen.withValues(
                                   alpha: 0.1,
                                 ),
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: AppTheme.accentGreen.withValues(
-                                    alpha: 0.08,
-                                  ),
-                                  blurRadius: 20,
-                                  offset: const Offset(0, 4),
-                                  spreadRadius: -5,
+                                shadowColor: AppTheme.accentGreen.withValues(
+                                  alpha: 0.08,
                                 ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Row(
+                                      children: [
+                                        _IconBadge(
+                                          color: AppTheme.accentGreen,
+                                          icon: Icons.article_rounded,
+                                          size:
+                                              ResponsiveHelper.adaptiveTextSize(
+                                                context,
+                                                22,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Konten Post',
+                                          style: TextStyle(
+                                            fontSize: labelSize,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.onSurface,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 16),
                                     Container(
-                                      padding: const EdgeInsets.all(10),
+                                      height: _editorHeight(context),
                                       decoration: BoxDecoration(
                                         color: AppTheme.accentGreen.withValues(
-                                          alpha: 0.15,
+                                          alpha: 0.05,
                                         ),
                                         borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: Icon(
-                                        Icons.article_rounded,
-                                        color: AppTheme.accentGreen,
-                                        size: 22,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    const Text(
-                                      'Konten Post',
-                                      style: TextStyle(
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                        color: AppTheme.onSurface,
-                                        letterSpacing: -0.3,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 16),
-                                Container(
-                                  height: 200,
-                                  decoration: BoxDecoration(
-                                    color: AppTheme.accentGreen.withValues(
-                                      alpha: 0.05,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppTheme.accentGreen.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                    ),
-                                  ),
-                                  child: TextField(
-                                    controller: _contentController,
-                                    decoration: InputDecoration(
-                                      hintText:
-                                          'Tulis konten post Anda di sini...\n\nBerbagi pengalaman, ajukan pertanyaan, atau bagikan informasi menarik lainnya.',
-                                      hintStyle: TextStyle(
-                                        color: AppTheme.onSurfaceVariant
-                                            .withValues(alpha: 0.6),
-                                        height: 1.5,
-                                      ),
-                                      border: InputBorder.none,
-                                      contentPadding: const EdgeInsets.all(16),
-                                    ),
-                                    maxLines: null,
-                                    expands: true,
-                                    textAlignVertical: TextAlignVertical.top,
-                                    style: const TextStyle(
-                                      fontSize: 15,
-                                      height: 1.6,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-
-                          const SizedBox(height: 30),
-
-                          // Submit Button
-                          SizedBox(
-                            width: double.infinity,
-                            child: Container(
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppTheme.primaryBlue,
-                                    AppTheme.accentGreen,
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(16),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppTheme.primaryBlue.withValues(
-                                      alpha: 0.3,
-                                    ),
-                                    blurRadius: 12,
-                                    offset: const Offset(0, 4),
-                                  ),
-                                ],
-                              ),
-                              child: ElevatedButton(
-                                onPressed: _isLoading ? null : _handleSubmit,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: Colors.transparent,
-                                  shadowColor: Colors.transparent,
-                                  padding: const EdgeInsets.symmetric(
-                                    vertical: 16,
-                                  ),
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(16),
-                                  ),
-                                ),
-                                child: _isLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          valueColor:
-                                              AlwaysStoppedAnimation<Color>(
-                                                Colors.white,
-                                              ),
+                                        border: Border.all(
+                                          color: AppTheme.accentGreen
+                                              .withValues(alpha: 0.1),
                                         ),
-                                      )
-                                    : const Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.publish_rounded,
-                                            color: Colors.white,
-                                            size: 22,
-                                          ),
-                                          SizedBox(width: 8),
-                                          Text(
-                                            'Publikasikan Post',
-                                            style: TextStyle(
-                                              color: Colors.white,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 16,
-                                            ),
-                                          ),
-                                        ],
                                       ),
+                                      child: TextField(
+                                        controller: _contentController,
+                                        decoration: InputDecoration(
+                                          hintText:
+                                              'Tulis konten post Anda di sini...\n\nBerbagi pengalaman, ajukan pertanyaan, atau bagikan informasi menarik lainnya.',
+                                          hintStyle: TextStyle(
+                                            fontSize: inputHintSize,
+                                            color: AppTheme.onSurfaceVariant
+                                                .withValues(alpha: 0.6),
+                                            height: 1.5,
+                                          ),
+                                          border: InputBorder.none,
+                                          contentPadding: const EdgeInsets.all(
+                                            16,
+                                          ),
+                                        ),
+                                        maxLines: null,
+                                        expands: true,
+                                        textAlignVertical:
+                                            TextAlignVertical.top,
+                                        style: TextStyle(
+                                          fontSize: bodySize,
+                                          height: 1.6,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
 
-                          const SizedBox(height: 20),
-                        ],
+                              const SizedBox(height: 22),
+
+                              // Submit
+                              SizedBox(
+                                width: double.infinity,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppTheme.primaryBlue,
+                                        AppTheme.accentGreen,
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(16),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: AppTheme.primaryBlue.withValues(
+                                          alpha: 0.3,
+                                        ),
+                                        blurRadius: 12,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ElevatedButton(
+                                    onPressed: _isLoading
+                                        ? null
+                                        : _handleSubmit,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Colors.transparent,
+                                      shadowColor: Colors.transparent,
+                                      padding: EdgeInsets.symmetric(
+                                        vertical:
+                                            ResponsiveHelper.isSmallScreen(
+                                              context,
+                                            )
+                                            ? 14
+                                            : 16,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16),
+                                      ),
+                                    ),
+                                    child: _isLoading
+                                        ? const SizedBox(
+                                            width: 24,
+                                            height: 24,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              valueColor:
+                                                  AlwaysStoppedAnimation<Color>(
+                                                    Colors.white,
+                                                  ),
+                                            ),
+                                          )
+                                        : Row(
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
+                                            children: [
+                                              Icon(
+                                                Icons.publish_rounded,
+                                                color: Colors.white,
+                                                size:
+                                                    ResponsiveHelper.adaptiveTextSize(
+                                                      context,
+                                                      22,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'Publikasikan Post',
+                                                style: TextStyle(
+                                                  color: Colors.white,
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize:
+                                                      ResponsiveHelper.adaptiveTextSize(
+                                                        context,
+                                                        16,
+                                                      ),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 12),
+                            ],
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -641,5 +646,64 @@ class _TambahPostPageState extends State<TambahPostPage>
     _titleController.dispose();
     _contentController.dispose();
     super.dispose();
+  }
+}
+
+// ====== Small reusable widgets ======
+
+class _CardBlock extends StatelessWidget {
+  final Widget child;
+  final Color borderColor;
+  final Color shadowColor;
+  const _CardBlock({
+    required this.child,
+    required this.borderColor,
+    required this.shadowColor,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(
+        ResponsiveHelper.isSmallScreen(context) ? 16 : 20,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: borderColor),
+        boxShadow: [
+          BoxShadow(
+            color: shadowColor,
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+            spreadRadius: -5,
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _IconBadge extends StatelessWidget {
+  final Color color;
+  final IconData icon;
+  final double size;
+  const _IconBadge({
+    required this.color,
+    required this.icon,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(ResponsiveHelper.isSmallScreen(context) ? 8 : 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.15),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Icon(icon, color: color, size: size),
+    );
   }
 }
