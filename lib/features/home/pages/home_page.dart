@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_islamic_icons/flutter_islamic_icons.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
 import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
 import 'package:test_flutter/features/monitoring/pages/monitoring_page.dart';
@@ -38,9 +39,14 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class HomeTabContent extends StatelessWidget {
+class HomeTabContent extends ConsumerStatefulWidget {
   const HomeTabContent({super.key});
 
+  @override
+  ConsumerState<HomeTabContent> createState() => _HomeTabContentState();
+}
+
+class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   void _showAllFeaturesSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
