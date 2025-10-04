@@ -2,6 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_islamic_icons/flutter_islamic_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
+import 'package:test_flutter/data/models/komunitas/komunitas.dart';
+import 'package:test_flutter/data/models/sholat/sholat.dart';
+import 'package:test_flutter/features/home/home_provider.dart';
 import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
 import 'package:test_flutter/features/monitoring/pages/monitoring_page.dart';
 import 'package:test_flutter/features/quran/pages/quran_page.dart';
@@ -89,7 +92,24 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   }
 
   @override
+  void initState() {
+    super.initState();
+    // Load all data when page loads
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(homeProvider.notifier).loadAllData();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final homeState = ref.watch(homeProvider);
+    final status = homeState['status'] as HomeState;
+    final sholat = homeState['jadwalSholat'] as Sholat?;
+    final articles = homeState['articles'] as List<KomunitasArtikel>;
+    final error = homeState['error'] as String?;
+    final locationError = homeState['locationError'] as String?;
+    final isOffline = homeState['isOffline'] as bool;
+
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       body: Stack(
@@ -142,20 +162,60 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           ],
                         ),
                       ),
-                      GestureDetector(
-                        onTap: () => Navigator.pushNamed(context, '/profile'),
-                        child: Container(
-                          padding: EdgeInsets.all(_px(context, 8)),
-                          decoration: BoxDecoration(
-                            color: Colors.grey.withValues(alpha: 0.5),
-                            borderRadius: BorderRadius.circular(20),
+                      Row(
+                        children: [
+                          // Refresh location button
+                          GestureDetector(
+                            onTap: () {
+                              ref
+                                  .read(homeProvider.notifier)
+                                  .refreshLocationAndJadwalSholat();
+                            },
+                            child: Container(
+                              padding: EdgeInsets.all(_px(context, 8)),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withValues(alpha: 0.3),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child:
+                                  status == HomeState.loadingLocation ||
+                                      status == HomeState.refreshingLocation
+                                  ? SizedBox(
+                                      width: _icon(context, 20),
+                                      height: _icon(context, 20),
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                  : Icon(
+                                      Icons.my_location,
+                                      color: Colors.white,
+                                      size: _icon(context, 20),
+                                    ),
+                            ),
                           ),
-                          child: Icon(
-                            Icons.person,
-                            color: Colors.white,
-                            size: _icon(context, 24),
+                          SizedBox(width: _px(context, 8)),
+                          GestureDetector(
+                            onTap: () =>
+                                Navigator.pushNamed(context, '/profile'),
+                            child: Container(
+                              padding: EdgeInsets.all(_px(context, 8)),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(20),
+                              ),
+                              child: Icon(
+                                Icons.person,
+                                color: Colors.white,
+                                size: _icon(context, 24),
+                              ),
+                            ),
                           ),
-                        ),
+                        ],
                       ),
                     ],
                   ),
@@ -163,77 +223,20 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 
                 SizedBox(height: _px(context, 18)),
 
-                // Current prayer time
-                Text(
-                  '04:41',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: _t(context, 56),
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 2,
-                  ),
-                ),
-                Text(
-                  'Fajr 3 hour 9 min left',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: _t(context, 16),
-                  ),
-                ),
+                // Current prayer time with loading state
+                _buildPrayerTimeDisplay(context, sholat, status, locationError),
 
                 SizedBox(height: _px(context, 28)),
 
-                // Prayer times row (auto horizontal scroll jika super sempit)
-                Padding(
-                  padding: EdgeInsets.symmetric(horizontal: _hpad(context)),
-                  child: _ResponsivePrayerRow(
-                    itemHeight: _px(context, 100),
-                    children: [
-                      _buildPrayerTimeWidget(
-                        context,
-                        'Fajr',
-                        '04:41',
-                        Icons.nightlight_round,
-                        true,
-                      ),
-                      _buildPrayerTimeWidget(
-                        context,
-                        'Dzuhr',
-                        '12:00',
-                        Icons.wb_sunny_rounded,
-                        false,
-                      ),
-                      _buildPrayerTimeWidget(
-                        context,
-                        'Asr',
-                        '15:14',
-                        Icons.wb_twilight_rounded,
-                        false,
-                      ),
-                      _buildPrayerTimeWidget(
-                        context,
-                        'Maghrib',
-                        '18:02',
-                        Icons.wb_sunny_outlined,
-                        false,
-                      ),
-                      _buildPrayerTimeWidget(
-                        context,
-                        'Isha',
-                        '19:11',
-                        Icons.dark_mode_rounded,
-                        false,
-                      ),
-                    ],
-                  ),
-                ),
+                // Prayer times row with loading state
+                _buildPrayerTimesRow(context, sholat, status),
 
                 SizedBox(height: _px(context, 20)),
               ],
             ),
           ),
 
-          // Bottom sheet
+          // Bottom sheet with articles
           LayoutBuilder(
             builder: (context, constraints) {
               final h = constraints.maxHeight;
@@ -279,199 +282,22 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           ),
                         ),
 
-                        // Content (max width on tablet/desktop)
+                        // Offline indicator
+                        if (isOffline) _buildOfflineIndicator(context),
+
+                        // Content
                         Expanded(
                           child: Center(
                             child: ConstrainedBox(
                               constraints: BoxConstraints(
                                 maxWidth: _contentMaxWidth(context),
                               ),
-                              child: ListView(
-                                controller: scrollController,
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: _hpad(context),
-                                  vertical: _px(context, 12),
-                                ),
-                                physics: const BouncingScrollPhysics(),
-                                children: [
-                                  // Quick Access header
-                                  Row(
-                                    mainAxisAlignment:
-                                        MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.all(8),
-                                            decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  AppTheme.primaryBlue
-                                                      .withValues(alpha: 0.1),
-                                                  AppTheme.accentGreen
-                                                      .withValues(alpha: 0.1),
-                                                ],
-                                              ),
-                                              borderRadius:
-                                                  BorderRadius.circular(12),
-                                            ),
-                                            child: Icon(
-                                              Icons.apps_rounded,
-                                              color: AppTheme.primaryBlue,
-                                              size: _icon(context, 24),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Text(
-                                            'Quick Access',
-                                            style: TextStyle(
-                                              fontSize: _t(context, 20),
-                                              fontWeight: FontWeight.bold,
-                                              color: AppTheme.onSurface,
-                                              letterSpacing: -0.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      TextButton.icon(
-                                        onPressed: () =>
-                                            _showAllFeaturesSheet(context),
-                                        icon: Icon(
-                                          Icons.grid_view_rounded,
-                                          size: _icon(context, 18),
-                                          color: AppTheme.primaryBlue,
-                                        ),
-                                        label: Text(
-                                          'See All',
-                                          style: TextStyle(
-                                            color: AppTheme.primaryBlue,
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: _t(context, 14),
-                                          ),
-                                        ),
-                                        style: TextButton.styleFrom(
-                                          padding: EdgeInsets.symmetric(
-                                            horizontal: _px(context, 12),
-                                            vertical: _px(context, 8),
-                                          ),
-                                          backgroundColor: AppTheme.primaryBlue
-                                              .withValues(alpha: 0.1),
-                                          shape: RoundedRectangleBorder(
-                                            borderRadius: BorderRadius.circular(
-                                              12,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  SizedBox(height: _px(context, 18)),
-
-                                  // Quick Access horizontal
-                                  SizedBox(
-                                    height: _px(context, 110),
-                                    child: ListView(
-                                      scrollDirection: Axis.horizontal,
-                                      physics: const BouncingScrollPhysics(),
-                                      children: [
-                                        _buildEnhancedFeatureButton(
-                                          context,
-                                          FlutterIslamicIcons.quran2,
-                                          'Al-Quran',
-                                          AppTheme.primaryBlue,
-                                          onTap: () => Navigator.pushNamed(
-                                            context,
-                                            '/quran',
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        _buildEnhancedFeatureButton(
-                                          context,
-                                          FlutterIslamicIcons.prayingPerson,
-                                          'Sholat',
-                                          AppTheme.primaryBlue,
-                                          onTap: () => Navigator.pushNamed(
-                                            context,
-                                            '/sholat',
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        _buildEnhancedFeatureButton(
-                                          context,
-                                          FlutterIslamicIcons.ramadan,
-                                          'Puasa',
-                                          AppTheme.primaryBlue,
-                                          onTap: () => Navigator.pushNamed(
-                                            context,
-                                            '/puasa',
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        _buildEnhancedFeatureButton(
-                                          context,
-                                          FlutterIslamicIcons.qibla,
-                                          'Qibla',
-                                          AppTheme.primaryBlue,
-                                          onTap: () => Navigator.pushNamed(
-                                            context,
-                                            '/qibla-compass',
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        _buildEnhancedFeatureButton(
-                                          context,
-                                          FlutterIslamicIcons.zakat,
-                                          'Sedekah',
-                                          AppTheme.primaryBlue,
-                                          onTap: () => Navigator.pushNamed(
-                                            context,
-                                            '/zakat',
-                                          ),
-                                        ),
-                                        const SizedBox(width: 14),
-                                        _buildEnhancedFeatureButton(
-                                          context,
-                                          Icons.apps_rounded,
-                                          'More',
-                                          Colors.grey.shade700,
-                                          onTap: () =>
-                                              _showAllFeaturesSheet(context),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-
-                                  SizedBox(height: _px(context, 32)),
-
-                                  // Latest Articles
-                                  _buildSectionHeader(
-                                    context,
-                                    'Artikel Terbaru',
-                                    Icons.article_rounded,
-                                    AppTheme.primaryBlue,
-                                  ),
-                                  SizedBox(height: _px(context, 16)),
-
-                                  // Articles list
-                                  ...List.generate(
-                                    3,
-                                    (index) => _buildEnhancedArticleCard(
-                                      title: _getArticleTitle(index),
-                                      summary: _getArticleSummary(index),
-                                      imageUrl:
-                                          'https://picsum.photos/120/100?random=${index + 2}',
-                                      date: _getArticleDate(index),
-                                      context: context,
-                                      category: index == 0
-                                          ? 'Ramadhan'
-                                          : (index == 1 ? 'Doa' : 'Ibadah'),
-                                    ),
-                                  ),
-
-                                  SizedBox(
-                                    height: _px(context, 100),
-                                  ), // for bottom nav
-                                ],
+                              child: _buildBottomSheetContent(
+                                context,
+                                scrollController,
+                                articles,
+                                status,
+                                error,
                               ),
                             ),
                           ),
@@ -486,6 +312,562 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
         ],
       ),
     );
+  }
+
+  Widget _buildPrayerTimeDisplay(
+    BuildContext context,
+    Sholat? sholat,
+    HomeState status,
+    String? locationError,
+  ) {
+    if (status == HomeState.loadingLocation ||
+        status == HomeState.loadingJadwalSholat ||
+        status == HomeState.loadingAll) {
+      return Column(
+        children: [
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: CircularProgressIndicator(
+              strokeWidth: 3,
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            ),
+          ),
+          SizedBox(height: _px(context, 12)),
+          Text(
+            'Loading prayer schedule...',
+            style: TextStyle(color: Colors.white70, fontSize: _t(context, 14)),
+          ),
+        ],
+      );
+    }
+
+    if (locationError != null ||
+        (sholat == null && status == HomeState.error)) {
+      return Column(
+        children: [
+          Icon(
+            Icons.location_off,
+            color: Colors.white70,
+            size: _icon(context, 40),
+          ),
+          SizedBox(height: _px(context, 12)),
+          Text(
+            locationError ?? 'Failed to load prayer schedule',
+            style: TextStyle(color: Colors.white70, fontSize: _t(context, 14)),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: _px(context, 8)),
+          TextButton(
+            onPressed: () {
+              ref.read(homeProvider.notifier).refreshLocationAndJadwalSholat();
+            },
+            child: Text(
+              'Retry',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: _t(context, 14),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
+    if (sholat != null) {
+      final notifier = ref.read(homeProvider.notifier);
+      final currentPrayerTime = notifier.getCurrentPrayerTime() ?? '--:--';
+      final currentPrayerName =
+          notifier.getCurrentPrayerName() ?? 'Next Prayer';
+      final timeLeft = notifier.getTimeUntilNextPrayer() ?? '';
+
+      return Column(
+        children: [
+          Text(
+            currentPrayerTime,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: _t(context, 56),
+              fontWeight: FontWeight.bold,
+              letterSpacing: 2,
+            ),
+          ),
+          Text(
+            '$currentPrayerName $timeLeft',
+            style: TextStyle(color: Colors.white, fontSize: _t(context, 16)),
+          ),
+        ],
+      );
+    }
+
+    return SizedBox.shrink();
+  }
+
+  Widget _buildPrayerTimesRow(
+    BuildContext context,
+    Sholat? sholat,
+    HomeState status,
+  ) {
+    if (status == HomeState.loadingLocation ||
+        status == HomeState.loadingJadwalSholat ||
+        status == HomeState.loadingAll ||
+        sholat == null) {
+      return SizedBox(
+        height: _px(context, 100),
+        child: Center(
+          child: Text(
+            'Loading prayer times...',
+            style: TextStyle(color: Colors.white70, fontSize: _t(context, 14)),
+          ),
+        ),
+      );
+    }
+
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: _hpad(context)),
+      child: _ResponsivePrayerRow(
+        itemHeight: _px(context, 100),
+        children: [
+          _buildPrayerTimeWidget(
+            context,
+            'Fajr',
+            sholat.wajib.shubuh,
+            Icons.nightlight_round,
+            true, // You can implement logic to determine active prayer
+          ),
+          _buildPrayerTimeWidget(
+            context,
+            'Dzuhr',
+            sholat.wajib.dzuhur,
+            Icons.wb_sunny_rounded,
+            false,
+          ),
+          _buildPrayerTimeWidget(
+            context,
+            'Asr',
+            sholat.wajib.ashar,
+            Icons.wb_twilight_rounded,
+            false,
+          ),
+          _buildPrayerTimeWidget(
+            context,
+            'Maghrib',
+            sholat.wajib.maghrib,
+            Icons.wb_sunny_outlined,
+            false,
+          ),
+          _buildPrayerTimeWidget(
+            context,
+            'Isha',
+            sholat.wajib.isya,
+            Icons.dark_mode_rounded,
+            false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildOfflineIndicator(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(color: Colors.orange.shade200),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, color: Colors.orange.shade600, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'You are offline. Data may not be up to date.',
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                fontSize: _t(context, 12),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomSheetContent(
+    BuildContext context,
+    ScrollController scrollController,
+    List<KomunitasArtikel> articles,
+    HomeState status,
+    String? error,
+  ) {
+    return ListView(
+      controller: scrollController,
+      padding: EdgeInsets.symmetric(
+        horizontal: _hpad(context),
+        vertical: _px(context, 12),
+      ),
+      physics: const BouncingScrollPhysics(),
+      children: [
+        // Quick Access header
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.primaryBlue.withValues(alpha: 0.1),
+                        AppTheme.accentGreen.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    Icons.apps_rounded,
+                    color: AppTheme.primaryBlue,
+                    size: _icon(context, 24),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Text(
+                  'Quick Access',
+                  style: TextStyle(
+                    fontSize: _t(context, 20),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.onSurface,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ],
+            ),
+            TextButton.icon(
+              onPressed: () => _showAllFeaturesSheet(context),
+              icon: Icon(
+                Icons.grid_view_rounded,
+                size: _icon(context, 18),
+                color: AppTheme.primaryBlue,
+              ),
+              label: Text(
+                'See All',
+                style: TextStyle(
+                  color: AppTheme.primaryBlue,
+                  fontWeight: FontWeight.w600,
+                  fontSize: _t(context, 14),
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(
+                  horizontal: _px(context, 12),
+                  vertical: _px(context, 8),
+                ),
+                backgroundColor: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: _px(context, 18)),
+
+        // Quick Access horizontal
+        SizedBox(
+          height: _px(context, 110),
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            children: [
+              _buildEnhancedFeatureButton(
+                context,
+                FlutterIslamicIcons.quran2,
+                'Al-Quran',
+                AppTheme.primaryBlue,
+                onTap: () => Navigator.pushNamed(context, '/quran'),
+              ),
+              const SizedBox(width: 14),
+              _buildEnhancedFeatureButton(
+                context,
+                FlutterIslamicIcons.prayingPerson,
+                'Sholat',
+                AppTheme.primaryBlue,
+                onTap: () => Navigator.pushNamed(context, '/sholat'),
+              ),
+              const SizedBox(width: 14),
+              _buildEnhancedFeatureButton(
+                context,
+                FlutterIslamicIcons.ramadan,
+                'Puasa',
+                AppTheme.primaryBlue,
+                onTap: () => Navigator.pushNamed(context, '/puasa'),
+              ),
+              const SizedBox(width: 14),
+              _buildEnhancedFeatureButton(
+                context,
+                FlutterIslamicIcons.qibla,
+                'Qibla',
+                AppTheme.primaryBlue,
+                onTap: () => Navigator.pushNamed(context, '/qibla-compass'),
+              ),
+              const SizedBox(width: 14),
+              _buildEnhancedFeatureButton(
+                context,
+                FlutterIslamicIcons.zakat,
+                'Sedekah',
+                AppTheme.primaryBlue,
+                onTap: () => Navigator.pushNamed(context, '/zakat'),
+              ),
+              const SizedBox(width: 14),
+              _buildEnhancedFeatureButton(
+                context,
+                Icons.apps_rounded,
+                'More',
+                Colors.grey.shade700,
+                onTap: () => _showAllFeaturesSheet(context),
+              ),
+            ],
+          ),
+        ),
+
+        SizedBox(height: _px(context, 32)),
+
+        // Latest Articles section
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildSectionHeader(
+              context,
+              'Artikel Terbaru',
+              Icons.article_rounded,
+              AppTheme.primaryBlue,
+            ),
+            if (status == HomeState.loadingLatestArticle ||
+                status == HomeState.refreshingLatestArticle)
+              SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryBlue,
+                  ),
+                ),
+              )
+            else
+              IconButton(
+                onPressed: () {
+                  ref.read(homeProvider.notifier).refreshLatestArticles();
+                },
+                icon: Icon(
+                  Icons.refresh,
+                  color: AppTheme.primaryBlue,
+                  size: _icon(context, 20),
+                ),
+              ),
+          ],
+        ),
+        SizedBox(height: _px(context, 16)),
+
+        // Articles list with loading state
+        _buildArticlesSection(context, articles, status, error),
+
+        SizedBox(height: _px(context, 100)), // for bottom nav
+      ],
+    );
+  }
+
+  Widget _buildArticlesSection(
+    BuildContext context,
+    List<KomunitasArtikel> articles,
+    HomeState status,
+    String? error,
+  ) {
+    if (status == HomeState.loadingLatestArticle ||
+        status == HomeState.loadingAll) {
+      return _buildArticlesLoadingState(context);
+    }
+
+    if (error != null && articles.isEmpty) {
+      return _buildArticlesErrorState(context, error);
+    }
+
+    if (articles.isEmpty) {
+      return _buildArticlesEmptyState(context);
+    }
+
+    return Column(
+      children: articles.take(3).map((article) {
+        return _buildEnhancedArticleCard(
+          title: article.judul,
+          summary: article.excerpt,
+          imageUrl: article.gambar.isNotEmpty
+              ? "https://your-storage-url/${article.gambar[0]}"
+              : 'https://picsum.photos/120/100?random=${article.id}',
+          date: _formatDate(article.createdAt),
+          context: context,
+          category: article.kategori,
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildArticlesLoadingState(BuildContext context) {
+    return Column(
+      children: List.generate(3, (index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          padding: EdgeInsets.all(_px(context, 12)),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: _px(context, 100),
+                height: _px(context, 90),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      height: 16,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 12,
+                      width: MediaQuery.of(context).size.width * 0.6,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Container(
+                      height: 12,
+                      width: MediaQuery.of(context).size.width * 0.4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildArticlesErrorState(BuildContext context, String error) {
+    return Container(
+      padding: EdgeInsets.all(_px(context, 20)),
+      child: Column(
+        children: [
+          Icon(
+            Icons.error_outline,
+            color: Colors.red.shade400,
+            size: _icon(context, 40),
+          ),
+          SizedBox(height: _px(context, 12)),
+          Text(
+            'Failed to load articles',
+            style: TextStyle(
+              color: AppTheme.onSurface,
+              fontSize: _t(context, 16),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: _px(context, 8)),
+          Text(
+            error,
+            style: TextStyle(
+              color: AppTheme.onSurfaceVariant,
+              fontSize: _t(context, 14),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: _px(context, 16)),
+          ElevatedButton(
+            onPressed: () {
+              ref.read(homeProvider.notifier).loadLatestArticles();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppTheme.primaryBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: Text('Retry'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildArticlesEmptyState(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(_px(context, 20)),
+      child: Column(
+        children: [
+          Icon(
+            Icons.article_outlined,
+            color: AppTheme.onSurfaceVariant,
+            size: _icon(context, 40),
+          ),
+          SizedBox(height: _px(context, 12)),
+          Text(
+            'No articles available',
+            style: TextStyle(
+              color: AppTheme.onSurface,
+              fontSize: _t(context, 16),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: _px(context, 8)),
+          Text(
+            'Check back later for new articles',
+            style: TextStyle(
+              color: AppTheme.onSurfaceVariant,
+              fontSize: _t(context, 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return 'Today';
+    } else if (difference.inDays == 1) {
+      return 'Yesterday';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} days ago';
+    } else {
+      return '${difference.inDays ~/ 7} week${difference.inDays ~/ 7 > 1 ? 's' : ''} ago';
+    }
   }
 
   Widget _buildPrayerTimeWidget(

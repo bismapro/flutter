@@ -1,18 +1,25 @@
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
-import 'package:test_flutter/data/models/sholat.dart';
-import 'package:test_flutter/features/home/home_service.dart';
+import 'package:test_flutter/data/models/sholat/sholat.dart';
+import 'package:test_flutter/data/services/location_service.dart';
+import 'package:test_flutter/features/home/services/home_cache_service.dart';
+import 'package:test_flutter/features/home/services/home_service.dart';
 
 enum HomeState {
   initial,
-  loadingArtikel,
-  loadingSholat,
-  loadedArtikel,
-  loadedSholat,
+  loadingLocation,
+  loadingJadwalSholat,
+  loadingLatestArticle,
+  loadingAll,
+  loadedJadwalSholat,
+  loadedLatestArticle,
   loadedAll,
   error,
-  refreshingSholat,
+  refreshingLocation,
+  refreshingJadwalSholat,
+  refreshingLatestArticle,
+  offline,
 }
 
 class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
@@ -23,7 +30,50 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
         'jadwalSholat': null,
         'error': null,
         'lastLocation': null,
+        'isOffline': false,
+        'locationError': null,
       });
+
+  // Load location and then jadwal sholat
+  Future<void> loadLocationAndJadwalSholat() async {
+    try {
+      state = {...state, 'status': HomeState.loadingLocation};
+
+      final position = await LocationService.getCurrentLocation();
+      if (position == null) {
+        state = {
+          ...state,
+          'status': HomeState.error,
+          'locationError':
+              'Failed to get location. Please enable location services.',
+        };
+        return;
+      }
+
+      // Store location
+      state = {
+        ...state,
+        'lastLocation': {
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+        },
+        'locationError': null,
+      };
+
+      // Load jadwal sholat
+      await loadJadwalSholat(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+    } catch (e) {
+      logger.warning('Error loading location: $e');
+      state = {
+        ...state,
+        'status': HomeState.error,
+        'error': 'Failed to load location: ${e.toString()}',
+      };
+    }
+  }
 
   Future<void> loadJadwalSholat({
     required double latitude,
@@ -33,37 +83,79 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
       // Set loading state
       state = {
         ...state,
-        'status': state['status'] == HomeState.loadedArtikel
-            ? HomeState.loadedArtikel
-            : HomeState.loadingSholat,
-        'error': null,
-        'lastLocation': {'latitude': latitude, 'longitude': longitude},
+        'status': HomeState.loadingJadwalSholat,
+        'isOffline': false,
       };
 
-      final resp = await HomeService.getJadwalSholat(
-        latitude: latitude,
-        longitude: longitude,
-      );
+      logger.fine('Loading jadwal sholat for location: $latitude, $longitude');
 
-      logger.fine('Get jadwal sholat response: $resp');
+      // Try network first
+      try {
+        final resp = await HomeService.getJadwalSholat(
+          latitude: latitude,
+          longitude: longitude,
+        );
 
-      final sholat = resp['data'] as Sholat;
-      final hasArticles =
-          (state['articles'] as List<KomunitasArtikel>).isNotEmpty;
+        final sholat = resp['data'] as Sholat;
 
-      state = {
-        ...state,
-        'status': hasArticles ? HomeState.loadedAll : HomeState.loadedSholat,
-        'jadwalSholat': sholat,
-        'error': null,
-      };
+        // Cache the data
+        await HomeCacheService.cacheJadwalSholat(
+          sholat: sholat,
+          latitude: latitude,
+          longitude: longitude,
+        );
+
+        state = {
+          ...state,
+          'status': HomeState.loadedJadwalSholat,
+          'jadwalSholat': sholat,
+          'error': null,
+          'isOffline': false,
+          'lastLocation': {'latitude': latitude, 'longitude': longitude},
+        };
+
+        logger.fine('Jadwal sholat loaded successfully from network');
+      } catch (networkError) {
+        logger.warning('Network error, trying cache: $networkError');
+
+        // Try to load from cache
+        final cachedSholat = HomeCacheService.getCachedJadwalSholat(
+          latitude: latitude,
+          longitude: longitude,
+        );
+
+        if (cachedSholat != null) {
+          state = {
+            ...state,
+            'status': HomeState.offline,
+            'jadwalSholat': cachedSholat,
+            'error':
+                HomeCacheService.isJadwalSholatCacheValid(
+                  latitude: latitude,
+                  longitude: longitude,
+                )
+                ? null
+                : 'Prayer schedule may not be up to date. No internet connection.',
+            'isOffline': true,
+          };
+
+          logger.fine('Jadwal sholat loaded from cache');
+        } else {
+          state = {
+            ...state,
+            'status': HomeState.error,
+            'error':
+                'Failed to load prayer schedule: ${networkError.toString()}',
+            'isOffline': true,
+          };
+        }
+      }
     } catch (e) {
-      logger.warning('Error load jadwal sholat: $e');
-
+      logger.warning('Error loading jadwal sholat: $e');
       state = {
         ...state,
         'status': HomeState.error,
-        'error': 'Failed to load jadwal sholat: ${e.toString()}',
+        'error': 'Failed to load prayer schedule: ${e.toString()}',
       };
     }
   }
@@ -72,67 +164,83 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
     final lastLocation = state['lastLocation'] as Map<String, dynamic>?;
 
     if (lastLocation == null) {
-      state = {...state, 'error': 'No location data available for refresh'};
+      await loadLocationAndJadwalSholat();
       return;
     }
 
     try {
-      state = {...state, 'status': HomeState.refreshingSholat, 'error': null};
+      state = {...state, 'status': HomeState.refreshingJadwalSholat};
 
-      final resp = await HomeService.getJadwalSholat(
+      await loadJadwalSholat(
         latitude: lastLocation['latitude'],
         longitude: lastLocation['longitude'],
       );
-
-      logger.fine('Refresh jadwal sholat response: $resp');
-
-      final sholat = resp['data'] as Sholat;
-      final hasArticles =
-          (state['articles'] as List<KomunitasArtikel>).isNotEmpty;
-
-      state = {
-        ...state,
-        'status': hasArticles ? HomeState.loadedAll : HomeState.loadedSholat,
-        'jadwalSholat': sholat,
-        'error': null,
-      };
     } catch (e) {
-      logger.warning('Error refresh jadwal sholat: $e');
-
+      logger.warning('Error refreshing jadwal sholat: $e');
       state = {
         ...state,
-        'status': HomeState.error,
-        'error': 'Failed to refresh jadwal sholat: ${e.toString()}',
+        'status': HomeState.loadedJadwalSholat,
+        'error': 'Failed to refresh prayer schedule: ${e.toString()}',
       };
     }
   }
 
   Future<void> loadLatestArticles() async {
     try {
-      // Set loading state
-      state = {
-        ...state,
-        'status': state['status'] == HomeState.loadedSholat
-            ? HomeState.loadedSholat
-            : HomeState.loadingArtikel,
-        'error': null,
-      };
+      state = {...state, 'status': HomeState.loadingLatestArticle};
 
-      final resp = await HomeService.getLatestArticle();
-      logger.fine('Get latest articles response: $resp');
+      logger.fine('Loading latest articles');
 
-      final articles = resp['data'] as List<KomunitasArtikel>;
-      final hasSholat = state['jadwalSholat'] != null;
+      // Try network first
+      try {
+        final resp = await HomeService.getLatestArticle();
+        final articles = resp['data'] as List<KomunitasArtikel>;
 
-      state = {
-        ...state,
-        'status': hasSholat ? HomeState.loadedAll : HomeState.loadedArtikel,
-        'articles': articles,
-        'error': null,
-      };
+        // Cache the data
+        await HomeCacheService.cacheLatestArticle(articles: articles);
+
+        state = {
+          ...state,
+          'status': HomeState.loadedLatestArticle,
+          'articles': articles,
+          'error': null,
+          'isOffline': false,
+        };
+
+        logger.fine(
+          'Latest articles loaded successfully: ${articles.length} articles',
+        );
+      } catch (networkError) {
+        logger.warning('Network error, trying cache: $networkError');
+
+        // Try to load from cache
+        final cachedArticles = HomeCacheService.getCachedLatestArticle();
+
+        if (cachedArticles.isNotEmpty) {
+          state = {
+            ...state,
+            'status': HomeState.offline,
+            'articles': cachedArticles,
+            'error': HomeCacheService.isLatestArticleCacheValid()
+                ? null
+                : 'Articles may not be up to date. No internet connection.',
+            'isOffline': true,
+          };
+
+          logger.fine(
+            'Latest articles loaded from cache: ${cachedArticles.length} articles',
+          );
+        } else {
+          state = {
+            ...state,
+            'status': HomeState.error,
+            'error': 'Failed to load articles: ${networkError.toString()}',
+            'isOffline': true,
+          };
+        }
+      }
     } catch (e) {
-      logger.warning('Error load articles: $e');
-
+      logger.warning('Error loading latest articles: $e');
       state = {
         ...state,
         'status': HomeState.error,
@@ -141,40 +249,39 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
     }
   }
 
-  Future<void> loadAllData({
-    required double latitude,
-    required double longitude,
-  }) async {
+  Future<void> refreshLatestArticles() async {
     try {
-      state = {
-        ...state,
-        'status': HomeState.initial,
-        'error': null,
-        'lastLocation': {'latitude': latitude, 'longitude': longitude},
-      };
-
-      // Load both in parallel
-      final futures = await Future.wait([
-        HomeService.getJadwalSholat(latitude: latitude, longitude: longitude),
-        HomeService.getLatestArticle(),
-      ]);
-
-      final sholatResp = futures[0];
-      final articlesResp = futures[1];
-
-      final sholat = sholatResp['data'] as Sholat;
-      final articles = articlesResp['data'] as List<KomunitasArtikel>;
-
-      state = {
-        ...state,
-        'status': HomeState.loadedAll,
-        'jadwalSholat': sholat,
-        'articles': articles,
-        'error': null,
-      };
+      state = {...state, 'status': HomeState.refreshingLatestArticle};
+      await loadLatestArticles();
     } catch (e) {
-      logger.warning('Error load all data: $e');
+      logger.warning('Error refreshing latest articles: $e');
+      state = {
+        ...state,
+        'status': HomeState.loadedLatestArticle,
+        'error': 'Failed to refresh articles: ${e.toString()}',
+      };
+    }
+  }
 
+  Future<void> loadAllData() async {
+    try {
+      state = {...state, 'status': HomeState.loadingAll};
+
+      // Load articles first (doesn't need location)
+      await loadLatestArticles();
+
+      // Load location and jadwal sholat
+      await loadLocationAndJadwalSholat();
+
+      // Check final state
+      final hasJadwalSholat = state['jadwalSholat'] != null;
+      final hasArticles = (state['articles'] as List).isNotEmpty;
+
+      if (hasJadwalSholat && hasArticles) {
+        state = {...state, 'status': HomeState.loadedAll};
+      }
+    } catch (e) {
+      logger.warning('Error loading all data: $e');
       state = {
         ...state,
         'status': HomeState.error,
@@ -183,11 +290,52 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
     }
   }
 
-  void clearError() {
-    state = {...state, 'error': null};
+  // Refresh location dan jadwal sholat
+  Future<void> refreshLocationAndJadwalSholat() async {
+    try {
+      state = {...state, 'status': HomeState.refreshingLocation};
+
+      final position = await LocationService.getCurrentLocation();
+      if (position == null) {
+        state = {
+          ...state,
+          'status': HomeState.error,
+          'locationError':
+              'Failed to get location. Please enable location services.',
+        };
+        return;
+      }
+
+      // Update location
+      state = {
+        ...state,
+        'lastLocation': {
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+        },
+        'locationError': null,
+      };
+
+      // Refresh jadwal sholat with new location
+      await loadJadwalSholat(
+        latitude: position.latitude,
+        longitude: position.longitude,
+      );
+    } catch (e) {
+      logger.warning('Error refreshing location: $e');
+      state = {
+        ...state,
+        'status': HomeState.error,
+        'error': 'Failed to refresh location: ${e.toString()}',
+      };
+    }
   }
 
-  // Helper methods
+  void clearError() {
+    state = {...state, 'error': null, 'locationError': null};
+  }
+
+  // Helper methods for prayer times
   String? getCurrentPrayerTime() {
     final sholat = state['jadwalSholat'] as Sholat?;
     if (sholat == null) return null;
@@ -200,11 +348,9 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
 
     // Find current prayer time
     for (int i = 0; i < prayerTimes.length; i++) {
-      final prayer = prayerTimes[i];
-      final prayerTime = prayer['time']!;
-
+      final prayerTime = prayerTimes[i]['time']!;
       if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
-        return prayer['time'];
+        return prayerTime;
       }
     }
 
@@ -224,11 +370,9 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
 
     // Find current prayer name
     for (int i = 0; i < prayerTimes.length; i++) {
-      final prayer = prayerTimes[i];
-      final prayerTime = prayer['time']!;
-
+      final prayerTime = prayerTimes[i]['time']!;
       if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
-        return prayer['name'];
+        return prayerTimes[i]['name'];
       }
     }
 
@@ -248,14 +392,12 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
 
     // Find next prayer time
     for (int i = 0; i < prayerTimes.length; i++) {
-      final prayer = prayerTimes[i];
-      final prayerTime = prayer['time']!;
-
+      final prayerTime = prayerTimes[i]['time']!;
       if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
-        final diffMinutes =
+        final minutesUntil =
             _timeToMinutes(prayerTime) - _timeToMinutes(currentTime);
-        final hours = diffMinutes ~/ 60;
-        final minutes = diffMinutes % 60;
+        final hours = minutesUntil ~/ 60;
+        final minutes = minutesUntil % 60;
 
         if (hours > 0) {
           return '$hours hour $minutes min left';
@@ -280,6 +422,16 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
   int _timeToMinutes(String time) {
     final parts = time.split(':');
     return int.parse(parts[0]) * 60 + int.parse(parts[1]);
+  }
+
+  // Cache management
+  Future<void> clearCache() async {
+    await HomeCacheService.clearAllCache();
+    logger.fine('Home cache cleared');
+  }
+
+  Map<String, int> getCacheInfo() {
+    return HomeCacheService.getCacheInfo();
   }
 }
 

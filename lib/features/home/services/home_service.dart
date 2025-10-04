@@ -2,13 +2,13 @@ import 'package:dio/dio.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
-import 'package:test_flutter/data/models/sholat.dart';
+import 'package:test_flutter/data/models/sholat/sholat.dart';
 
 class HomeService {
   static Future<Map<String, dynamic>> getLatestArticle() async {
     try {
       final response = await ApiClient.dio.get('/komunitas/artikel/terbaru');
-      logger.fine('Get latest article response', response.data);
+      logger.fine('Get latest article response: ${response.data}');
 
       final responseData = response.data as Map<String, dynamic>;
       final articlesData = responseData['data'] as List;
@@ -40,7 +40,7 @@ class HomeService {
         queryParameters: {'latitude': latitude, 'longitude': longitude},
       );
 
-      logger.fine('Get jadwal sholat response', response.data);
+      logger.fine('Get jadwal sholat response: ${response.data}');
 
       final responseData = response.data as Map<String, dynamic>;
       final sholat = Sholat.fromJson(responseData['data']);
