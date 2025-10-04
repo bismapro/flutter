@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/core/utils/date_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
@@ -137,7 +138,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           showMessageToast(
             context,
-            message: 'Gagal memuat komentar: ${e.toString()}',
+            message: 'Failed to load comments: ${e.toString()}',
             type: ToastType.error,
             duration: const Duration(seconds: 4),
           );
@@ -152,13 +153,13 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     final difference = now.difference(date);
 
     if (difference.inMinutes < 1) {
-      return 'Baru saja';
+      return 'Just now';
     } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} menit yang lalu';
+      return '${difference.inMinutes} minutes ago';
     } else if (difference.inHours < 24) {
-      return '${difference.inHours} jam yang lalu';
+      return '${difference.inHours} hours ago';
     } else if (difference.inDays < 7) {
-      return '${difference.inDays} hari yang lalu';
+      return '${difference.inDays} days ago';
     } else {
       return '${date.day}/${date.month}/${date.year}';
     }
@@ -196,7 +197,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Komentar berhasil ditambahkan'),
+            content: const Text('Comment added successfully'),
             backgroundColor: AppTheme.accentGreen,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -212,7 +213,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal menambah komentar: ${e.toString()}'),
+            content: Text('Failed to add comment: ${e.toString()}'),
             backgroundColor: Colors.red.shade400,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -243,7 +244,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Gagal toggle like: ${e.toString()}'),
+            content: Text('Failed to toggle like: ${e.toString()}'),
             backgroundColor: Colors.red.shade400,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -356,7 +357,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Detail Diskusi',
+                                'Detail Discussion',
                                 style: TextStyle(
                                   fontSize: appbarTitleSize,
                                   fontWeight: FontWeight.bold,
@@ -365,7 +366,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                                 ),
                               ),
                               Text(
-                                '${_artikel?.jumlahKomentar ?? 0} komentar',
+                                '${_artikel?.jumlahKomentar ?? 0} comments',
                                 style: TextStyle(
                                   fontSize: appbarSubSize,
                                   color: AppTheme.onSurfaceVariant,
@@ -402,7 +403,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     }
 
     if (_artikel == null) {
-      return _buildErrorState(message: 'Artikel tidak ditemukan');
+      return _buildErrorState(message: 'Article not found');
     }
 
     final extraBottom =
@@ -449,7 +450,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Memuat detail artikel...',
+              'Load article...',
               style: TextStyle(
                 color: AppTheme.onSurface,
                 fontSize: titleSize,
@@ -458,7 +459,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Mohon tunggu sebentar',
+              'Please wait a moment...',
               style: TextStyle(
                 color: AppTheme.onSurfaceVariant,
                 fontSize: subSize,
@@ -524,7 +525,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               Text(
                 message ??
                     _error ??
-                    'Terjadi kesalahan saat memuat detail artikel',
+                    'An unexpected error occurred. Please try again later.',
                 style: TextStyle(color: Colors.red.shade600, fontSize: subSize),
                 textAlign: TextAlign.center,
               ),
@@ -652,7 +653,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          _artikel!.formattedDate,
+                          DateHelper.getFormattedDate(_artikel!.createdAt),
                           style: TextStyle(
                             color: AppTheme.onSurfaceVariant,
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -877,7 +878,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Komentar (${_comments.length})',
+                  'Comment (${_comments.length})',
                   style: TextStyle(
                     fontSize: titleSize,
                     fontWeight: FontWeight.bold,
@@ -925,9 +926,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                       ),
                     ),
                     child: Text(
-                      _isLoadingComments
-                          ? 'Memuat...'
-                          : 'Muat Komentar Lainnya',
+                      _isLoadingComments ? 'Loading...' : 'Load More Comments',
                     ),
                   ),
                 ),
@@ -969,7 +968,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Belum ada komentar',
+              'No comments yet',
               style: TextStyle(
                 fontSize: titleSize,
                 color: AppTheme.onSurface,
@@ -979,8 +978,8 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             const SizedBox(height: 6),
             Text(
               ref.watch(authProvider)['status'] == AuthState.authenticated
-                  ? 'Jadilah yang pertama berkomentar'
-                  : 'Login untuk berkomentar',
+                  ? 'Be the first to comment'
+                  : 'Login to comment',
               style: TextStyle(
                 fontSize: subSize,
                 color: AppTheme.onSurfaceVariant,
@@ -1214,7 +1213,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        _isAnonymous ? 'Gunakan Nama' : 'Kirim Anonim',
+                        _isAnonymous ? 'Used Name' : 'Send Anonymously',
                         style: TextStyle(
                           fontSize: toggleSize,
                           color: _isAnonymous
@@ -1246,8 +1245,8 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         enabled: !_isSubmittingComment,
                         decoration: InputDecoration(
                           hintText: _isAnonymous
-                              ? 'Tulis komentar sebagai anonim...'
-                              : 'Tulis komentar Anda...',
+                              ? 'Write your comment as anonymous...'
+                              : 'Write your comment...',
                           hintStyle: TextStyle(
                             color: AppTheme.onSurfaceVariant.withValues(
                               alpha: 0.6,

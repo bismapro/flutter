@@ -1,3 +1,5 @@
+import 'package:test_flutter/core/utils/date_helper.dart';
+
 class KomunitasArtikel {
   final String id;
   final int userId;
@@ -64,26 +66,9 @@ class KomunitasArtikel {
       'is_anonymous': isAnonymous,
       'jumlah_like': jumlahLike,
       'jumlah_komentar': jumlahKomentar,
-      'created_at': formattedDate,
+      'created_at': DateHelper.getFormattedDate(createdAt),
       'updated_at': updatedAt.toIso8601String(),
     };
-  }
-
-  String get formattedDate {
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
-
-    if (difference.inDays > 7) {
-      return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} hari lalu';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} jam lalu';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} menit lalu';
-    } else {
-      return 'Baru saja';
-    }
   }
 }
 
@@ -133,25 +118,8 @@ class KomunitasKomentar {
       'content': content,
       'is_anonymous': isAnonymous,
       'author_name': authorName,
-      'created_at': createdAt.toIso8601String(),
+      'created_at': DateHelper.getFormattedDate(createdAt),
       'updated_at': updatedAt.toIso8601String(),
     };
-  }
-
-  String get formattedDate {
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
-
-    if (difference.inDays > 7) {
-      return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} hari lalu';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} jam lalu';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} menit lalu';
-    } else {
-      return 'Baru saja';
-    }
   }
 }

@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/core/utils/date_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
@@ -92,7 +93,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             'category': item.kategori,
             'authorId': item.userId.toString(),
             'authorName': 'guest',
-            'date': item.formattedDate,
+            'date': DateHelper.getFormattedDate(item.createdAt),
             'likes': item.jumlahLike,
             'likedBy': [],
             'comments': item.jumlahKomentar,
@@ -159,15 +160,15 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
           children: [
             Icon(Icons.delete_outline, color: Colors.red.shade400),
             const SizedBox(width: 12),
-            const Text('Hapus Post'),
+            const Text('Delete Post'),
           ],
         ),
-        content: const Text('Apakah Anda yakin ingin menghapus post ini?'),
+        content: const Text('Are you sure you want to delete this post?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
             child: Text(
-              'Batal',
+              'Cancel',
               style: TextStyle(color: AppTheme.onSurfaceVariant),
             ),
           ),
@@ -184,7 +185,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            child: const Text('Hapus'),
+            child: const Text('Delete'),
           ),
         ],
       ),
@@ -290,7 +291,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Komunitas',
+                                  'Community',
                                   style: TextStyle(
                                     fontSize: titleSize,
                                     fontWeight: FontWeight.bold,
@@ -299,7 +300,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                                   ),
                                 ),
                                 Text(
-                                  'Berbagi dan berdiskusi bersama',
+                                  'Share and discuss with others',
                                   style: TextStyle(
                                     fontSize: subtitleSize,
                                     color: AppTheme.onSurfaceVariant,
@@ -341,7 +342,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                               ),
                             ),
                             decoration: InputDecoration(
-                              hintText: 'Cari diskusi...',
+                              hintText: 'Search discussions...',
                               hintStyle: TextStyle(
                                 color: AppTheme.onSurfaceVariant.withValues(
                                   alpha: 0.6,
@@ -529,7 +530,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'Anda sedang offline. Beberapa fitur mungkin terbatas.',
+              'You are offline. Some features may be unavailable.',
               style: TextStyle(
                 color: Colors.orange.shade700,
                 fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
@@ -540,7 +541,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
           TextButton(
             onPressed: _handleRefresh,
             child: Text(
-              'Coba Lagi',
+              'Retry',
               style: TextStyle(
                 color: Colors.orange.shade700,
                 fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
@@ -576,7 +577,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Memuat artikel komunitas...',
+                  'Load article...',
                   style: TextStyle(
                     color: AppTheme.onSurface,
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
@@ -585,7 +586,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Mohon tunggu sebentar',
+                  'Please wait a moment...',
                   style: TextStyle(
                     color: AppTheme.onSurfaceVariant,
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
@@ -635,7 +636,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             ),
             const SizedBox(height: 20),
             Text(
-              'Gagal Memuat Data',
+              'Failed to Load Data',
               style: TextStyle(
                 fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
                 fontWeight: FontWeight.bold,
@@ -644,7 +645,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             ),
             const SizedBox(height: 8),
             Text(
-              errorMessage ?? 'Terjadi kesalahan saat memuat artikel',
+              errorMessage ?? 'An error occurred while loading the article',
               style: TextStyle(
                 color: Colors.red.shade600,
                 fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
@@ -668,7 +669,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 ),
                 icon: const Icon(Icons.refresh_rounded, size: 20),
                 label: Text(
-                  'Coba Lagi',
+                  'Try Again',
                   style: TextStyle(
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                     fontWeight: FontWeight.w600,
@@ -727,7 +728,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             ),
             const SizedBox(height: 8),
             Text(
-              'Memuat lebih banyak...',
+              'Loading more...',
               style: TextStyle(
                 color: AppTheme.onSurfaceVariant,
                 fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
@@ -763,7 +764,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
         ),
         const SizedBox(height: 20),
         Text(
-          'Tidak ada diskusi ditemukan',
+          'No Discussions Yet',
           style: TextStyle(
             fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
             color: AppTheme.onSurface,
@@ -773,8 +774,8 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
         const SizedBox(height: 6),
         Text(
           ref.watch(authProvider)['status'] == AuthState.authenticated
-              ? 'Mulai diskusi baru dengan menekan tombol +'
-              : 'Login untuk mulai diskusi baru',
+              ? 'Start a new discussion by pressing the + button'
+              : 'Login to start a new discussion',
           style: TextStyle(
             fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
             color: AppTheme.onSurfaceVariant,
@@ -783,7 +784,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
         ),
         const SizedBox(height: 12),
         Text(
-          'Tarik ke bawah untuk memuat ulang',
+          'Pull down to refresh',
           style: TextStyle(
             fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
             color: AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
@@ -922,7 +923,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                                   color: Colors.red.shade400,
                                 ),
                                 const SizedBox(width: 12),
-                                const Text('Hapus Post'),
+                                const Text('Delete Post'),
                               ],
                             ),
                           ),
