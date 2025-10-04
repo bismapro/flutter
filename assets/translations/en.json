@@ -1,0 +1,81 @@
+{
+    "app" : {
+        "name": "Shollover"
+    },
+    "splash": {
+        "subtitle": "Your prayer partners"
+    },
+    "welcome": {
+        "title": "Stay Connected to\nYour Faith",
+        "description": "Prayer times, Qibla direction, Islamic calendar\nand community - all in one place",
+        "features_1": "Accurate prayer times",
+        "features_2": "Find new friends in community",
+        "features_3": "Read Al-Quran",
+        "button_get_started": "Get Started",
+        "button_guest": "Continue as Guest",
+        "left_panel_title": "All-in-One Muslim Companion",
+        "left_panel_subtitle": "Prayer times, Qibla, Quran, and community features to support your daily worship."
+    },
+    "login": {
+        "title": "Welcome Back",
+        "description": "Sign in to continue your Islamic journey",
+        "email_hint": "Enter your email",
+        "email_validation_null": "Please enter your email",
+        "email_validation_invalid": "Please enter a valid email",
+        "password_hint": "Enter your password",
+        "password_validation_null": "Please enter your password",
+        "password_validation_short": "Password must be at least 6 characters",
+        "button_login": "Sign In",
+        "divider_text": "Or continue with",
+        "button_google": "Continue with Google",
+        "button_forgot_password": "Forgot Password?",
+        "no_account_yet": "Don't have an account?",
+        "button_sign_up": "Sign Up",
+        "toast_success": "Login successful! Welcome back.",
+        "left_panel_title": "Grow in Faith",
+        "left_panel_subtitle": "Access curated Islamic content and continue your journey."
+    },
+
+  "signup": {
+    "title": "Create Account",
+    "subtitle": "Join our Islamic community today",
+    "left_panel_title": "Start Your Journey",
+    "left_panel_subtitle": "Create an account to access curated content and features.",
+    
+    "name_hint": "Enter your full name",
+    "name_label": "Full Name",
+    "name_validation_null": "Please enter your name",
+    "name_validation_short": "Name must be at least 3 characters",
+    
+    "email_hint": "Enter your email",
+    "email_label": "Email",
+    "email_validation_null": "Please enter your email",
+    "email_validation_invalid": "Please enter a valid email",
+    
+    "password_hint": "Create a password",
+    "password_label": "Password",
+    "password_validation_null": "Please enter a password",
+    "password_validation_short": "Password must be at least 6 characters",
+    
+    "confirm_password_hint": "Re-enter your password",
+    "confirm_password_label": "Confirm Password",
+    "confirm_password_validation_null": "Please confirm your password",
+    "confirm_password_validation_mismatch": "Passwords do not match",
+    
+    "terms_text": "I agree to the ",
+    "terms_service": "Terms of Service",
+    "terms_and": " and ",
+    "terms_privacy": "Privacy Policy",
+    "terms_required": "You must agree to the Terms of Service and Privacy Policy",
+    
+    "button_signup": "Create Account",
+    "button_google": "Continue with Google",
+    "divider_text": "Or sign up with",
+    
+    "toast_success": "Registration successful! Welcome aboard.",
+    "toast_error": "Something went wrong. Please try again.",
+    
+    "already_account": "Already have an account?",
+    "button_sign_in": "Sign In"
+  }
+}

@@ -1,6 +1,6 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:test_flutter/core/constants/app_config.dart';
 import 'theme.dart';
 import 'router.dart';
 import '../features/auth/pages/splash_screen.dart';
@@ -16,15 +16,6 @@ class MyApp extends ConsumerStatefulWidget {
 class _MyAppState extends ConsumerState<MyApp> {
   @override
   Widget build(BuildContext context) {
-    // Watch auth state to determine which screen to show
-    // final authState = ref.watch(authProvider);
-
-    // Debug auth state
-    // logger.fine('Current auth state: ${authState['status']}');
-    // if (authState['user'] != null) {
-    //   logger.fine('User data: ${authState['user']}');
-    // }
-
     // Set system UI overlay style
     SystemChrome.setSystemUIOverlayStyle(
       const SystemUiOverlayStyle(
@@ -34,27 +25,14 @@ class _MyAppState extends ConsumerState<MyApp> {
     );
 
     return MaterialApp(
-      title: AppConfig.appName,
+      title: tr('app.name'),
+      locale: context.locale,
+      supportedLocales: context.supportedLocales,
+      localizationsDelegates: context.localizationDelegates,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
       onGenerateRoute: AppRoutes.generateRoute,
       debugShowCheckedModeBanner: false,
     );
   }
-
-  // Widget _buildHome(Map<String, dynamic> authState) {
-  //   final status = authState['status'];
-
-  //   // Show loading screen while checking authentication
-  //   if (status == AuthState.initial || status == AuthState.loading) {
-  //     return Scaffold(body: Center(child: CircularProgressIndicator()));
-  //   }
-
-  //   // Show home screen if authenticated, otherwise login screen
-  //   if (status == AuthState.authenticated) {
-  //     return const HomePage();
-  //   } else {
-  //     return const SplashScreen();
-  //   }
-  // }
 }

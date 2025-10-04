@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
@@ -105,7 +106,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showMessageToast(
           context,
-          message: 'Login berhasil! Selamat datang kembali.',
+          message: tr('login.toast_success'),
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );
@@ -235,7 +236,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               ],
                             ).createShader(bounds),
                             child: Text(
-                              'Welcome Back',
+                              tr('login.title'),
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.adaptiveTextSize(
                                   context,
@@ -249,7 +250,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                           ),
                           SizedBox(height: isSmall ? 6 : 8),
                           Text(
-                            'Sign in to continue your Islamic journey',
+                            tr('login.description'),
                             style: TextStyle(
                               fontSize: ResponsiveHelper.adaptiveTextSize(
                                 context,
@@ -315,7 +316,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   decoration: InputDecoration(
                                     labelText: 'Email',
-                                    hintText: 'Enter your email',
+                                    hintText: tr('login.email_hint'),
                                     prefixIcon: Icon(
                                       Icons.email_outlined,
                                       color: AppTheme.primaryBlue,
@@ -357,12 +358,14 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter your email';
+                                      return tr('login.email_validation_null');
                                     }
                                     if (!RegExp(
                                       r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                                     ).hasMatch(value)) {
-                                      return 'Please enter a valid email';
+                                      return tr(
+                                        'login.email_validation_invalid',
+                                      );
                                     }
                                     return null;
                                   },
@@ -381,7 +384,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   decoration: InputDecoration(
                                     labelText: 'Password',
-                                    hintText: 'Enter your password',
+                                    hintText: tr('login.password_hint'),
                                     prefixIcon: Icon(
                                       Icons.lock_outlined,
                                       color: AppTheme.accentGreen,
@@ -437,10 +440,14 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return 'Please enter your password';
+                                      return tr(
+                                        'login.password_validation_null',
+                                      );
                                     }
                                     if (value.length < 6) {
-                                      return 'Password must be at least 6 characters';
+                                      return tr(
+                                        'login.password_validation_short',
+                                      );
                                     }
                                     return null;
                                   },
@@ -461,7 +468,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                       ),
                                     ),
                                     child: Text(
-                                      'Forgot Password?',
+                                      tr('login.button_forgot_password'),
                                       style: TextStyle(
                                         color: AppTheme.primaryBlue,
                                         fontWeight: FontWeight.w600,
@@ -513,7 +520,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Text(
-                                                'Sign In',
+                                                tr('login.button_login'),
                                                 style: TextStyle(
                                                   fontSize:
                                                       ResponsiveHelper.adaptiveTextSize(
@@ -556,10 +563,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                           Row(
                             children: [
                               Expanded(child: Divider(color: Colors.grey[300])),
-                              const Padding(
+                              Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 16),
                                 child: Text(
-                                  'Or continue with',
+                                  tr('login.divider_text'),
                                   style: TextStyle(fontSize: 14),
                                 ),
                               ),
@@ -594,9 +601,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                     size: isSmall ? 26 : 28,
                                     color: AppTheme.onSurface,
                                   ),
-                                  const SizedBox(width: 8),
+                                  SizedBox(width: 8),
                                   Text(
-                                    'Continue with Google',
+                                    tr('login.button_google'),
                                     style: TextStyle(
                                       fontSize:
                                           ResponsiveHelper.adaptiveTextSize(
@@ -651,7 +658,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Don\'t have an account? ',
+                                tr('login.no_account_yet'),
                                 style: TextStyle(
                                   color: AppTheme.onSurfaceVariant,
                                   fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -665,7 +672,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   Navigator.pushNamed(context, '/signup');
                                 },
                                 child: Text(
-                                  'Sign Up',
+                                  ' ${tr('login.button_sign_up')}',
                                   style: TextStyle(
                                     color: AppTheme.primaryBlue,
                                     fontWeight: FontWeight.bold,
@@ -690,7 +697,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                   curve: Curves.easeOut,
                   padding: EdgeInsets.all(isXL ? 32 : 24),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.35),
+                    color: Colors.white.withValues(alpha: 0.35),
                     borderRadius: BorderRadius.circular(24),
                   ),
                   child: Column(
@@ -703,7 +710,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Grow in Faith',
+                        tr('login.left_panel_title'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -716,7 +723,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Access curated Islamic content and continue your journey.',
+                        tr('login.left_pane_subtitle'),
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: ResponsiveHelper.adaptiveTextSize(

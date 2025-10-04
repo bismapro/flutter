@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -341,7 +342,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                                     ],
                                                   ).createShader(bounds),
                                               child: Text(
-                                                AppConfig.appName,
+                                                tr('app.name'),
                                                 textAlign: TextAlign.center,
                                                 style: TextStyle(
                                                   fontSize: titleSize,
@@ -355,7 +356,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                               height: _gapSmall(context),
                                             ),
                                             Text(
-                                              'Your prayer partners',
+                                              tr('splash.subtitle'),
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontSize: subtitleSize,

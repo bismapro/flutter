@@ -1,6 +1,3 @@
-request
-https://equran.id/api/v2/surat
-response
 {
   "code": 200,
   "message": "Data retrieved successfully",
@@ -1831,9 +1828,7 @@ response
     }
   ]
 }
-request
-https://equran.id/api/v2/surat/{id}
-response
+
 {
   "code": 200,
   "message": "Data retrieved successfully",
@@ -1954,9 +1949,7 @@ response
     "suratSebelumnya": false
   }
 }
-request
-https://equran.id/api/v2/tafsir/2
-response
+
 {
   "code": 200,
   "message": "Data retrieved successfully",

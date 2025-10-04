@@ -6,6 +6,7 @@ import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
 import 'package:test_flutter/features/monitoring/pages/monitoring_page.dart';
 import 'package:test_flutter/features/quran/pages/quran_page.dart';
 import 'package:test_flutter/features/sholat/pages/sholat_page.dart';
+import 'package:test_flutter/core/utils/responsive_helper.dart';
 import '../../../app/theme.dart';
 
 class HomePage extends StatefulWidget {
@@ -47,6 +48,37 @@ class HomeTabContent extends ConsumerStatefulWidget {
 }
 
 class _HomeTabContentState extends ConsumerState<HomeTabContent> {
+  // ---------- tiny helpers (dibangun di atas ResponsiveHelper) ----------
+  double _scaleFactor(BuildContext context) {
+    if (ResponsiveHelper.isSmallScreen(context)) return .9;
+    if (ResponsiveHelper.isMediumScreen(context)) return 1.0;
+    if (ResponsiveHelper.isLargeScreen(context)) return 1.1;
+    return 1.2; // extra large
+  }
+
+  double _t(BuildContext c, double base) =>
+      ResponsiveHelper.adaptiveTextSize(c, base);
+
+  double _px(BuildContext c, double base) => base * _scaleFactor(c);
+
+  double _icon(BuildContext c, double base) => base * _scaleFactor(c);
+
+  double _hpad(BuildContext c) {
+    if (ResponsiveHelper.isExtraLargeScreen(c)) return 48;
+    if (ResponsiveHelper.isLargeScreen(c)) return 32;
+    return ResponsiveHelper.getScreenWidth(c) * 0.04; // ~16 di ponsel normal
+  }
+
+  double _contentMaxWidth(BuildContext c) {
+    if (ResponsiveHelper.isExtraLargeScreen(c)) return 980;
+    if (ResponsiveHelper.isLargeScreen(c)) return 820;
+    return double.infinity;
+  }
+
+  bool _isDesktop(BuildContext c) =>
+      ResponsiveHelper.isLargeScreen(c) ||
+      ResponsiveHelper.isExtraLargeScreen(c);
+
   void _showAllFeaturesSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -58,8 +90,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 
   @override
   Widget build(BuildContext context) {
-    final r = _R.of(context);
-
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
       body: Stack(
@@ -75,16 +105,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             ),
           ),
 
-          // Top gradient section
+          // Top section
           SafeArea(
             bottom: false,
             child: Column(
               children: [
-                // Header with location
+                // Header
                 Padding(
                   padding: EdgeInsets.symmetric(
-                    horizontal: r.hpad,
-                    vertical: r.space(16, 18, 20),
+                    horizontal: _hpad(context),
+                    vertical: _px(context, 16),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -97,16 +127,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                               '9 Ramadhan 1444 H',
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: r.tsp(16, 18, 20),
+                                fontSize: _t(context, 16),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            SizedBox(height: r.space(4, 6, 8)),
+                            SizedBox(height: _px(context, 6)),
                             Text(
                               'Jakarta, Indonesia',
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: r.tsp(13, 14, 16),
+                                fontSize: _t(context, 14),
                               ),
                             ),
                           ],
@@ -115,7 +145,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                       GestureDetector(
                         onTap: () => Navigator.pushNamed(context, '/profile'),
                         child: Container(
-                          padding: EdgeInsets.all(r.space(6, 8, 10)),
+                          padding: EdgeInsets.all(_px(context, 8)),
                           decoration: BoxDecoration(
                             color: Colors.grey.withValues(alpha: 0.5),
                             borderRadius: BorderRadius.circular(20),
@@ -123,7 +153,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           child: Icon(
                             Icons.person,
                             color: Colors.white,
-                            size: r.icon(22, 24, 26),
+                            size: _icon(context, 24),
                           ),
                         ),
                       ),
@@ -131,14 +161,14 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                   ),
                 ),
 
-                SizedBox(height: r.space(14, 18, 22)),
+                SizedBox(height: _px(context, 18)),
 
                 // Current prayer time
                 Text(
                   '04:41',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: r.tsp(48, 56, 64),
+                    fontSize: _t(context, 56),
                     fontWeight: FontWeight.bold,
                     letterSpacing: 2,
                   ),
@@ -147,16 +177,17 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                   'Fajr 3 hour 9 min left',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: r.tsp(14, 16, 18),
+                    fontSize: _t(context, 16),
                   ),
                 ),
 
-                SizedBox(height: r.space(22, 28, 34)),
+                SizedBox(height: _px(context, 28)),
 
-                // Prayer times
+                // Prayer times row (auto horizontal scroll jika super sempit)
                 Padding(
-                  padding: EdgeInsets.symmetric(horizontal: r.hpad),
+                  padding: EdgeInsets.symmetric(horizontal: _hpad(context)),
                   child: _ResponsivePrayerRow(
+                    itemHeight: _px(context, 100),
                     children: [
                       _buildPrayerTimeWidget(
                         context,
@@ -197,19 +228,17 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                   ),
                 ),
 
-                SizedBox(height: r.space(16, 20, 24)),
+                SizedBox(height: _px(context, 20)),
               ],
             ),
           ),
 
-          // DraggableScrollableSheet
+          // Bottom sheet
           LayoutBuilder(
             builder: (context, constraints) {
-              final height = constraints.maxHeight;
-              final initial = height < 680
-                  ? 0.52
-                  : (height < 800 ? 0.48 : 0.45);
-              final max = r.isDesktop ? 0.9 : 0.85;
+              final h = constraints.maxHeight;
+              final initial = h < 680 ? 0.52 : (h < 800 ? 0.48 : 0.45);
+              final max = _isDesktop(context) ? 0.9 : 0.85;
 
               return DraggableScrollableSheet(
                 initialChildSize: initial,
@@ -250,18 +279,18 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           ),
                         ),
 
-                        // Scrollable content wrapped by maxWidth
+                        // Content (max width on tablet/desktop)
                         Expanded(
                           child: Center(
                             child: ConstrainedBox(
                               constraints: BoxConstraints(
-                                maxWidth: r.contentMaxWidth,
+                                maxWidth: _contentMaxWidth(context),
                               ),
                               child: ListView(
                                 controller: scrollController,
                                 padding: EdgeInsets.symmetric(
-                                  horizontal: r.hpad,
-                                  vertical: r.space(8, 12, 16),
+                                  horizontal: _hpad(context),
+                                  vertical: _px(context, 12),
                                 ),
                                 physics: const BouncingScrollPhysics(),
                                 children: [
@@ -289,14 +318,14 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                             child: Icon(
                                               Icons.apps_rounded,
                                               color: AppTheme.primaryBlue,
-                                              size: r.icon(22, 24, 26),
+                                              size: _icon(context, 24),
                                             ),
                                           ),
                                           const SizedBox(width: 12),
                                           Text(
                                             'Quick Access',
                                             style: TextStyle(
-                                              fontSize: r.tsp(18, 20, 22),
+                                              fontSize: _t(context, 20),
                                               fontWeight: FontWeight.bold,
                                               color: AppTheme.onSurface,
                                               letterSpacing: -0.5,
@@ -309,7 +338,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                             _showAllFeaturesSheet(context),
                                         icon: Icon(
                                           Icons.grid_view_rounded,
-                                          size: r.icon(16, 18, 20),
+                                          size: _icon(context, 18),
                                           color: AppTheme.primaryBlue,
                                         ),
                                         label: Text(
@@ -317,13 +346,13 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                           style: TextStyle(
                                             color: AppTheme.primaryBlue,
                                             fontWeight: FontWeight.w600,
-                                            fontSize: r.tsp(13, 14, 15),
+                                            fontSize: _t(context, 14),
                                           ),
                                         ),
                                         style: TextButton.styleFrom(
                                           padding: EdgeInsets.symmetric(
-                                            horizontal: r.space(10, 12, 14),
-                                            vertical: r.space(6, 8, 10),
+                                            horizontal: _px(context, 12),
+                                            vertical: _px(context, 8),
                                           ),
                                           backgroundColor: AppTheme.primaryBlue
                                               .withValues(alpha: 0.1),
@@ -336,11 +365,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                       ),
                                     ],
                                   ),
-                                  SizedBox(height: r.space(14, 18, 20)),
+                                  SizedBox(height: _px(context, 18)),
 
                                   // Quick Access horizontal
                                   SizedBox(
-                                    height: r.space(100, 110, 120),
+                                    height: _px(context, 110),
                                     child: ListView(
                                       scrollDirection: Axis.horizontal,
                                       physics: const BouncingScrollPhysics(),
@@ -412,7 +441,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                     ),
                                   ),
 
-                                  SizedBox(height: r.space(28, 32, 36)),
+                                  SizedBox(height: _px(context, 32)),
 
                                   // Latest Articles
                                   _buildSectionHeader(
@@ -421,7 +450,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                     Icons.article_rounded,
                                     AppTheme.primaryBlue,
                                   ),
-                                  SizedBox(height: r.space(12, 16, 18)),
+                                  SizedBox(height: _px(context, 16)),
 
                                   // Articles list
                                   ...List.generate(
@@ -440,7 +469,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                   ),
 
                                   SizedBox(
-                                    height: r.space(80, 100, 120),
+                                    height: _px(context, 100),
                                   ), // for bottom nav
                                 ],
                               ),
@@ -466,16 +495,14 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     IconData icon,
     bool isActive,
   ) {
-    final r = _R.of(context);
-
-    double box = r.sizeScaler(36, 44, 50);
-    double ic = r.icon(18, 20, 22);
-    double nameFs = r.tsp(10, 12, 14);
-    double timeFs = r.tsp(9, 11, 12);
-    double gap = r.space(4, 6, 8);
+    final box = _px(context, 44);
+    final ic = _icon(context, 20);
+    final nameFs = _t(context, 12);
+    final timeFs = _t(context, 11);
+    final gap = _px(context, 6);
 
     return SizedBox(
-      width: box + r.space(12, 16, 18),
+      width: box + _px(context, 16),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -556,13 +583,44 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 class AllFeaturesSheet extends StatelessWidget {
   const AllFeaturesSheet({super.key});
 
+  // semua ukuran/kolom dihitung pakai ResponsiveHelper
+  int _gridColumns(BuildContext c) {
+    final w = ResponsiveHelper.getScreenWidth(c);
+    if (w < 360) return 3;
+    if (w < ResponsiveHelper.mediumScreenSize) return 4; // <600
+    if (w < ResponsiveHelper.largeScreenSize) return 5; // <900
+    return 6;
+  }
+
+  double _hpad(BuildContext c) {
+    if (ResponsiveHelper.isExtraLargeScreen(c)) return 48;
+    if (ResponsiveHelper.isLargeScreen(c)) return 32;
+    return ResponsiveHelper.getScreenWidth(c) * 0.05;
+  }
+
+  double _scale(BuildContext c) {
+    if (ResponsiveHelper.isSmallScreen(c)) return .9;
+    if (ResponsiveHelper.isMediumScreen(c)) return 1.0;
+    if (ResponsiveHelper.isLargeScreen(c)) return 1.1;
+    return 1.2;
+  }
+
+  double _px(BuildContext c, double base) => base * _scale(c);
+  double _t(BuildContext c, double base) =>
+      ResponsiveHelper.adaptiveTextSize(c, base);
+
+  double _initialSheetSize(BuildContext c) {
+    final h = ResponsiveHelper.getScreenHeight(c);
+    if (ResponsiveHelper.isSmallScreen(c)) return 0.88;
+    if (ResponsiveHelper.isMediumScreen(c)) return h < 700 ? 0.82 : 0.72;
+    if (ResponsiveHelper.isLargeScreen(c)) return 0.66;
+    return 0.6;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final responsive = _ResponsiveConfig.fromScreenSize(size);
-
     return DraggableScrollableSheet(
-      initialChildSize: responsive.initialSheetSize,
+      initialChildSize: _initialSheetSize(context),
       minChildSize: 0.5,
       maxChildSize: 0.95,
       builder: (context, scrollController) {
@@ -590,7 +648,7 @@ class AllFeaturesSheet extends StatelessWidget {
               // Header
               Padding(
                 padding: EdgeInsets.symmetric(
-                  horizontal: responsive.horizontalPadding,
+                  horizontal: _hpad(context),
                   vertical: 16.0,
                 ),
                 child: Row(
@@ -599,7 +657,7 @@ class AllFeaturesSheet extends StatelessWidget {
                     Text(
                       'All Features',
                       style: TextStyle(
-                        fontSize: responsive.headerFontSize,
+                        fontSize: _t(context, 20),
                         fontWeight: FontWeight.bold,
                         color: const Color(0xFF212121),
                       ),
@@ -608,8 +666,8 @@ class AllFeaturesSheet extends StatelessWidget {
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.close),
                       color: Colors.grey[600],
-                      iconSize: responsive.closeIconSize,
-                      padding: EdgeInsets.all(responsive.iconButtonPadding),
+                      iconSize: _px(context, 24),
+                      padding: EdgeInsets.all(_px(context, 8)),
                       constraints: const BoxConstraints(),
                     ),
                   ],
@@ -620,15 +678,15 @@ class AllFeaturesSheet extends StatelessWidget {
               Expanded(
                 child: GridView.count(
                   controller: scrollController,
-                  crossAxisCount: responsive.gridColumns,
+                  crossAxisCount: _gridColumns(context),
                   padding: EdgeInsets.symmetric(
-                    horizontal: responsive.horizontalPadding,
+                    horizontal: _hpad(context),
                     vertical: 16.0,
                   ),
-                  mainAxisSpacing: responsive.gridMainSpacing,
-                  crossAxisSpacing: responsive.gridCrossSpacing,
-                  childAspectRatio: responsive.gridAspectRatio,
-                  children: _buildFeatureItems(context, responsive),
+                  mainAxisSpacing: _px(context, 20),
+                  crossAxisSpacing: _px(context, 16),
+                  childAspectRatio: 0.95,
+                  children: _buildFeatureItems(context),
                 ),
               ),
             ],
@@ -638,10 +696,7 @@ class AllFeaturesSheet extends StatelessWidget {
     );
   }
 
-  List<Widget> _buildFeatureItems(
-    BuildContext context,
-    _ResponsiveConfig responsive,
-  ) {
+  List<Widget> _buildFeatureItems(BuildContext context) {
     final features = [
       _FeatureData(
         FlutterIslamicIcons.quran2,
@@ -694,16 +749,14 @@ class AllFeaturesSheet extends StatelessWidget {
       _FeatureData(Icons.article, 'Artikel', AppTheme.accentGreen, '/article'),
     ];
 
-    return features
-        .map((feature) => _buildFeatureItem(context, feature, responsive))
-        .toList();
+    return features.map((f) => _buildFeatureItem(context, f)).toList();
   }
 
-  Widget _buildFeatureItem(
-    BuildContext context,
-    _FeatureData feature,
-    _ResponsiveConfig responsive,
-  ) {
+  Widget _buildFeatureItem(BuildContext context, _FeatureData feature) {
+    final box = _px(context, 56);
+    final icon = _px(context, 28);
+    final labelSize = _t(context, 11);
+
     return GestureDetector(
       onTap: () {
         Navigator.pop(context);
@@ -716,11 +769,11 @@ class AllFeaturesSheet extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Container(
-            width: responsive.iconContainerSize,
-            height: responsive.iconContainerSize,
+            width: box,
+            height: box,
             decoration: BoxDecoration(
               color: feature.color,
-              borderRadius: BorderRadius.circular(responsive.iconBorderRadius),
+              borderRadius: BorderRadius.circular(_px(context, 16)),
               boxShadow: [
                 BoxShadow(
                   color: feature.color.withValues(alpha: .3),
@@ -729,22 +782,16 @@ class AllFeaturesSheet extends StatelessWidget {
                 ),
               ],
             ),
-            child: Icon(
-              feature.icon,
-              color: Colors.white,
-              size: responsive.iconSize,
-            ),
+            child: Icon(feature.icon, color: Colors.white, size: icon),
           ),
-          SizedBox(height: responsive.iconLabelSpacing),
+          SizedBox(height: _px(context, 8)),
           Flexible(
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: responsive.labelPadding,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: _px(context, 2)),
               child: Text(
                 feature.label,
                 style: TextStyle(
-                  fontSize: responsive.labelFontSize,
+                  fontSize: labelSize,
                   color: const Color(0xFF212121),
                   fontWeight: FontWeight.w500,
                   height: 1.2,
@@ -761,206 +808,6 @@ class AllFeaturesSheet extends StatelessWidget {
   }
 }
 
-// ------------------------- Responsive helpers -------------------------
-
-class _R {
-  final BuildContext context;
-  final Size size;
-  final double width;
-  final double height;
-
-  _R._(this.context, this.size) : width = size.width, height = size.height;
-
-  static _R of(BuildContext context) =>
-      _R._(context, MediaQuery.of(context).size);
-
-  bool get isSmall => width < 360;
-  bool get isPhone => width < 600;
-  bool get isTablet => width >= 600 && width < 900;
-  bool get isDesktop => width >= 900;
-
-  // content max width on tablet/desktop
-  double get contentMaxWidth =>
-      isDesktop ? 980 : (isTablet ? 820 : double.infinity);
-
-  // horizontal safe padding
-  double get hpad {
-    if (isDesktop) return 48;
-    if (isTablet) return 32;
-    return width * 0.04; // ~16 on small phones
-  }
-
-  // scale text size with clamps
-  double tsp(double small, double normal, double large) {
-    if (isSmall) return small;
-    if (isTablet) return large;
-    return normal;
-  }
-
-  // generic spacing scaler
-  double space(double small, double normal, double large) {
-    if (isSmall) return small;
-    if (isTablet) return large;
-    return normal;
-  }
-
-  // icon scaler
-  double icon(double small, double normal, double large) =>
-      tsp(small, normal, large);
-
-  // box size scaler
-  double sizeScaler(double small, double normal, double large) =>
-      tsp(small, normal, large);
-
-  // double size(double s, double n, double l) => sizeScaler(s, n, l);
-}
-
-// Wraps the five prayer items; switches to scrollable row on very narrow screens
-class _ResponsivePrayerRow extends StatelessWidget {
-  final List<Widget> children;
-  const _ResponsivePrayerRow({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    final r = _R.of(context);
-
-    if (r.width < 340) {
-      return SizedBox(
-        height: r.sizeScaler(88, 98, 110),
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          itemCount: children.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
-          itemBuilder: (_, i) => children[i],
-        ),
-      );
-    }
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: children,
-    );
-  }
-}
-
-// ------------------------- AllFeatures responsive config -------------------------
-
-class _ResponsiveConfig {
-  final int gridColumns;
-  final double gridMainSpacing;
-  final double gridCrossSpacing;
-  final double gridAspectRatio;
-  final double iconContainerSize;
-  final double iconSize;
-  final double iconBorderRadius;
-  final double labelFontSize;
-  final double labelPadding;
-  final double iconLabelSpacing;
-  final double headerFontSize;
-  final double closeIconSize;
-  final double iconButtonPadding;
-  final double horizontalPadding;
-  final double initialSheetSize;
-
-  const _ResponsiveConfig({
-    required this.gridColumns,
-    required this.gridMainSpacing,
-    required this.gridCrossSpacing,
-    required this.gridAspectRatio,
-    required this.iconContainerSize,
-    required this.iconSize,
-    required this.iconBorderRadius,
-    required this.labelFontSize,
-    required this.labelPadding,
-    required this.iconLabelSpacing,
-    required this.headerFontSize,
-    required this.closeIconSize,
-    required this.iconButtonPadding,
-    required this.horizontalPadding,
-    required this.initialSheetSize,
-  });
-
-  factory _ResponsiveConfig.fromScreenSize(Size size) {
-    final width = size.width;
-    final height = size.height;
-
-    if (width < 360) {
-      return const _ResponsiveConfig(
-        gridColumns: 3,
-        gridMainSpacing: 16,
-        gridCrossSpacing: 12,
-        gridAspectRatio: 0.85,
-        iconContainerSize: 48,
-        iconSize: 24,
-        iconBorderRadius: 14,
-        labelFontSize: 10,
-        labelPadding: 2,
-        iconLabelSpacing: 6,
-        headerFontSize: 18,
-        closeIconSize: 20,
-        iconButtonPadding: 8,
-        horizontalPadding: 16,
-        initialSheetSize: 0.88,
-      );
-    } else if (width < 600) {
-      return _ResponsiveConfig(
-        gridColumns: 4,
-        gridMainSpacing: 20,
-        gridCrossSpacing: 16,
-        gridAspectRatio: 0.9,
-        iconContainerSize: 56,
-        iconSize: 28,
-        iconBorderRadius: 16,
-        labelFontSize: 11,
-        labelPadding: 2,
-        iconLabelSpacing: 8,
-        headerFontSize: 20,
-        closeIconSize: 24,
-        iconButtonPadding: 8,
-        horizontalPadding: width * 0.05,
-        initialSheetSize: height < 700 ? 0.82 : 0.72,
-      );
-    } else if (width < 900) {
-      return const _ResponsiveConfig(
-        gridColumns: 5,
-        gridMainSpacing: 24,
-        gridCrossSpacing: 20,
-        gridAspectRatio: 0.95,
-        iconContainerSize: 64,
-        iconSize: 32,
-        iconBorderRadius: 18,
-        labelFontSize: 12,
-        labelPadding: 4,
-        iconLabelSpacing: 10,
-        headerFontSize: 22,
-        closeIconSize: 26,
-        iconButtonPadding: 10,
-        horizontalPadding: 32,
-        initialSheetSize: 0.66,
-      );
-    } else {
-      return const _ResponsiveConfig(
-        gridColumns: 6,
-        gridMainSpacing: 28,
-        gridCrossSpacing: 24,
-        gridAspectRatio: 1.0,
-        iconContainerSize: 72,
-        iconSize: 36,
-        iconBorderRadius: 20,
-        labelFontSize: 13,
-        labelPadding: 6,
-        iconLabelSpacing: 12,
-        headerFontSize: 24,
-        closeIconSize: 28,
-        iconButtonPadding: 12,
-        horizontalPadding: 48,
-        initialSheetSize: 0.6,
-      );
-    }
-  }
-}
-
 class _FeatureData {
   final IconData icon;
   final String label;
@@ -970,7 +817,37 @@ class _FeatureData {
   const _FeatureData(this.icon, this.label, this.color, this.route);
 }
 
-// --------------- Shared UI helpers from your original file (kept, but responsive) ---------------
+// ---------------------- Shared widgets (pakai ResponsiveHelper) ----------------------
+
+class _ResponsivePrayerRow extends StatelessWidget {
+  final List<Widget> children;
+  final double itemHeight;
+  const _ResponsivePrayerRow({
+    required this.children,
+    required this.itemHeight,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final w = ResponsiveHelper.getScreenWidth(context);
+    if (w < 340) {
+      return SizedBox(
+        height: itemHeight,
+        child: ListView.separated(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          itemCount: children.length,
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          itemBuilder: (_, i) => children[i],
+        ),
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: children,
+    );
+  }
+}
 
 Widget _buildEnhancedFeatureButton(
   BuildContext context,
@@ -979,11 +856,19 @@ Widget _buildEnhancedFeatureButton(
   Color color, {
   VoidCallback? onTap,
 }) {
-  final r = _R.of(context);
+  double scale(BuildContext c) {
+    if (ResponsiveHelper.isSmallScreen(c)) return .9;
+    if (ResponsiveHelper.isMediumScreen(c)) return 1.0;
+    if (ResponsiveHelper.isLargeScreen(c)) return 1.1;
+    return 1.2;
+  }
 
-  double iconContainerSize = r.sizeScaler(56, 64, 72);
-  double iconSize = r.icon(24, 28, 32);
-  double fontSize = r.tsp(11, 13, 14);
+  double px(double base) => base * scale(context);
+  double ts(double base) => ResponsiveHelper.adaptiveTextSize(context, base);
+
+  final iconContainerSize = px(64);
+  final iconSize = px(28);
+  final fontSize = ts(13);
 
   return GestureDetector(
     onTap: onTap,
@@ -1037,23 +922,28 @@ Widget _buildSectionHeader(
   IconData icon,
   Color color,
 ) {
-  final r = _R.of(context);
+  double px(double base) {
+    if (ResponsiveHelper.isSmallScreen(context)) return base * .9;
+    if (ResponsiveHelper.isMediumScreen(context)) return base;
+    if (ResponsiveHelper.isLargeScreen(context)) return base * 1.1;
+    return base * 1.2;
+  }
 
   return Row(
     children: [
       Container(
-        padding: EdgeInsets.all(r.space(6, 8, 10)),
+        padding: EdgeInsets.all(px(8)),
         decoration: BoxDecoration(
           color: color.withValues(alpha: 0.1),
           borderRadius: BorderRadius.circular(10),
         ),
-        child: Icon(icon, color: color, size: r.icon(18, 20, 22)),
+        child: Icon(icon, color: color, size: px(20)),
       ),
       const SizedBox(width: 12),
       Text(
         title,
         style: TextStyle(
-          fontSize: r.tsp(18, 20, 22),
+          fontSize: ResponsiveHelper.adaptiveTextSize(context, 20),
           fontWeight: FontWeight.bold,
           color: AppTheme.onSurface,
           letterSpacing: -0.5,
@@ -1071,9 +961,18 @@ Widget _buildEnhancedArticleCard({
   required String category,
   required BuildContext context,
 }) {
-  final r = _R.of(context);
-  final imgW = r.sizeScaler(90, 100, 110);
-  final imgH = r.sizeScaler(80, 90, 100);
+  double scale(BuildContext c) {
+    if (ResponsiveHelper.isSmallScreen(c)) return .9;
+    if (ResponsiveHelper.isMediumScreen(c)) return 1.0;
+    if (ResponsiveHelper.isLargeScreen(c)) return 1.1;
+    return 1.2;
+  }
+
+  double px(double base) => base * scale(context);
+  double ts(double base) => ResponsiveHelper.adaptiveTextSize(context, base);
+
+  final imgW = px(100);
+  final imgH = px(90);
 
   return Container(
     margin: const EdgeInsets.only(bottom: 16),
@@ -1109,7 +1008,7 @@ Widget _buildEnhancedArticleCard({
       },
       borderRadius: BorderRadius.circular(18),
       child: Padding(
-        padding: EdgeInsets.all(r.space(10, 12, 14)),
+        padding: EdgeInsets.all(px(12)),
         child: Row(
           children: [
             // Image
@@ -1143,7 +1042,7 @@ Widget _buildEnhancedArticleCard({
                           child: Icon(
                             Icons.image,
                             color: Colors.grey.shade400,
-                            size: r.icon(28, 32, 36),
+                            size: px(32),
                           ),
                         );
                       },
@@ -1154,8 +1053,8 @@ Widget _buildEnhancedArticleCard({
                       left: 6,
                       child: Container(
                         padding: EdgeInsets.symmetric(
-                          horizontal: r.space(6, 8, 10),
-                          vertical: r.space(3, 4, 5),
+                          horizontal: px(8),
+                          vertical: px(4),
                         ),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryBlue,
@@ -1165,7 +1064,7 @@ Widget _buildEnhancedArticleCard({
                           category,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: r.tsp(9, 10, 11),
+                            fontSize: ts(10),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -1184,7 +1083,7 @@ Widget _buildEnhancedArticleCard({
                   Text(
                     title,
                     style: TextStyle(
-                      fontSize: r.tsp(14, 15, 16),
+                      fontSize: ts(15),
                       fontWeight: FontWeight.bold,
                       color: AppTheme.onSurface,
                       height: 1.3,
@@ -1192,37 +1091,37 @@ Widget _buildEnhancedArticleCard({
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: r.space(4, 6, 8)),
+                  SizedBox(height: px(6)),
                   Text(
                     summary,
                     style: TextStyle(
-                      fontSize: r.tsp(12, 13, 14),
+                      fontSize: ts(13),
                       color: AppTheme.onSurfaceVariant,
                       height: 1.3,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  SizedBox(height: r.space(6, 8, 10)),
+                  SizedBox(height: px(8)),
                   Row(
                     children: [
                       Icon(
                         Icons.access_time,
-                        size: r.icon(12, 14, 16),
+                        size: px(14),
                         color: AppTheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
                       Text(
                         date,
                         style: TextStyle(
-                          fontSize: r.tsp(11, 12, 13),
+                          fontSize: ts(12),
                           color: AppTheme.onSurfaceVariant,
                         ),
                       ),
                       const Spacer(),
                       Icon(
                         Icons.arrow_forward_ios_rounded,
-                        size: r.icon(12, 14, 16),
+                        size: px(14),
                         color: AppTheme.primaryBlue,
                       ),
                     ],

@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
@@ -150,7 +151,7 @@ class _WelcomePageState extends State<WelcomePage>
               colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
             ).createShader(bounds),
             child: Text(
-              AppConfig.appName,
+              tr('app.name'),
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: appNameSize,
@@ -195,7 +196,7 @@ class _WelcomePageState extends State<WelcomePage>
                     child: Column(
                       children: [
                         Text(
-                          'Stay Connected to\nYour Faith',
+                          tr('welcome.title'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -210,7 +211,7 @@ class _WelcomePageState extends State<WelcomePage>
                         ),
                         SizedBox(height: isSmall ? 12 : 16),
                         Text(
-                          'Prayer times, Qibla direction, Islamic calendar\nand community - all in one place',
+                          tr('welcome.description'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -234,20 +235,20 @@ class _WelcomePageState extends State<WelcomePage>
                         return Wrap(
                           spacing: 16,
                           runSpacing: 12,
-                          children: const [
-                            _FeatureChip(text: 'Accurate prayer times'),
-                            _FeatureChip(text: 'Find nearest mosques'),
-                            _FeatureChip(text: 'Read Al-Quran & Hadith'),
+                          children: [
+                            _FeatureChip(text: tr('welcome.features_1')),
+                            _FeatureChip(text: tr('welcome.features_2')),
+                            _FeatureChip(text: tr('welcome.features_3')),
                           ],
                         );
                       }
                       return Column(
-                        children: const [
-                          _FeatureRow(text: 'Accurate prayer times'),
+                        children: [
+                          _FeatureRow(text: tr('welcome.features_1')),
                           SizedBox(height: 12),
-                          _FeatureRow(text: 'Find nearest mosques'),
+                          _FeatureRow(text: tr('welcome.features_2')),
                           SizedBox(height: 12),
-                          _FeatureRow(text: 'Read Al-Quran & Hadith'),
+                          _FeatureRow(text: tr('welcome.features_3')),
                         ],
                       );
                     },
@@ -291,7 +292,7 @@ class _WelcomePageState extends State<WelcomePage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      'Get Started',
+                      tr('welcome.button_get_started'),
                       style: TextStyle(
                         fontSize: ResponsiveHelper.adaptiveTextSize(
                           context,
@@ -323,7 +324,7 @@ class _WelcomePageState extends State<WelcomePage>
                   ),
                 ),
                 child: Text(
-                  'Continue as Guest',
+                  tr('welcome.button_guest'),
                   style: TextStyle(
                     color: AppTheme.primaryBlue,
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
@@ -358,7 +359,7 @@ class _WelcomePageState extends State<WelcomePage>
           ),
           const SizedBox(height: 16),
           Text(
-            'All-in-One Muslim Companion',
+            tr('welcome.left_panel_title'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: ResponsiveHelper.adaptiveTextSize(context, 22),
@@ -368,7 +369,7 @@ class _WelcomePageState extends State<WelcomePage>
           ),
           const SizedBox(height: 8),
           Text(
-            'Prayer times, Qibla, Quran, and community features to support your daily worship.',
+            tr('welcome.left_panel_subtitle'),
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),

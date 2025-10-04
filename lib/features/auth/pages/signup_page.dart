@@ -1,3 +1,4 @@
+import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
@@ -75,8 +76,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
         WidgetsBinding.instance.addPostFrameCallback((_) {
           showMessageToast(
             context,
-            message:
-                'You must agree to the Terms of Service and Privacy Policy',
+            message: tr('signup.terms_required'),
             type: ToastType.error,
             duration: const Duration(seconds: 4),
           );
@@ -89,7 +89,9 @@ class _SignupPageState extends ConsumerState<SignupPage>
       final password = _passwordController.text.trim();
       final confirmationPassword = _confirmPasswordController.text.trim();
 
-      ref.read(authProvider.notifier).register(name, email, password, confirmationPassword);
+      ref
+          .read(authProvider.notifier)
+          .register(name, email, password, confirmationPassword);
     }
   }
 
@@ -128,7 +130,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showMessageToast(
           context,
-          message: 'Registration successful! Welcome aboard.',
+          message: tr('signup.toast_success'),
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );
@@ -220,7 +222,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                   colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
                 ).createShader(bounds),
                 child: Text(
-                  'Create Account',
+                  tr('signup.title'),
                   style: TextStyle(
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 30),
                     fontWeight: FontWeight.bold,
@@ -231,7 +233,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
               ),
               SizedBox(height: isSmall ? 6 : 8),
               Text(
-                'Join our Islamic community today',
+                tr('signup.subtitle'),
                 style: TextStyle(
                   fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
                   color: AppTheme.onSurfaceVariant,
@@ -289,8 +291,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                       ),
                       decoration: InputDecoration(
-                        labelText: 'Full Name',
-                        hintText: 'Enter your full name',
+                        labelText: tr('signup.name_label'),
+                        hintText: tr('signup.name_hint'),
                         prefixIcon: Icon(
                           Icons.person_outlined,
                           color: AppTheme.primaryBlue,
@@ -311,11 +313,11 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your name';
+                          return tr('signup.name_validation_null');
                         }
 
                         if (value.length < 3) {
-                          return 'Name must be at least 3 characters';
+                          return tr('signup.name_validation_short');
                         }
                         return null;
                       },
@@ -333,8 +335,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                       ),
                       decoration: InputDecoration(
-                        labelText: 'Email',
-                        hintText: 'Enter your email',
+                        labelText: tr('signup.email_label'),
+                        hintText: tr('signup.email_hint'),
                         prefixIcon: Icon(
                           Icons.email_outlined,
                           color: AppTheme.accentGreen,
@@ -355,12 +357,12 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
+                          return tr('signup.email_validation_null');
                         }
                         if (!RegExp(
                           r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                         ).hasMatch(value)) {
-                          return 'Please enter a valid email';
+                          return tr('signup.email_validation_invalid');
                         }
                         return null;
                       },
@@ -378,8 +380,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                       ),
                       decoration: InputDecoration(
-                        labelText: 'Password',
-                        hintText: 'Create a password',
+                        labelText: tr('signup.password_label'),
+                        hintText: tr('signup.password_hint'),
                         prefixIcon: Icon(
                           Icons.lock_outlined,
                           color: AppTheme.primaryBlue,
@@ -413,10 +415,10 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please enter a password';
+                          return tr('signup.password_validation_null');
                         }
                         if (value.length < 6) {
-                          return 'Password must be at least 6 characters';
+                          return tr('signup.password_validation_short');
                         }
                         return null;
                       },
@@ -434,8 +436,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                       ),
                       decoration: InputDecoration(
-                        labelText: 'Confirm Password',
-                        hintText: 'Re-enter your password',
+                        labelText: tr('signup.confirm_password_label'),
+                        hintText: tr('signup.confirm_password_hint'),
                         prefixIcon: Icon(
                           Icons.lock_outlined,
                           color: AppTheme.accentGreen,
@@ -470,10 +472,12 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return 'Please confirm your password';
+                          return tr('signup.confirm_password_validation_null');
                         }
                         if (value != _passwordController.text) {
-                          return 'Passwords do not match';
+                          return tr(
+                            'signup.confirm_password_validation_mismatch',
+                          );
                         }
                         return null;
                       },
@@ -510,17 +514,17 @@ class _SignupPageState extends ConsumerState<SignupPage>
                                   color: AppTheme.onSurfaceVariant,
                                 ),
                                 children: [
-                                  const TextSpan(text: 'I agree to the '),
+                                  TextSpan(text: tr('signup.terms_text')),
                                   TextSpan(
-                                    text: 'Terms of Service',
+                                    text: tr('signup.terms_service'),
                                     style: TextStyle(
                                       color: AppTheme.primaryBlue,
                                       fontWeight: FontWeight.w600,
                                     ),
                                   ),
-                                  const TextSpan(text: ' and '),
+                                  TextSpan(text: tr('signup.terms_and')),
                                   TextSpan(
-                                    text: 'Privacy Policy',
+                                    text: tr('signup.privacy_policy'),
                                     style: TextStyle(
                                       color: AppTheme.primaryBlue,
                                       fontWeight: FontWeight.w600,
@@ -567,7 +571,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'Create Account',
+                                    tr('signup.button_signup'),
                                     style: TextStyle(
                                       fontSize:
                                           ResponsiveHelper.adaptiveTextSize(
@@ -609,10 +613,10 @@ class _SignupPageState extends ConsumerState<SignupPage>
               Row(
                 children: [
                   Expanded(child: Divider(color: Colors.grey[300])),
-                  const Padding(
+                  Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      'Or sign up with',
+                      tr('signup.divider_text'),
                       style: TextStyle(fontSize: 14),
                     ),
                   ),
@@ -642,7 +646,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Continue with Google',
+                        tr('signup.button_google'),
                         style: TextStyle(
                           fontSize: ResponsiveHelper.adaptiveTextSize(
                             context,
@@ -690,7 +694,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'Already have an account? ',
+                    tr('signup.already_account'),
                     style: TextStyle(
                       color: AppTheme.onSurfaceVariant,
                       fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
@@ -699,7 +703,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                   GestureDetector(
                     onTap: () => Navigator.pushNamed(context, '/login'),
                     child: Text(
-                      'Sign In',
+                      ' ${tr('signup.login')}',
                       style: TextStyle(
                         color: AppTheme.accentGreen,
                         fontWeight: FontWeight.bold,
@@ -757,7 +761,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Start Your Journey',
+                          tr('signup.left_panel_title'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -770,7 +774,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Create an account to access curated content and features.',
+                          tr('signup.left_panel_description'),
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.adaptiveTextSize(
