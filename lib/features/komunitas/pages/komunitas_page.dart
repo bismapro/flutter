@@ -5,7 +5,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
-import 'package:test_flutter/data/models/komunitas.dart';
+import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/komunitas/komunitas_provider.dart';
 import '../../../app/theme.dart';
@@ -410,20 +410,21 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     int lastPage,
     bool useGrid,
   ) {
+    final status = komunitasState['status'];
+    final isOffline = komunitasState['isOffline'] as bool;
+
     // Show initial loading in content area
-    if (komunitasState['status'] == KomunitasArtikelState.loading &&
-        currentPage == 1) {
+    if (status == KomunitasArtikelState.loading && currentPage == 1) {
       return _buildLoadingState();
     }
 
-    // Show error state in content area
-    if (komunitasState['status'] == KomunitasArtikelState.error &&
-        currentPage == 1) {
+    // Show error state in content area (only if no cached data)
+    if (status == KomunitasArtikelState.error && _filteredPosts.isEmpty) {
       return _buildErrorState(komunitasState['error']);
     }
 
     // Show content with refresh indicator
-    if (_filteredPosts.isEmpty) {
+    if (_filteredPosts.isEmpty && status != KomunitasArtikelState.loading) {
       return RefreshIndicator(
         onRefresh: _handleRefresh,
         color: AppTheme.primaryBlue,
@@ -438,63 +439,116 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _handleRefresh,
-      color: AppTheme.primaryBlue,
-      backgroundColor: Colors.white,
-      child: Padding(
-        padding: EdgeInsets.symmetric(
-          horizontal: ResponsiveHelper.isSmallScreen(context) ? 12 : 20,
-        ),
-        child: useGrid
-            ? GridView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.only(bottom: 100),
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: _gridColumns(context),
-                  mainAxisSpacing: 18,
-                  crossAxisSpacing: 18,
-                  childAspectRatio: ResponsiveHelper.isExtraLargeScreen(context)
-                      ? 0.78
-                      : ResponsiveHelper.isLargeScreen(context)
-                      ? 0.8
-                      : 0.85,
-                ),
-                itemCount:
-                    _filteredPosts.length + (currentPage < lastPage ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= _filteredPosts.length) {
-                    return _buildLoadMoreIndicator();
-                  }
-                  final post = _filteredPosts[index];
-                  return _buildEnhancedPostCard(
-                    post,
-                    imageHeight: _cardImageHeight(context),
-                  );
-                },
-              )
-            : ListView.builder(
-                controller: _scrollController,
-                padding: const EdgeInsets.only(bottom: 100),
-                physics: const AlwaysScrollableScrollPhysics(
-                  parent: BouncingScrollPhysics(),
-                ),
-                itemCount:
-                    _filteredPosts.length + (currentPage < lastPage ? 1 : 0),
-                itemBuilder: (context, index) {
-                  if (index >= _filteredPosts.length) {
-                    return _buildLoadMoreIndicator();
-                  }
-                  final post = _filteredPosts[index];
-                  return _buildEnhancedPostCard(
-                    post,
-                    imageHeight: _cardImageHeight(context),
-                  );
-                },
+    return Column(
+      children: [
+        // Offline indicator - UNCOMMENT INI
+        if (isOffline) ...[_buildOfflineIndicator(), SizedBox(height: 8)],
+
+        // Content
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: AppTheme.primaryBlue,
+            backgroundColor: Colors.white,
+            child: Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: ResponsiveHelper.isSmallScreen(context) ? 12 : 20,
               ),
+              child: useGrid
+                  ? GridView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.only(bottom: 100),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: _gridColumns(context),
+                        mainAxisSpacing: 18,
+                        crossAxisSpacing: 18,
+                        childAspectRatio:
+                            ResponsiveHelper.isExtraLargeScreen(context)
+                            ? 0.78
+                            : ResponsiveHelper.isLargeScreen(context)
+                            ? 0.8
+                            : 0.85,
+                      ),
+                      itemCount:
+                          _filteredPosts.length +
+                          (currentPage < lastPage && !isOffline ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index >= _filteredPosts.length) {
+                          return _buildLoadMoreIndicator();
+                        }
+                        final post = _filteredPosts[index];
+                        return _buildEnhancedPostCard(
+                          post,
+                          imageHeight: _cardImageHeight(context),
+                        );
+                      },
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.only(bottom: 100),
+                      physics: const AlwaysScrollableScrollPhysics(
+                        parent: BouncingScrollPhysics(),
+                      ),
+                      itemCount:
+                          _filteredPosts.length +
+                          (currentPage < lastPage && !isOffline ? 1 : 0),
+                      itemBuilder: (context, index) {
+                        if (index >= _filteredPosts.length) {
+                          return _buildLoadMoreIndicator();
+                        }
+                        final post = _filteredPosts[index];
+                        return _buildEnhancedPostCard(
+                          post,
+                          imageHeight: _cardImageHeight(context),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOfflineIndicator() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.orange.shade50,
+        border: Border.all(color: Colors.orange.shade200),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.wifi_off_rounded, color: Colors.orange.shade600, size: 20),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Anda sedang offline. Beberapa fitur mungkin terbatas.',
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+          TextButton(
+            onPressed: _handleRefresh,
+            child: Text(
+              'Coba Lagi',
+              style: TextStyle(
+                color: Colors.orange.shade700,
+                fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

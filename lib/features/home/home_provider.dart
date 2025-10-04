@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:test_flutter/core/utils/logger.dart';
-import 'package:test_flutter/data/models/komunitas.dart';
+import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/models/sholat.dart';
 import 'package:test_flutter/features/home/home_service.dart';
 

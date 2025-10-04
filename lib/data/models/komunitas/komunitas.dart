@@ -52,6 +52,23 @@ class KomunitasArtikel {
     );
   }
 
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'user_id': userId,
+      'kategori': kategori,
+      'judul': judul,
+      'excerpt': excerpt,
+      'isi': isi,
+      'gambar': gambar,
+      'is_anonymous': isAnonymous,
+      'jumlah_like': jumlahLike,
+      'jumlah_komentar': jumlahKomentar,
+      'created_at': formattedDate,
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
+
   String get formattedDate {
     final now = DateTime.now();
     final difference = now.difference(createdAt);

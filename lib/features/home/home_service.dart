@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
 import 'package:test_flutter/core/utils/logger.dart';
-import 'package:test_flutter/data/models/komunitas.dart';
+import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/models/sholat.dart';
 
 class HomeService {

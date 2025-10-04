@@ -3,9 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
-import 'package:test_flutter/data/models/komunitas.dart';
+import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
-import 'package:test_flutter/features/komunitas/komunitas_service.dart';
+import 'package:test_flutter/features/komunitas/services/komunitas_service.dart';
 import '../../../app/theme.dart';
 
 class DetailKomunitasPage extends ConsumerStatefulWidget {
@@ -365,7 +365,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                                 ),
                               ),
                               Text(
-                                '${_artikel?.jumlahKomentar} komentar',
+                                '${_artikel?.jumlahKomentar ?? 0} komentar',
                                 style: TextStyle(
                                   fontSize: appbarSubSize,
                                   color: AppTheme.onSurfaceVariant,
@@ -513,7 +513,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Gagal Memuat Detail',
+                'Failed to Load Data',
                 style: TextStyle(
                   fontSize: titleSize,
                   fontWeight: FontWeight.bold,
@@ -543,7 +543,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         ),
                       ),
                       icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                      label: const Text('Kembali'),
+                      label: const Text('Back'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -559,7 +559,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         ),
                       ),
                       icon: const Icon(Icons.refresh_rounded, size: 20),
-                      label: const Text('Coba Lagi'),
+                      label: const Text('Try Again'),
                     ),
                   ),
                 ],
