@@ -8,7 +8,7 @@ class AuthService {
   ) async {
     try {
       final response = await ApiClient.dio.post(
-        '/auth/login',
+        '/login',
         data: {'email': email, 'password': password},
       );
 
@@ -30,7 +30,7 @@ class AuthService {
   ) async {
     try {
       final response = await ApiClient.dio.post(
-        '/auth/register',
+        '/register',
         data: {
           'name': name,
           'email': email,
@@ -51,7 +51,7 @@ class AuthService {
 
   static Future<Map<String, dynamic>> refresh() async {
     try {
-      final response = await ApiClient.dio.post('/auth/refresh');
+      final response = await ApiClient.dio.post('/refresh');
 
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -65,7 +65,7 @@ class AuthService {
 
   static Future<Map<String, dynamic>> getCurrentUser() async {
     try {
-      final response = await ApiClient.dio.post('/auth/me');
+      final response = await ApiClient.dio.get('/me');
 
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
@@ -79,7 +79,7 @@ class AuthService {
 
   static Future<bool> logout() async {
     try {
-      final response = await ApiClient.dio.post('/auth/logout');
+      final response = await ApiClient.dio.post('/logout');
 
       if (response.data['success'] == true) {
         return true;

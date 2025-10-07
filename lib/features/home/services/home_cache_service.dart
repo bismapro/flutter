@@ -31,7 +31,7 @@ class HomeCacheService {
     );
 
     // Cache metadata dengan lokasi
-    final metadata = CacheMetadata(
+    CacheMetadata(
       lastFetch: DateTime.now(),
       totalPages: 1,
       currentPage: 1,

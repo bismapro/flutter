@@ -1,36 +1,96 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
+import 'package:test_flutter/features/auth/auth_provider.dart';
+import 'package:test_flutter/features/profile/profile_provider.dart';
 
-class EditProfilePage extends StatefulWidget {
+class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
 
   @override
-  State<EditProfilePage> createState() => _EditProfilePageState();
+  ConsumerState<EditProfilePage> createState() => _EditProfilePageState();
 }
 
-class _EditProfilePageState extends State<EditProfilePage> {
+class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   final _formKey = GlobalKey<FormState>();
-  final _nameController = TextEditingController(text: 'Ahmad Fauzan');
-  final _emailController = TextEditingController(
-    text: 'ahmad.fauzan@email.com',
-  );
-  final _phoneController = TextEditingController(text: '+62 812-3456-7890');
-  final _addressController = TextEditingController(text: 'Jakarta, Indonesia');
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
 
-  bool _isLoading = false;
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  void _loadProfileData() {
+    // Load profile data from storage first
+
+    // Listen to profile state changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(profileProvider.notifier).loadUser();
+      final profileState = ref.read(profileProvider);
+      final profile =
+          profileState['profile']['user'] ?? profileState['profile'];
+
+      if (profile != null) {
+        _nameController.text = profile['name']?.toString() ?? '';
+        _emailController.text = profile['email']?.toString() ?? '';
+        _phoneController.text = profile['phone']?.toString() ?? '';
+      }
+    });
+  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
-    _addressController.dispose();
     super.dispose();
+  }
+
+  Future<void> _saveProfile() async {
+    if (_formKey.currentState!.validate()) {
+      final name = _nameController.text.trim();
+      final email = _emailController.text.trim();
+      final phone = _phoneController.text.trim();
+      ref.read(profileProvider.notifier).updateProfile(name, email, phone);
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
+
+    // Watch profile state
+    final profileState = ref.watch(profileProvider);
+    final isLoading = profileState['status'] == ProfileState.loading;
+    final error = profileState['error'];
+
+    if (profileState['status'] == ProfileState.error && error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showMessageToast(
+          context,
+          message: error.toString(),
+          type: ToastType.error,
+          duration: const Duration(seconds: 4),
+        );
+        ref.read(profileProvider.notifier).clearError();
+      });
+    }
+
+    if (profileState['status'] == ProfileState.success) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showMessageToast(
+          context,
+          message: 'Profile updated successfully',
+          type: ToastType.success,
+          duration: const Duration(seconds: 3),
+        );
+        ref.read(profileProvider.notifier).clearSuccess();
+      });
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -52,48 +112,47 @@ class _EditProfilePageState extends State<EditProfilePage> {
             child: Column(
               children: [
                 // Avatar Section
-                Center(
-                  child: Stack(
-                    children: [
-                      Container(
-                        width: isTablet ? 120 : 100,
-                        height: isTablet ? 120 : 100,
-                        decoration: const BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF1E88E5), Color(0xFF26A69A)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          size: isTablet ? 60 : 50,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Positioned(
-                        bottom: 0,
-                        right: 0,
-                        child: Container(
-                          width: isTablet ? 40 : 32,
-                          height: isTablet ? 40 : 32,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E88E5),
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white, width: 2),
-                          ),
-                          child: Icon(
-                            Icons.camera_alt,
-                            size: isTablet ? 20 : 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
+                // Center(
+                //   child: Stack(
+                //     children: [
+                //       Container(
+                //         width: isTablet ? 120 : 100,
+                //         height: isTablet ? 120 : 100,
+                //         decoration: const BoxDecoration(
+                //           shape: BoxShape.circle,
+                //           gradient: LinearGradient(
+                //             colors: [Color(0xFF1E88E5), Color(0xFF26A69A)],
+                //             begin: Alignment.topLeft,
+                //             end: Alignment.bottomRight,
+                //           ),
+                //         ),
+                //         child: Icon(
+                //           Icons.person,
+                //           size: isTablet ? 60 : 50,
+                //           color: Colors.white,
+                //         ),
+                //       ),
+                //       Positioned(
+                //         bottom: 0,
+                //         right: 0,
+                //         child: Container(
+                //           width: isTablet ? 40 : 32,
+                //           height: isTablet ? 40 : 32,
+                //           decoration: BoxDecoration(
+                //             color: const Color(0xFF1E88E5),
+                //             shape: BoxShape.circle,
+                //             border: Border.all(color: Colors.white, width: 2),
+                //           ),
+                //           child: Icon(
+                //             Icons.camera_alt,
+                //             size: isTablet ? 20 : 16,
+                //             color: Colors.white,
+                //           ),
+                //         ),
+                //       ),
+                //     ],
+                //   ),
+                // ),
                 SizedBox(height: isTablet ? 32 : 24),
 
                 // Form Fields
@@ -147,22 +206,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   isTablet: isTablet,
                 ),
 
-                SizedBox(height: isTablet ? 20 : 16),
-
-                _buildTextField(
-                  controller: _addressController,
-                  label: 'Alamat',
-                  icon: Icons.location_on_outlined,
-                  maxLines: 3,
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Alamat tidak boleh kosong';
-                    }
-                    return null;
-                  },
-                  isTablet: isTablet,
-                ),
-
                 SizedBox(height: isTablet ? 40 : 32),
 
                 // Save Button
@@ -170,7 +213,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   width: double.infinity,
                   height: isTablet ? 56 : 48,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _saveProfile,
+                    onPressed: isLoading ? null : _saveProfile,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E88E5),
                       foregroundColor: Colors.white,
@@ -179,7 +222,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       elevation: 2,
                     ),
-                    child: _isLoading
+                    child: isLoading
                         ? SizedBox(
                             width: isTablet ? 24 : 20,
                             height: isTablet ? 24 : 20,
@@ -262,31 +305,5 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
       ),
     );
-  }
-
-  void _saveProfile() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile berhasil diperbarui!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.pop(context);
-      }
-    }
   }
 }

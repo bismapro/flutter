@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_islamic_icons/flutter_islamic_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/core/constants/app_config.dart';
 import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/models/sholat/sholat.dart';
@@ -702,13 +703,15 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       return _buildArticlesEmptyState(context);
     }
 
+    final storageUrl = AppConfig.storageUrl;
+
     return Column(
       children: articles.take(3).map((article) {
         return _buildEnhancedArticleCard(
           title: article.judul,
           summary: article.excerpt,
           imageUrl: article.gambar.isNotEmpty
-              ? "https://your-storage-url/${article.gambar[0]}"
+              ? "$storageUrl/${article.gambar[0]}"
               : 'https://picsum.photos/120/100?random=${article.id}',
           date: _formatDate(article.createdAt),
           context: context,
@@ -932,33 +935,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
         ],
       ),
     );
-  }
-
-  String _getArticleTitle(int index) {
-    const titles = [
-      'Keutamaan Membaca Al-Quran di Bulan Ramadhan',
-      'Doa-Doa yang Dianjurkan Dibaca Setelah Sholat',
-      'Amalan-Amalan Sunnah di Malam Lailatul Qadr',
-    ];
-    return titles[index % titles.length];
-  }
-
-  String _getArticleSummary(int index) {
-    const summaries = [
-      'Membaca Al-Quran di bulan Ramadhan memiliki pahala yang berlipat ganda. Simak penjelasan lengkapnya...',
-      'Setelah sholat, dianjurkan untuk membaca doa-doa tertentu untuk mendapatkan keberkahan...',
-      'Lailatul Qadr adalah malam yang lebih baik dari seribu bulan. Berikut amalan yang dianjurkan...',
-    ];
-    return summaries[index % summaries.length];
-  }
-
-  String _getArticleDate(int index) {
-    const dates = [
-      '2 hari yang lalu',
-      '5 hari yang lalu',
-      '1 minggu yang lalu',
-    ];
-    return dates[index % dates.length];
   }
 }
 
@@ -1219,7 +1195,7 @@ class _ResponsivePrayerRow extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: children.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          separatorBuilder: (_, _) => const SizedBox(width: 10),
           itemBuilder: (_, i) => children[i],
         ),
       );

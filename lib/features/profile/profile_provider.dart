@@ -3,75 +3,22 @@ import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/storage_helper.dart';
 import 'package:test_flutter/features/profile/profile_service.dart';
 
-enum ProfileState { initial, loading, loaded, error }
+enum ProfileState { initial, loading, loaded, error, success }
 
 class ProfileStateNotifier extends StateNotifier<Map<String, dynamic>> {
   ProfileStateNotifier()
     : super({'status': ProfileState.initial, 'profile': null, 'error': null});
 
-  // Get user profile from API
-  Future<void> getProfile() async {
-    try {
-      state = {...state, 'status': ProfileState.loading, 'error': null};
-
-      final response = await ProfileService.getProfile();
-      final profileData = response['data'];
-
-      logger.fine('Response Data: ' + response.toString());
-
-      if (profileData != null) {
-        // Update local storage with fresh profile data
-        await StorageHelper.saveUser({
-          "id": profileData['id'].toString(),
-          "name": profileData['name'].toString(),
-          "email": profileData['email'].toString(),
-          "role": profileData['role']?.toString() ?? '',
-          "phone": profileData['phone']?.toString() ?? '',
-          "address": profileData['address']?.toString() ?? '',
-        });
-
-        state = {
-          'status': ProfileState.loaded,
-          'profile': profileData,
-          'error': null,
-        };
-      } else {
-        throw Exception('Invalid response from server');
-      }
-    } catch (e) {
-      String errorMessage;
-      if (e is Exception) {
-        errorMessage = e.toString().replaceFirst('Exception: ', '');
-      } else {
-        errorMessage = e.toString();
-      }
-
-      state = {
-        'status': ProfileState.error,
-        'profile': state['profile'],
-        'error': errorMessage,
-      };
-    }
-  }
-
   // Update user profile
-  Future<void> updateProfile({
-    required String name,
-    required String email,
-    String? phone,
-    String? address,
-  }) async {
+  Future<void> updateProfile(String name, String email, String? phone) async {
     try {
       state = {...state, 'status': ProfileState.loading, 'error': null};
 
-      final response = await ProfileService.updateProfile(
-        name: name,
-        email: email,
-        phone: phone,
-        address: address,
-      );
+      final response = await ProfileService.updateProfile(name, email, phone);
 
       final profileData = response['data'];
+
+      logger.fine('Update Profile Response: $response');
 
       if (profileData != null) {
         // Update local storage with updated profile data
@@ -81,14 +28,15 @@ class ProfileStateNotifier extends StateNotifier<Map<String, dynamic>> {
           "email": profileData['email'].toString(),
           "role": profileData['role']?.toString() ?? '',
           "phone": profileData['phone']?.toString() ?? '',
-          "address": profileData['address']?.toString() ?? '',
         });
 
         state = {
-          'status': ProfileState.loaded,
+          'status': ProfileState.success,
           'profile': profileData,
           'error': null,
         };
+
+        logger.fine('Profile updated successfully');
       } else {
         throw Exception('Invalid response from server');
       }
@@ -100,6 +48,8 @@ class ProfileStateNotifier extends StateNotifier<Map<String, dynamic>> {
         errorMessage = e.toString();
       }
 
+      logger.warning('Edit profile error: $errorMessage');
+
       state = {
         'status': ProfileState.error,
         'profile': state['profile'],
@@ -108,26 +58,87 @@ class ProfileStateNotifier extends StateNotifier<Map<String, dynamic>> {
     }
   }
 
-  // Load profile from local storage
-  Future<void> loadFromStorage() async {
+  // Update user password
+  Future<void> editPassword(
+    String currentPassword,
+    String newPassword,
+    String confirmPassword,
+  ) async {
     try {
-      final user = await StorageHelper.getUser();
-      if (user != null) {
-        state = {'status': ProfileState.loaded, 'profile': user, 'error': null};
+      state = {...state, 'status': ProfileState.loading, 'error': null};
+
+      final response = await ProfileService.updatePassword(
+        currentPassword,
+        newPassword,
+        confirmPassword,
+      );
+
+      logger.fine('Update Password Response: $response');
+
+      // Password change usually doesn't return user data, just success message
+      state = {
+        'status': ProfileState.success,
+        'profile': state['profile'], // Keep current profile data
+        'error': null,
+      };
+
+      logger.fine('Password updated successfully');
+    } catch (e) {
+      String errorMessage;
+      if (e is Exception) {
+        errorMessage = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        errorMessage = e.toString();
       }
 
-      logger.fine('Response Data Load From Storage: ' + user.toString());
+      logger.warning('Edit password error: $errorMessage');
+
+      state = {
+        'status': ProfileState.error,
+        'profile': state['profile'],
+        'error': errorMessage,
+      };
+    }
+  }
+
+  Future<void> loadUser() async {
+    try {
+      state = {...state, 'status': ProfileState.loading, 'error': null};
+
+      final user = await StorageHelper.getUser();
+
+      if (user != null) {
+        state = {'status': ProfileState.loaded, 'profile': user, 'error': null};
+        logger.fine('User profile loaded from storage');
+      } else {
+        throw Exception('No user data found in storage');
+      }
     } catch (e) {
+      String errorMessage;
+      if (e is Exception) {
+        errorMessage = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        errorMessage = e.toString();
+      }
+
+      logger.warning('Load user error: $errorMessage');
+
       state = {
         'status': ProfileState.error,
         'profile': null,
-        'error': 'Failed to load profile from storage',
+        'error': errorMessage,
       };
     }
   }
 
   void clearError() {
     state = {...state, 'error': null};
+  }
+
+  void clearSuccess() {
+    if (state['status'] == ProfileState.success) {
+      state = {...state, 'status': ProfileState.initial};
+    }
   }
 }
 

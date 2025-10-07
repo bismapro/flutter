@@ -5,6 +5,8 @@ import 'package:test_flutter/data/models/sholat/sholat.dart';
 import 'package:test_flutter/data/services/location_service.dart';
 import 'package:test_flutter/features/home/services/home_cache_service.dart';
 import 'package:test_flutter/features/home/services/home_service.dart';
+import 'package:timezone/timezone.dart' as tz;
+import 'package:timezone/data/latest.dart' as tz;
 
 enum HomeState {
   initial,
@@ -33,6 +35,50 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
         'isOffline': false,
         'locationError': null,
       });
+
+  // Initialize timezone data (call this once in your app)
+  Future<void> initializeTimezone() async {
+    tz.initializeTimeZones();
+  }
+
+  // Get timezone based on latitude and longitude
+  String _getTimezoneFromLocation(double latitude, double longitude) {
+    // Simplified timezone detection based on coordinates
+    // For more accurate results, consider using a timezone API service
+
+    if (latitude >= -11 &&
+        latitude <= 6 &&
+        longitude >= 95 &&
+        longitude <= 141) {
+      // Indonesia timezone ranges
+      if (longitude >= 95 && longitude <= 105) {
+        return 'Asia/Jakarta'; // WIB (UTC+7)
+      } else if (longitude >= 105 && longitude <= 120) {
+        return 'Asia/Makassar'; // WITA (UTC+8)
+      } else if (longitude >= 120 && longitude <= 141) {
+        return 'Asia/Jayapura'; // WIT (UTC+9)
+      }
+    }
+
+    // Default fallback
+    return 'Asia/Jakarta';
+  }
+
+  // Get current time based on location
+  DateTime _getCurrentTimeForLocation() {
+    final location = state['lastLocation'] as Map<String, dynamic>?;
+    if (location == null) {
+      return DateTime.now(); // Fallback to system time
+    }
+
+    final latitude = location['latitude'] as double;
+    final longitude = location['longitude'] as double;
+
+    final timezoneName = _getTimezoneFromLocation(latitude, longitude);
+    final timezone = tz.getLocation(timezoneName);
+
+    return tz.TZDateTime.now(timezone);
+  }
 
   // Load location and then jadwal sholat
   Future<void> loadLocationAndJadwalSholat() async {
@@ -340,7 +386,7 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
     final sholat = state['jadwalSholat'] as Sholat?;
     if (sholat == null) return null;
 
-    final now = DateTime.now();
+    final now = _getCurrentTimeForLocation();
     final currentTime =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
@@ -362,7 +408,7 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
     final sholat = state['jadwalSholat'] as Sholat?;
     if (sholat == null) return null;
 
-    final now = DateTime.now();
+    final now = _getCurrentTimeForLocation();
     final currentTime =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
@@ -384,7 +430,7 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
     final sholat = state['jadwalSholat'] as Sholat?;
     if (sholat == null) return null;
 
-    final now = DateTime.now();
+    final now = _getCurrentTimeForLocation();
     final currentTime =
         '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
@@ -419,9 +465,23 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
     return '$hours hour $minutes min left';
   }
 
-  int _timeToMinutes(String time) {
-    final parts = time.split(':');
-    return int.parse(parts[0]) * 60 + int.parse(parts[1]);
+  // Helper method to get formatted current time for location
+  String getCurrentTimeString() {
+    final now = _getCurrentTimeForLocation();
+    return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+  }
+
+  // Helper method to get timezone info
+  String getCurrentTimezone() {
+    final location = state['lastLocation'] as Map<String, dynamic>?;
+    if (location == null) {
+      return 'Unknown';
+    }
+
+    final latitude = location['latitude'] as double;
+    final longitude = location['longitude'] as double;
+
+    return _getTimezoneFromLocation(latitude, longitude);
   }
 
   // Cache management
@@ -432,6 +492,13 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
 
   Map<String, int> getCacheInfo() {
     return HomeCacheService.getCacheInfo();
+  }
+
+  int _timeToMinutes(String time) {
+    final parts = time.split(':');
+    final hour = int.tryParse(parts[0]) ?? 0;
+    final minute = int.tryParse(parts[1]) ?? 0;
+    return hour * 60 + minute;
   }
 }
 

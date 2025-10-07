@@ -1,22 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
+import 'package:test_flutter/features/profile/profile_provider.dart';
 
-class ChangePasswordPage extends StatefulWidget {
+class ChangePasswordPage extends ConsumerStatefulWidget {
   const ChangePasswordPage({super.key});
 
   @override
-  State<ChangePasswordPage> createState() => _ChangePasswordPageState();
+  ConsumerState<ChangePasswordPage> createState() => _ChangePasswordPageState();
 }
 
-class _ChangePasswordPageState extends State<ChangePasswordPage> {
+class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
   final _formKey = GlobalKey<FormState>();
   final _currentPasswordController = TextEditingController();
   final _newPasswordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  bool _isLoading = false;
   bool _showCurrentPassword = false;
   bool _showNewPassword = false;
   bool _showConfirmPassword = false;
+
+  @override
+  void initState() {
+    super.initState();
+  }
 
   @override
   void dispose() {
@@ -26,10 +33,56 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     super.dispose();
   }
 
+  Future<void> _changePassword() async {
+    if (_formKey.currentState!.validate()) {
+      final currentPassword = _currentPasswordController.text.trim();
+      final newPassword = _newPasswordController.text.trim();
+      final confirmPassword = _confirmPasswordController.text.trim();
+
+      ref
+          .read(profileProvider.notifier)
+          .editPassword(currentPassword, newPassword, confirmPassword);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
+
+    // Watch profile state
+    final profileState = ref.watch(profileProvider);
+    final _isLoading = profileState['status'] == ProfileState.loading;
+    final error = profileState['error'];
+
+    if (profileState['status'] == ProfileState.error && error != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showMessageToast(
+          context,
+          message: error.toString(),
+          type: ToastType.error,
+          duration: const Duration(seconds: 4),
+        );
+        ref.read(profileProvider.notifier).clearError();
+      });
+    }
+
+    if (profileState['status'] == ProfileState.success) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showMessageToast(
+          context,
+          message: 'Password updated successfully',
+          type: ToastType.success,
+          duration: const Duration(seconds: 3),
+        );
+        ref.read(profileProvider.notifier).clearSuccess();
+      });
+
+      // Clear form fields
+      _currentPasswordController.clear();
+      _newPasswordController.clear();
+      _confirmPasswordController.clear();
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -333,31 +386,5 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         ),
       ),
     );
-  }
-
-  void _changePassword() async {
-    if (_formKey.currentState!.validate()) {
-      setState(() {
-        _isLoading = true;
-      });
-
-      // Simulate API call
-      await Future.delayed(const Duration(seconds: 2));
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Password berhasil diubah!'),
-            backgroundColor: Colors.green,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        Navigator.pop(context);
-      }
-    }
   }
 }

@@ -122,9 +122,13 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       }
 
       // Save token first
-      if (data['access_token'] != null) {
+      if (data['access_token'] != null &&
+          data['access_token'].toString().isNotEmpty) {
         await StorageHelper.saveToken(data['access_token']);
-        logger.fine('Token saved: ${data['access_token']}');
+        logger.fine('Access Token saved: ${data['access_token']}');
+      } else if (data['token'] != null && data['token'].toString().isNotEmpty) {
+        await StorageHelper.saveToken(data['token']);
+        logger.fine('Token saved: ${data['token']}');
       } else {
         throw Exception('No token received from server');
       }
@@ -138,6 +142,7 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
           "name": user['name'].toString(),
           "email": user['email'].toString(),
           "role": user['role'].toString(),
+          "phone": user['no_hp'].toString(),
         });
 
         logger.fine(

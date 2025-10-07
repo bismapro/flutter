@@ -28,10 +28,13 @@ class _CompassPageState extends State<CompassPage> {
   StreamSubscription<Position>? _locationSubscription;
 
   String _cityName = '';
+  // ignore: unused_field
+  String _kabName = '';
   String _countryName = '';
   // ignore: unused_field
   String _countryCode = '';
   Timer? _reverseGeocodeDebouncer;
+  String _location = '';
 
   // Koordinat Ka'bah (Makkah, Saudi Arabia)
   static const double _kaabaLatitude = 21.4224779;
@@ -65,8 +68,10 @@ class _CompassPageState extends State<CompassPage> {
 
             setState(() {
               _cityName = city;
+              _kabName = (p.subAdministrativeArea ?? '').toUpperCase();
               _countryName = (p.country ?? '').toUpperCase();
               _countryCode = (p.isoCountryCode ?? '').toUpperCase();
+              _location = '$_cityName, $_countryName';
             });
           }
         },
@@ -76,7 +81,9 @@ class _CompassPageState extends State<CompassPage> {
       if (mounted) {
         setState(() {
           _cityName = 'Lokasi Tidak Diketahui';
+          _kabName = '—';
           _countryName = _isInIndonesia() ? 'INDONESIA' : '—';
+          _location = _cityName;
         });
       }
     }
@@ -680,7 +687,7 @@ class _CompassPageState extends State<CompassPage> {
           ),
           const SizedBox(height: 12),
           Text(
-            _cityName.isNotEmpty ? _cityName : 'Mencari lokasi...',
+            _location.isNotEmpty ? _location : 'Mencari lokasi...',
             style: TextStyle(
               fontSize: ResponsiveHelper.adaptiveTextSize(context, 22),
               fontWeight: FontWeight.bold,
