@@ -226,6 +226,8 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       } else {
         throw Exception('Logout failed');
       }
+
+      await StorageHelper.clearUserData();
     } catch (e) {
       state = {
         'status': AuthState.error,

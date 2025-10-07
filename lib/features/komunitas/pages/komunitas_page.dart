@@ -3,7 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test_flutter/core/utils/date_helper.dart';
+import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
@@ -93,7 +93,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             'category': item.kategori,
             'authorId': item.userId.toString(),
             'authorName': 'guest',
-            'date': DateHelper.getFormattedDate(item.createdAt),
+            'date': FormatHelper.getFormattedDate(item.createdAt),
             'likes': item.jumlahLike,
             'likedBy': [],
             'comments': item.jumlahKomentar,

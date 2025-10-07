@@ -15,6 +15,7 @@ class CacheService {
 
   // Cache keys for different data types
   static const String komunitasArtikelKey = 'komunitas_artikel';
+  static const String sedekahStatsKey = 'sedekah_stats';
 
   static Future<void> init() async {
     try {

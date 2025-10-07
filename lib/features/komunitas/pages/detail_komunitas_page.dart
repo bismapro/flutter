@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:test_flutter/core/utils/date_helper.dart';
+import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
@@ -653,7 +653,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          DateHelper.getFormattedDate(_artikel!.createdAt),
+                          FormatHelper.getFormattedDate(_artikel!.createdAt),
                           style: TextStyle(
                             color: AppTheme.onSurfaceVariant,
                             fontSize: ResponsiveHelper.adaptiveTextSize(

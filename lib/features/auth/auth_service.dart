@@ -79,12 +79,13 @@ class AuthService {
 
   static Future<bool> logout() async {
     try {
-      final response = await ApiClient.dio.post('/logout');
+      return true;
+      // final response = await ApiClient.dio.post('/logout');
 
-      if (response.data['success'] == true) {
-        return true;
-      }
-      return false;
+      // if (response.data['success'] == true) {
+      //   return true;
+      // }
+      // return false;
     } on DioException catch (e) {
       String errorMessage = 'Logout failed';
 

@@ -1,4 +1,4 @@
-import 'package:test_flutter/core/utils/date_helper.dart';
+import 'package:test_flutter/core/utils/format_helper.dart';
 
 class KomunitasArtikel {
   final String id;
@@ -66,7 +66,7 @@ class KomunitasArtikel {
       'is_anonymous': isAnonymous,
       'jumlah_like': jumlahLike,
       'jumlah_komentar': jumlahKomentar,
-      'created_at': DateHelper.getFormattedDate(createdAt),
+      'created_at': FormatHelper.getFormattedDate(createdAt),
       'updated_at': updatedAt.toIso8601String(),
     };
   }
@@ -118,7 +118,7 @@ class KomunitasKomentar {
       'content': content,
       'is_anonymous': isAnonymous,
       'author_name': authorName,
-      'created_at': DateHelper.getFormattedDate(createdAt),
+      'created_at': FormatHelper.getFormattedDate(createdAt),
       'updated_at': updatedAt.toIso8601String(),
     };
   }
