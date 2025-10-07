@@ -1,5 +1,6 @@
+import 'dart:convert';
+
 import 'package:flutter_riverpod/legacy.dart';
-import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/models/sedekah/sedekah.dart';
 import 'package:test_flutter/features/sedekah/services/sedekah_cache_service.dart';
 import 'package:test_flutter/features/sedekah/services/sedekah_service.dart';
@@ -12,6 +13,7 @@ enum SedekahState {
   loadingMore,
   offline,
   refreshing,
+  success,
 }
 
 class SedekahNotifier extends StateNotifier<Map<String, dynamic>> {
@@ -20,6 +22,7 @@ class SedekahNotifier extends StateNotifier<Map<String, dynamic>> {
         'status': SedekahState.initial,
         'sedekahStats': null,
         'sedekah': <Sedekah>[],
+        'response': null,
         'error': null,
         'isOffline': false,
       });
@@ -35,8 +38,6 @@ class SedekahNotifier extends StateNotifier<Map<String, dynamic>> {
 
       // Cache the stats
       await SedekahCacheService.cacheSedekahStats(stats: sedekahStats);
-
-      logger.fine('Loaded sedekah stats', sedekahStats.toJson());
 
       state = {
         ...state,
@@ -59,6 +60,36 @@ class SedekahNotifier extends StateNotifier<Map<String, dynamic>> {
           'error': networkError.toString(),
         };
       }
+    }
+  }
+
+  Future<void> addSedekah(
+    String jenisSedekah,
+    String tanggal,
+    int jumlah,
+    String? keterangan,
+  ) async {
+    state = {...state, 'status': SedekahState.loading};
+
+    try {
+      final response = await SedekahService.addSedekah(
+        jenisSedekah,
+        tanggal,
+        jumlah,
+        keterangan,
+      );
+
+      state = {
+        ...state,
+        'status': SedekahState.success,
+        'response': jsonEncode(response),
+      };
+    } catch (error) {
+      state = {
+        ...state,
+        'status': SedekahState.error,
+        'error': error.toString(),
+      };
     }
   }
 

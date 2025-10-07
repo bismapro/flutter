@@ -8,7 +8,7 @@ class AuthInterceptor extends Interceptor {
   static const _retriedKey = 'retriedOnce';
 
   bool _isAuthPath(String path) =>
-      path.contains('/auth/login') || path.contains('/auth/refresh');
+      path.contains('/login') || path.contains('/refresh') || path.contains('/register');
 
   @override
   void onRequest(

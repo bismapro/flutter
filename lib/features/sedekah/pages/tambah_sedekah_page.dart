@@ -1,16 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
+import 'package:test_flutter/features/sedekah/sedekah_provider.dart';
 
-class TambahSedekahPage extends StatefulWidget {
+class TambahSedekahPage extends ConsumerStatefulWidget {
   const TambahSedekahPage({super.key});
 
   @override
-  State<TambahSedekahPage> createState() => _TambahSedekahPageState();
+  ConsumerState<TambahSedekahPage> createState() => _TambahSedekahPageState();
 }
 
-class _TambahSedekahPageState extends State<TambahSedekahPage> {
+class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
   final _formKey = GlobalKey<FormState>();
   final _typeController = TextEditingController();
   final _amountController = TextEditingController();
@@ -39,19 +42,36 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
     horizontal: ResponsiveHelper.getResponsivePadding(c).left,
   );
 
-  final List<String> _types = const [
-    'Sedekah Pagi',
-    'Sedekah Siang',
-    'Sedekah Sore',
-    'Sedekah Malam',
-    'Sedekah Jumat',
-    'Sedekah Subuh',
-    'Sedekah Dzuhur',
-    'Sedekah Ashar',
-    'Sedekah Maghrib',
-    'Sedekah Isya',
-    'Lainnya',
-  ];
+  @override
+  void initState() {
+    super.initState();
+    // Listen to provider state changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listenManual(sedekahProvider, (previous, next) {
+        final status = next['status'] as SedekahState;
+        final error = next['error'];
+
+        if (status == SedekahState.success) {
+          // Success - navigate back and show success message
+          Navigator.pop(context);
+          showMessageToast(
+            context,
+            message: 'Sedekah berhasil ditambahkan',
+            type: ToastType.success,
+            duration: const Duration(seconds: 3),
+          );
+        } else if (status == SedekahState.error && error != null) {
+          // Error - show error message
+          showMessageToast(
+            context,
+            message: 'Gagal menambahkan sedekah: $error',
+            type: ToastType.error,
+            duration: const Duration(seconds: 4),
+          );
+        }
+      });
+    });
+  }
 
   @override
   void dispose() {
@@ -81,19 +101,31 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
     if (picked != null) setState(() => _selectedDate = picked);
   }
 
-  void _save() {
+  Future<void> _save() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.pop(context, {
-        'date': _selectedDate,
-        'amount': int.parse(_amountController.text.replaceAll('.', '')),
-        'type': _typeController.text,
-        'note': _noteController.text,
-      });
+      final tanggal = DateFormat('yyyy-MM-dd').format(_selectedDate);
+      final amount = _amountController.text.replaceAll('.', '');
+      final type = _typeController.text.trim();
+      final note = _noteController.text.trim();
+
+      // Use the provider's addSedekah method
+      await ref
+          .read(sedekahProvider.notifier)
+          .addSedekah(
+            type,
+            tanggal,
+            int.parse(amount),
+            note.isNotEmpty ? note : null,
+          );
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch provider state
+    final sedekahState = ref.watch(sedekahProvider);
+    final isLoading = sedekahState['status'] == SedekahState.loading;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -140,7 +172,9 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: isLoading
+                                ? null
+                                : () => Navigator.pop(context),
                             icon: const Icon(Icons.arrow_back_rounded),
                             color: AppTheme.primaryBlue,
                           ),
@@ -185,7 +219,7 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            // Jenis
+                            // Jenis Sedekah - Text Input
                             Text(
                               'Jenis Sedekah',
                               style: TextStyle(
@@ -205,9 +239,11 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                                   ),
                                 ),
                               ),
-                              child: DropdownButtonFormField<String>(
+                              child: TextFormField(
+                                controller: _typeController,
+                                enabled: !isLoading,
                                 decoration: InputDecoration(
-                                  hintText: 'Pilih jenis sedekah',
+                                  hintText: 'Masukkan jenis sedekah',
                                   prefixIcon: const Icon(
                                     Icons.category_rounded,
                                     color: AppTheme.primaryBlue,
@@ -218,18 +254,9 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                                     vertical: _px(context, 14),
                                   ),
                                 ),
-                                items: _types
-                                    .map(
-                                      (t) => DropdownMenuItem(
-                                        value: t,
-                                        child: Text(t),
-                                      ),
-                                    )
-                                    .toList(),
-                                onChanged: (v) =>
-                                    _typeController.text = v ?? '',
-                                validator: (v) => (v == null || v.isEmpty)
-                                    ? 'Pilih jenis sedekah'
+                                validator: (v) =>
+                                    (v == null || v.trim().isEmpty)
+                                    ? 'Masukkan jenis sedekah'
                                     : null,
                               ),
                             ),
@@ -247,7 +274,7 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                             ),
                             SizedBox(height: _px(context, 10)),
                             InkWell(
-                              onTap: _pickDate,
+                              onTap: isLoading ? null : _pickDate,
                               child: Container(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: _px(context, 20),
@@ -309,6 +336,7 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                               ),
                               child: TextFormField(
                                 controller: _amountController,
+                                enabled: !isLoading,
                                 keyboardType: TextInputType.number,
                                 decoration: InputDecoration(
                                   hintText: 'Masukkan nominal',
@@ -330,22 +358,35 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                                 ),
                                 onChanged: (value) {
                                   final clean = value.replaceAll('.', '');
-                                  if (clean.isNotEmpty) {
-                                    final f = NumberFormat('#,###', 'id_ID');
-                                    final formatted = f.format(
-                                      int.parse(clean),
-                                    );
-                                    _amountController.value = TextEditingValue(
-                                      text: formatted,
-                                      selection: TextSelection.collapsed(
-                                        offset: formatted.length,
-                                      ),
-                                    );
+                                  if (clean.isNotEmpty && clean != '0') {
+                                    try {
+                                      final f = NumberFormat('#,###', 'id_ID');
+                                      final formatted = f.format(
+                                        int.parse(clean),
+                                      );
+                                      _amountController.value =
+                                          TextEditingValue(
+                                            text: formatted,
+                                            selection: TextSelection.collapsed(
+                                              offset: formatted.length,
+                                            ),
+                                          );
+                                    } catch (e) {
+                                      // Handle parsing errors
+                                    }
                                   }
                                 },
-                                validator: (v) => (v == null || v.isEmpty)
-                                    ? 'Masukkan nominal sedekah'
-                                    : null,
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return 'Masukkan nominal sedekah';
+                                  }
+                                  final clean = v.replaceAll('.', '');
+                                  if (int.tryParse(clean) == null ||
+                                      int.parse(clean) <= 0) {
+                                    return 'Nominal harus lebih dari 0';
+                                  }
+                                  return null;
+                                },
                               ),
                             ),
 
@@ -373,6 +414,7 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                               ),
                               child: TextFormField(
                                 controller: _noteController,
+                                enabled: !isLoading,
                                 maxLines: 4,
                                 decoration: InputDecoration(
                                   hintText: 'Tulis catatan...',
@@ -419,14 +461,30 @@ class _TambahSedekahPageState extends State<TambahSedekahPage> {
                                   ],
                                 ),
                                 child: ElevatedButton.icon(
-                                  onPressed: _save,
-                                  icon: const Icon(
-                                    Icons.save_rounded,
-                                    color: Colors.white,
-                                    size: 22,
-                                  ),
+                                  onPressed: isLoading ? null : _save,
+                                  icon: isLoading
+                                      ? SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            valueColor:
+                                                AlwaysStoppedAnimation<Color>(
+                                                  Colors.white.withValues(
+                                                    alpha: 0.8,
+                                                  ),
+                                                ),
+                                          ),
+                                        )
+                                      : const Icon(
+                                          Icons.save_rounded,
+                                          color: Colors.white,
+                                          size: 22,
+                                        ),
                                   label: Text(
-                                    'Simpan Sedekah',
+                                    isLoading
+                                        ? 'Menyimpan...'
+                                        : 'Simpan Sedekah',
                                     style: TextStyle(
                                       fontSize: _ts(context, 16),
                                       fontWeight: FontWeight.w600,
