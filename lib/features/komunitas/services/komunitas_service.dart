@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 
@@ -25,6 +26,43 @@ class KomunitasService {
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       String errorMessage = 'Failed to fetch article detail';
+      final error = ApiClient.parseDioError(e, errorMessage);
+      throw Exception(error);
+    }
+  }
+
+  static Future<Map<String, dynamic>> createArtikel({
+    required String kategori,
+    required String judul,
+    required String isi,
+    required List<XFile> gambar,
+  }) async {
+    try {
+      // 🔹 Convert gambar ke MultipartFile
+      List<MultipartFile> multipartImages = await Future.wait(
+        gambar.map(
+          (img) async =>
+              await MultipartFile.fromFile(img.path, filename: img.name),
+        ),
+      );
+
+      // 🔹 Kirim sebagai FormData
+      FormData formData = FormData.fromMap({
+        'kategori': kategori,
+        'judul': judul,
+        'isi': isi,
+        'gambar[]': multipartImages, // penting: array pakai 'gambar[]'
+      });
+
+      final response = await ApiClient.dio.post(
+        '/komunitas/artikel/create',
+        data: formData,
+        options: Options(headers: {'Content-Type': 'multipart/form-data'}),
+      );
+      logger.fine('Create artikel response', response.data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to create article';
       final error = ApiClient.parseDioError(e, errorMessage);
       throw Exception(error);
     }

@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/models/paginated.dart';
@@ -13,6 +14,7 @@ enum KomunitasArtikelState {
   loadingMore,
   offline,
   refreshing,
+  success,
 }
 
 class KomunitasArtikelNotifier extends StateNotifier<Map<String, dynamic>> {
@@ -152,8 +154,42 @@ class KomunitasArtikelNotifier extends StateNotifier<Map<String, dynamic>> {
     }
   }
 
+  Future<void> createArtikel({
+    required String kategori,
+    required String judul,
+    required String isi,
+    required List<XFile> gambar,
+  }) async {
+    state = {...state, 'status': KomunitasArtikelState.loading};
+    try {
+      final resp = await KomunitasService.createArtikel(
+        kategori: kategori,
+        judul: judul,
+        isi: isi,
+        gambar: gambar,
+      );
+
+      state = {...state, 'status': KomunitasArtikelState.success};
+
+      logger.fine('Create artikel successful: $resp');
+      await refresh();
+    } catch (e) {
+      state = {
+        ...state,
+        'status': KomunitasArtikelState.error,
+        'error': e.toString(),
+      };
+      logger.warning('Error creating artikel: $e');
+      throw Exception('Failed to create artikel: ${e.toString()}');
+    }
+  }
+
   void clearError() {
     state = {...state, 'error': null};
+  }
+
+  void clearSuccess() {
+    state = {...state, 'status': KomunitasArtikelState.initial};
   }
 
   // Perbaiki refresh method

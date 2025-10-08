@@ -1,20 +1,30 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/utils/logger.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
+import 'package:test_flutter/features/komunitas/komunitas_provider.dart';
+import 'dart:io' show File;
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import '../../../app/theme.dart';
 
-class TambahPostPage extends StatefulWidget {
+class TambahPostPage extends ConsumerStatefulWidget {
   const TambahPostPage({super.key});
 
   @override
-  State<TambahPostPage> createState() => _TambahPostPageState();
+  ConsumerState<TambahPostPage> createState() => _TambahPostPageState();
 }
 
-class _TambahPostPageState extends State<TambahPostPage>
+class _TambahPostPageState extends ConsumerState<TambahPostPage>
     with TickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _contentController = TextEditingController();
   String _selectedCategory = 'Diskusi';
-  bool _isLoading = false;
+  List<XFile> _selectedImages = [];
+  final Map<String, Uint8List> _imageBytesCache = {};
 
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
@@ -45,18 +55,45 @@ class _TambahPostPageState extends State<TambahPostPage>
           ),
         );
     _animationController.forward();
+
+    // Listen to provider state changes
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.listenManual(komunitasProvider, (previous, next) {
+        final status = next['status'] as KomunitasArtikelState;
+        final error = next['error'];
+
+        if (status == KomunitasArtikelState.success) {
+          // Success - navigate back and show success message
+          Navigator.pop(context);
+          showMessageToast(
+            context,
+            message: 'Artikel berhasil dibuat',
+            type: ToastType.success,
+            duration: const Duration(seconds: 3),
+          );
+        } else if (status == KomunitasArtikelState.error && error != null) {
+          // Error - show error message
+          showMessageToast(
+            context,
+            message: 'Gagal menambahkan artikel',
+            type: ToastType.error,
+            duration: const Duration(seconds: 4),
+          );
+        }
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _contentController.dispose();
+    _animationController.dispose();
+    super.dispose();
   }
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Sharing':
-        return AppTheme.accentGreen;
-      case 'Pertanyaan':
-        return AppTheme.primaryBlue;
-      case 'Event':
-        return Colors.orange.shade600;
-      case 'Diskusi':
-        return Colors.purple.shade400;
       default:
         return AppTheme.primaryBlue;
     }
@@ -64,65 +101,102 @@ class _TambahPostPageState extends State<TambahPostPage>
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case 'Sharing':
-        return Icons.people_rounded;
-      case 'Pertanyaan':
-        return Icons.help_outline_rounded;
-      case 'Event':
-        return Icons.event_rounded;
-      case 'Diskusi':
-        return Icons.forum_rounded;
       default:
         return Icons.forum_rounded;
     }
   }
 
+  Future<void> _pickImages() async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final List<XFile> images = await picker.pickMultiImage(
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+
+      if (images.isNotEmpty) {
+        setState(() {
+          _selectedImages.addAll(images); // <— append
+        });
+        logger.info('TambahPostPage: Selected ${images.length} images');
+      }
+    } catch (e) {
+      logger.fine('TambahPostPage: Error picking images', e);
+      if (mounted) {
+        showMessageToast(
+          context,
+          message: 'Gagal memilih gambar: ${e.toString()}',
+          type: ToastType.error,
+          duration: const Duration(seconds: 3),
+        );
+      }
+    }
+  }
+
+  void _removeImage(int index) {
+    setState(() {
+      _selectedImages.removeAt(index);
+    });
+    // logger.info('TambahPostPage: Removed image at index $index');
+  }
+
   Future<void> _handleSubmit() async {
-    if (_titleController.text.trim().isEmpty ||
-        _contentController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Judul dan konten tidak boleh kosong'),
-          backgroundColor: Colors.red.shade400,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-          margin: const EdgeInsets.all(16),
-        ),
+    final title = _titleController.text.trim();
+    final content = _contentController.text.trim();
+
+    if (title.isEmpty || content.isEmpty) {
+      showMessageToast(
+        context,
+        message: 'Judul dan konten tidak boleh kosong',
+        type: ToastType.error,
+        duration: const Duration(seconds: 3),
       );
       return;
     }
 
-    setState(() => _isLoading = true);
-    await Future.delayed(const Duration(milliseconds: 1500));
+    try {
+      await ref
+          .read(komunitasProvider.notifier)
+          .createArtikel(
+            kategori: _selectedCategory,
+            judul: title,
+            isi: content,
+            gambar: _selectedImages,
+          );
 
-    final newPost = {
-      'id': 'post_${DateTime.now().millisecondsSinceEpoch}',
-      'title': _titleController.text.trim(),
-      'content': _contentController.text.trim(),
-      'category': _selectedCategory,
-      'authorId': 'user_123',
-      'authorName': 'Muhammad Ahmad',
-      'date': 'Baru saja',
-      'likes': 0,
-      'likedBy': [],
-      'comments': [],
-      'imageUrl': null,
-    };
+      showMessageToast(
+        context,
+        message: 'Artikel berhasil dibuat!',
+        type: ToastType.success,
+        duration: const Duration(seconds: 3),
+      );
 
-    setState(() => _isLoading = false);
-    Navigator.pop(context, newPost);
+      // Optional: reset form setelah sukses
+      _formKey.currentState!.reset();
+      _titleController.clear();
+      _contentController.clear();
+      setState(() => _selectedImages = []);
+    } catch (e) {
+      showMessageToast(
+        context,
+        message: 'Gagal membuat artikel: ${e.toString()}',
+        type: ToastType.error,
+        duration: const Duration(seconds: 4),
+      );
+    }
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Post berhasil dibuat!'),
-        backgroundColor: AppTheme.accentGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+  void _handleBackButton() {
+    logger.info('TambahPostPage: Back button pressed');
+
+    // Use Future.microtask to ensure we're not in the middle of a build cycle
+    Future.microtask(() {
+      if (mounted && Navigator.canPop(context)) {
+        // Use Navigator.pop instead of Navigator.pushNamed
+        Navigator.pop(context);
+      }
+    });
   }
 
   // ===== Responsiveness helpers =====
@@ -130,7 +204,7 @@ class _TambahPostPageState extends State<TambahPostPage>
     if (ResponsiveHelper.isExtraLargeScreen(context)) return 900;
     if (ResponsiveHelper.isLargeScreen(context)) return 820;
     if (ResponsiveHelper.isMediumScreen(context)) return 680;
-    return double.infinity; // mobile full width
+    return double.infinity;
   }
 
   double _editorHeight(BuildContext context) {
@@ -142,6 +216,15 @@ class _TambahPostPageState extends State<TambahPostPage>
 
   @override
   Widget build(BuildContext context) {
+    // Watch provider state
+    final komunitasState = ref.watch(komunitasProvider);
+    final isLoading = komunitasState['status'] == KomunitasArtikelState.loading;
+    final error = komunitasState['error'];
+
+    logger.info(
+      'TambahPostPage: build called, isLoading: $isLoading, error: $error',
+    );
+
     final catColor = _getCategoryColor(_selectedCategory);
     final catIcon = _getCategoryIcon(_selectedCategory);
 
@@ -198,7 +281,7 @@ class _TambahPostPageState extends State<TambahPostPage>
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: isLoading ? null : _handleBackButton,
                             icon: const Icon(Icons.arrow_back_rounded),
                             color: AppTheme.primaryBlue,
                             iconSize: ResponsiveHelper.adaptiveTextSize(
@@ -213,7 +296,7 @@ class _TambahPostPageState extends State<TambahPostPage>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Buat Post Baru',
+                                'Buat Artikel Baru',
                                 style: TextStyle(
                                   fontSize: titleSize,
                                   fontWeight: FontWeight.bold,
@@ -231,42 +314,57 @@ class _TambahPostPageState extends State<TambahPostPage>
                             ],
                           ),
                         ),
-                        Container(
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              colors: [
-                                catColor.withValues(alpha: 0.1),
-                                catColor.withValues(alpha: 0.05),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          child: IconButton(
-                            onPressed: _handleSubmit,
-                            icon: _isLoading
-                                ? SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                        catColor,
-                                      ),
-                                    ),
-                                  )
-                                : const Icon(Icons.check_rounded),
-                            color: catColor,
-                            iconSize: ResponsiveHelper.adaptiveTextSize(
-                              context,
-                              22,
-                            ),
-                          ),
-                        ),
                       ],
                     ),
                   ),
                 ),
               ),
+
+              // Error display (if any)
+              if (error != null)
+                Container(
+                  margin: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.red.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.red.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.error_outline,
+                        color: Colors.red,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          error.toString(),
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        onPressed: () {
+                          // logger.info(
+                          //   'TambahPostPage: Clear error button pressed',
+                          // );
+                          ref.read(komunitasProvider.notifier).clearError();
+                        },
+                        icon: const Icon(
+                          Icons.close,
+                          color: Colors.red,
+                          size: 20,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
 
               // Content
               Expanded(
@@ -310,7 +408,7 @@ class _TambahPostPageState extends State<TambahPostPage>
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
-                                          'Kategori Post',
+                                          'Kategori Artikel',
                                           style: TextStyle(
                                             fontSize: labelSize,
                                             fontWeight: FontWeight.bold,
@@ -369,9 +467,12 @@ class _TambahPostPageState extends State<TambahPostPage>
                                               ),
                                             );
                                           }).toList(),
-                                          onChanged: (value) => setState(
-                                            () => _selectedCategory = value!,
-                                          ),
+                                          onChanged: isLoading
+                                              ? null
+                                              : (value) => setState(
+                                                  () => _selectedCategory =
+                                                      value!,
+                                                ),
                                         ),
                                       ),
                                     ),
@@ -405,7 +506,7 @@ class _TambahPostPageState extends State<TambahPostPage>
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
-                                          'Judul Post',
+                                          'Judul Artikel',
                                           style: TextStyle(
                                             fontSize: labelSize,
                                             fontWeight: FontWeight.bold,
@@ -418,9 +519,10 @@ class _TambahPostPageState extends State<TambahPostPage>
                                     const SizedBox(height: 16),
                                     TextField(
                                       controller: _titleController,
+                                      enabled: !isLoading,
                                       decoration: InputDecoration(
                                         hintText:
-                                            'Masukkan judul post yang menarik...',
+                                            'Masukkan judul artikel yang menarik...',
                                         hintStyle: TextStyle(
                                           fontSize: inputHintSize,
                                           color: AppTheme.onSurfaceVariant
@@ -484,7 +586,7 @@ class _TambahPostPageState extends State<TambahPostPage>
                                         ),
                                         const SizedBox(width: 12),
                                         Text(
-                                          'Konten Post',
+                                          'Konten Artikel',
                                           style: TextStyle(
                                             fontSize: labelSize,
                                             fontWeight: FontWeight.bold,
@@ -509,9 +611,10 @@ class _TambahPostPageState extends State<TambahPostPage>
                                       ),
                                       child: TextField(
                                         controller: _contentController,
+                                        enabled: !isLoading,
                                         decoration: InputDecoration(
                                           hintText:
-                                              'Tulis konten post Anda di sini...\n\nBerbagi pengalaman, ajukan pertanyaan, atau bagikan informasi menarik lainnya.',
+                                              'Tulis konten artikel Anda di sini...\n\nBerbagi pengalaman, ajukan pertanyaan, atau bagikan informasi menarik lainnya.',
                                           hintStyle: TextStyle(
                                             fontSize: inputHintSize,
                                             color: AppTheme.onSurfaceVariant
@@ -533,6 +636,125 @@ class _TambahPostPageState extends State<TambahPostPage>
                                         ),
                                       ),
                                     ),
+                                  ],
+                                ),
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              // Gambar
+                              _CardBlock(
+                                borderColor: Colors.orange.withValues(
+                                  alpha: 0.1,
+                                ),
+                                shadowColor: Colors.orange.withValues(
+                                  alpha: 0.08,
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        _IconBadge(
+                                          color: Colors.orange.shade600,
+                                          icon: Icons.image_rounded,
+                                          size:
+                                              ResponsiveHelper.adaptiveTextSize(
+                                                context,
+                                                22,
+                                              ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          'Gambar (Opsional)',
+                                          style: TextStyle(
+                                            fontSize: labelSize,
+                                            fontWeight: FontWeight.bold,
+                                            color: AppTheme.onSurface,
+                                            letterSpacing: -0.3,
+                                          ),
+                                        ),
+                                        const Spacer(),
+                                        TextButton.icon(
+                                          onPressed: isLoading
+                                              ? null
+                                              : _pickImages,
+                                          icon: const Icon(
+                                            Icons.add_photo_alternate,
+                                            size: 18,
+                                          ),
+                                          label: const Text('Pilih Gambar'),
+                                          style: TextButton.styleFrom(
+                                            foregroundColor:
+                                                Colors.orange.shade600,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    if (_selectedImages.isNotEmpty) ...[
+                                      const SizedBox(height: 16),
+                                      SizedBox(
+                                        height: 120,
+                                        child: ListView.builder(
+                                          scrollDirection: Axis.horizontal,
+                                          itemCount: _selectedImages.length,
+                                          itemBuilder: (context, index) {
+                                            return Container(
+                                              margin: const EdgeInsets.only(
+                                                right: 12,
+                                              ),
+                                              width: 120,
+                                              decoration: BoxDecoration(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: Colors.orange
+                                                      .withValues(alpha: 0.2),
+                                                ),
+                                              ),
+                                              child: Stack(
+                                                children: [
+                                                  ClipRRect(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
+                                                    child: _buildImageThumb(
+                                                      _selectedImages[index],
+                                                    ),
+                                                  ),
+                                                  Positioned(
+                                                    top: 4,
+                                                    right: 4,
+                                                    child: GestureDetector(
+                                                      onTap: () =>
+                                                          _removeImage(index),
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets.all(
+                                                              4,
+                                                            ),
+                                                        decoration:
+                                                            const BoxDecoration(
+                                                              color: Colors.red,
+                                                              shape: BoxShape
+                                                                  .circle,
+                                                            ),
+                                                        child: const Icon(
+                                                          Icons.close,
+                                                          color: Colors.white,
+                                                          size: 16,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    ],
                                   ],
                                 ),
                               ),
@@ -562,9 +784,7 @@ class _TambahPostPageState extends State<TambahPostPage>
                                     ],
                                   ),
                                   child: ElevatedButton(
-                                    onPressed: _isLoading
-                                        ? null
-                                        : _handleSubmit,
+                                    onPressed: isLoading ? null : _handleSubmit,
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: Colors.transparent,
                                       shadowColor: Colors.transparent,
@@ -580,7 +800,7 @@ class _TambahPostPageState extends State<TambahPostPage>
                                         borderRadius: BorderRadius.circular(16),
                                       ),
                                     ),
-                                    child: _isLoading
+                                    child: isLoading
                                         ? const SizedBox(
                                             width: 24,
                                             height: 24,
@@ -607,7 +827,7 @@ class _TambahPostPageState extends State<TambahPostPage>
                                               ),
                                               const SizedBox(width: 8),
                                               Text(
-                                                'Publikasikan Post',
+                                                'Publikasikan Artikel',
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.bold,
@@ -640,13 +860,74 @@ class _TambahPostPageState extends State<TambahPostPage>
     );
   }
 
-  @override
-  void dispose() {
-    _animationController.dispose();
-    _titleController.dispose();
-    _contentController.dispose();
-    super.dispose();
+  Widget _buildImageThumb(XFile file, {double size = 120}) {
+    if (!kIsWeb) {
+      // iOS/Android/Desktop: aman pakai path file
+      return Image.file(
+        File(file.path),
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _errorThumb(size),
+      );
+    }
+
+    // Web: path tidak bisa langsung dipakai → baca bytes
+    final cached = _imageBytesCache[file.path];
+    if (cached != null) {
+      return Image.memory(
+        cached,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => _errorThumb(size),
+      );
+    }
+
+    return FutureBuilder<Uint8List>(
+      future: file.readAsBytes().then((b) {
+        _imageBytesCache[file.path] = b;
+        return b;
+      }),
+      builder: (context, snap) {
+        if (snap.hasData) {
+          return Image.memory(
+            snap.data!,
+            width: size,
+            height: size,
+            fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => _errorThumb(size),
+          );
+        }
+        // loading placeholder sederhana
+        return Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.grey.shade200,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: const SizedBox(
+            width: 20,
+            height: 20,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        );
+      },
+    );
   }
+
+  Widget _errorThumb(double size) => Container(
+    width: size,
+    height: size,
+    alignment: Alignment.center,
+    decoration: BoxDecoration(
+      color: Colors.grey.shade200,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Icon(Icons.broken_image, color: Colors.grey.shade400),
+  );
 }
 
 // ====== Small reusable widgets ======
