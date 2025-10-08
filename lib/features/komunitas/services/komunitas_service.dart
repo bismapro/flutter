@@ -68,6 +68,20 @@ class KomunitasService {
     }
   }
 
+  static Future<Map<String, dynamic>> deleteArticle(String id) async {
+    try {
+      final response = await ApiClient.dio.delete(
+        '/komunitas/artikel/$id/delete',
+      );
+      logger.fine('Delete artikel response', response.data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to delete article';
+      final error = ApiClient.parseDioError(e, errorMessage);
+      throw Exception(error);
+    }
+  }
+
   static Future<Map<String, dynamic>> addComment({
     required String artikelId,
     required String content,
@@ -76,12 +90,26 @@ class KomunitasService {
     try {
       final response = await ApiClient.dio.post(
         '/komunitas/artikel/$artikelId/komentar',
-        data: {'content': content, 'is_anonymous': isAnonymous},
+        data: {'komentar': content, 'is_anonymous': isAnonymous},
       );
       logger.fine('Add comment response', response.data);
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
       String errorMessage = 'Failed to add comment';
+      final error = ApiClient.parseDioError(e, errorMessage);
+      throw Exception(error);
+    }
+  }
+
+  static Future<Map<String, dynamic>> deleteComment(String artikelId) async {
+    try {
+      final response = await ApiClient.dio.delete(
+        '/komunitas/artikel/$artikelId/komentar',
+      );
+      logger.fine('Delete comment response', response.data);
+      return response.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      String errorMessage = 'Failed to delete comment';
       final error = ApiClient.parseDioError(e, errorMessage);
       throw Exception(error);
     }

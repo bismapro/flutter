@@ -184,6 +184,35 @@ class KomunitasArtikelNotifier extends StateNotifier<Map<String, dynamic>> {
     }
   }
 
+  Future<void> deleteArtikel(String id) async {
+    state = {...state, 'status': KomunitasArtikelState.loading};
+    try {
+      final resp = await KomunitasService.deleteArticle(id);
+      state = {...state, 'status': KomunitasArtikelState.success};
+
+      logger.fine('Delete artikel successful: $resp');
+      await refresh();
+    } catch (e) {
+      state = {
+        ...state,
+        'status': KomunitasArtikelState.error,
+        'error': e.toString(),
+      };
+      throw Exception('Failed to delete artikel: ${e.toString()}');
+    }
+  }
+
+  Future<void> toggleLikeArtikel(String id) async {
+    try {
+      final response = await KomunitasService.toggleLike(id);
+
+      logger.fine('Toggle like artikel successful: $response');
+    } catch (e) {
+      logger.warning('Error toggling like artikel: $e');
+      throw Exception('Failed to toggle like artikel: ${e.toString()}');
+    }
+  }
+
   void clearError() {
     state = {...state, 'error': null};
   }

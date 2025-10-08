@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/komunitas/komunitas_provider.dart';
@@ -91,7 +92,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             'title': item.judul,
             'content': item.excerpt,
             'category': item.kategori,
-            'authorId': item.userId.toString(),
+            'authorId': item.userId.toString(), // Pastikan ini string
             'authorName': 'guest',
             'date': FormatHelper.getFormattedDate(item.createdAt),
             'likes': item.jumlahLike,
@@ -107,14 +108,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
 
   Color _getCategoryColor(String category) {
     switch (category) {
-      case 'Sharing':
-        return AppTheme.accentGreen;
-      case 'Pertanyaan':
-        return AppTheme.primaryBlue;
-      case 'Event':
-        return Colors.orange.shade600;
-      case 'Diskusi':
-        return Colors.purple.shade400;
       default:
         return AppTheme.primaryBlue;
     }
@@ -122,14 +115,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
 
   IconData _getCategoryIcon(String category) {
     switch (category) {
-      case 'Sharing':
-        return Icons.people_rounded;
-      case 'Pertanyaan':
-        return Icons.help_outline_rounded;
-      case 'Event':
-        return Icons.event_rounded;
-      case 'Diskusi':
-        return Icons.forum_rounded;
       default:
         return Icons.forum_rounded;
     }
@@ -152,44 +137,231 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
   }
 
   void _deletePost(String postId) {
+    _showDeleteConfirmationDialog(postId);
+  }
+
+  void _showDeleteConfirmationDialog(String postId) {
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: [
-            Icon(Icons.delete_outline, color: Colors.red.shade400),
-            const SizedBox(width: 12),
-            const Text('Delete Post'),
-          ],
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: _buildDeleteDialogTitle(),
+        content: _buildDeleteDialogContent(),
+        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+        actions: [_buildDeleteDialogActions(postId)],
+      ),
+    );
+  }
+
+  Widget _buildDeleteDialogTitle() {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.red.shade50,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            Icons.delete_outline_rounded,
+            color: Colors.red.shade500,
+            size: 24,
+          ),
         ),
-        content: const Text('Are you sure you want to delete this post?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(
-              'Cancel',
-              style: TextStyle(color: AppTheme.onSurfaceVariant),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            'Hapus Artikel',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
+              fontWeight: FontWeight.bold,
+              color: AppTheme.onSurface,
             ),
           ),
-          ElevatedButton(
-            onPressed: () {
-              // TODO: Implement API call to delete post
-              Navigator.pop(context);
-              // Refresh list after deletion
-              ref.read(komunitasProvider.notifier).loadArtikel();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade400,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDeleteDialogContent() {
+    return Container(
+      constraints: BoxConstraints(
+        maxWidth: ResponsiveHelper.isSmallScreen(context) ? 300 : 400,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Apakah Anda yakin ingin menghapus artikel ini?',
+            style: TextStyle(
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
+              color: AppTheme.onSurface,
+              height: 1.4,
+            ),
+          ),
+          const SizedBox(height: 8),
+          _buildDeleteWarningBox(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeleteWarningBox() {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.red.shade50,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Colors.red.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.warning_amber_rounded,
+            color: Colors.red.shade600,
+            size: 20,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              'Artikel yang dihapus tidak dapat dikembalikan.',
+              style: TextStyle(
+                fontSize: ResponsiveHelper.adaptiveTextSize(context, 13),
+                color: Colors.red.shade700,
+                fontWeight: FontWeight.w500,
               ),
             ),
-            child: const Text('Delete'),
           ),
         ],
       ),
     );
+  }
+
+  Widget _buildDeleteDialogActions(String postId) {
+    return Row(
+      children: [
+        Expanded(child: _buildCancelButton()),
+        const SizedBox(width: 12),
+        Expanded(child: _buildDeleteButton(postId)),
+      ],
+    );
+  }
+
+  Widget _buildCancelButton() {
+    return TextButton(
+      onPressed: () => Navigator.pop(context),
+      style: TextButton.styleFrom(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+          side: BorderSide(
+            color: AppTheme.onSurfaceVariant.withValues(alpha: 0.3),
+          ),
+        ),
+      ),
+      child: Text(
+        'Batal',
+        style: TextStyle(
+          color: AppTheme.onSurfaceVariant,
+          fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDeleteButton(String postId) {
+    return ElevatedButton(
+      onPressed: () => _handleDeleteConfirmation(postId),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: Colors.red.shade500,
+        foregroundColor: Colors.white,
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        elevation: 0,
+      ),
+      child: Text(
+        'Hapus',
+        style: TextStyle(
+          fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
+          fontWeight: FontWeight.w600,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _handleDeleteConfirmation(String postId) async {
+    Navigator.pop(context); // Close confirmation dialog
+    _showLoadingDialog();
+
+    try {
+      await _performDeleteOperation(postId);
+      _handleDeleteSuccess();
+    } catch (e) {
+      _handleDeleteError(e);
+    }
+  }
+
+  void _showLoadingDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Menghapus artikel...',
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
+                  color: AppTheme.onSurface,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _performDeleteOperation(String postId) async {
+    await ref.read(komunitasProvider.notifier).deleteArtikel(postId);
+  }
+
+  void _handleDeleteSuccess() {
+    if (mounted) Navigator.pop(context); // Close loading dialog
+
+    showMessageToast(
+      context,
+      message: 'Artikel berhasil dihapus',
+      type: ToastType.success,
+      duration: const Duration(seconds: 3),
+    );
+
+    // Refresh list
+    ref.read(komunitasProvider.notifier).loadArtikel();
+  }
+
+  void _handleDeleteError(dynamic error) {
+    if (mounted) Navigator.pop(context); // Close loading dialog
+
+    showMessageToast(
+      context,
+      message: 'Gagal menghapus artikel: ${error.toString()}',
+      type: ToastType.error,
+      duration: const Duration(seconds: 4),
+    );
+
+    logger.fine('Delete artikel error', error);
   }
 
   void _navigateToDetail(Map<String, dynamic> post) async {
@@ -800,13 +972,21 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     Map<String, dynamic> post, {
     required double imageHeight,
   }) {
-    final isLiked = false; // TODO: Check from user's liked posts
+    final isLiked = false;
     final authState = ref.watch(authProvider);
     final currentUser = authState['user'];
+
+    // Perbaiki logika pengecekan user - pastikan tipe data sama
     final isMyPost =
-        currentUser != null && post['authorId'] == currentUser['id'].toString();
+        currentUser != null &&
+        post['authorId'].toString() == currentUser?['user']['id'].toString();
+
     final categoryColor = _getCategoryColor(post['category']);
     final categoryIcon = _getCategoryIcon(post['category']);
+
+    logger.info('Post author ID: ${post['authorId']}');
+    logger.info('Current user ID: ${currentUser?['user']['id']}');
+    logger.info('Is my post: $isMyPost');
 
     return GestureDetector(
       onTap: () => _navigateToDetail(post),
@@ -865,15 +1045,43 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          post['authorName'],
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: ResponsiveHelper.adaptiveTextSize(
-                              context,
-                              15,
+                        Row(
+                          children: [
+                            Text(
+                              post['authorName'],
+                              style: TextStyle(
+                                fontWeight: FontWeight.w600,
+                                fontSize: ResponsiveHelper.adaptiveTextSize(
+                                  context,
+                                  15,
+                                ),
+                              ),
                             ),
-                          ),
+                            if (isMyPost) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: categoryColor.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(4),
+                                ),
+                                child: Text(
+                                  'Anda',
+                                  style: TextStyle(
+                                    color: categoryColor,
+                                    fontSize: ResponsiveHelper.adaptiveTextSize(
+                                      context,
+                                      10,
+                                    ),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                         const SizedBox(height: 2),
                         Row(
@@ -899,6 +1107,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       ],
                     ),
                   ),
+                  // Show three dots menu only for user's own posts
                   if (isMyPost)
                     Container(
                       decoration: BoxDecoration(
@@ -909,21 +1118,56 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                         icon: Icon(
                           Icons.more_vert_rounded,
                           color: categoryColor,
+                          size: 20,
                         ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
+                        elevation: 8,
+                        position: PopupMenuPosition.under,
+                        padding: EdgeInsets.zero,
                         itemBuilder: (context) => [
                           PopupMenuItem(
-                            onTap: () => _deletePost(post['id']),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                            onTap: () => Future.delayed(
+                              const Duration(milliseconds: 100),
+                              () => _deletePost(post['id']),
+                            ),
                             child: Row(
                               children: [
-                                Icon(
-                                  Icons.delete_rounded,
-                                  color: Colors.red.shade400,
+                                Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: Icon(
+                                    Icons.delete_outline_rounded,
+                                    color: Colors.red.shade500,
+                                    size: 18,
+                                  ),
                                 ),
                                 const SizedBox(width: 12),
-                                const Text('Delete Post'),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Hapus Artikel',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize:
+                                            ResponsiveHelper.adaptiveTextSize(
+                                              context,
+                                              14,
+                                            ),
+                                        color: Colors.red.shade600,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ],
                             ),
                           ),
