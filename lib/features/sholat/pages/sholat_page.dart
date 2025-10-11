@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/core/utils/responsive_helper.dart';
 
 class SholatPage extends StatefulWidget {
   const SholatPage({super.key});
@@ -12,41 +13,64 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
   late TabController _tabController;
   DateTime selectedDate = DateTime.now();
 
+  // ---------- Responsive utils (berbasis ResponsiveHelper) ----------
+  double _scale(BuildContext c) {
+    if (ResponsiveHelper.isSmallScreen(c)) return .9;
+    if (ResponsiveHelper.isMediumScreen(c)) return 1.0;
+    if (ResponsiveHelper.isLargeScreen(c)) return 1.1;
+    return 1.2; // extra large
+  }
+
+  double _px(BuildContext c, double base) => base * _scale(c);
+  double _ts(BuildContext c, double base) =>
+      ResponsiveHelper.adaptiveTextSize(c, base);
+
+  EdgeInsets _hpad(BuildContext c) => EdgeInsets.symmetric(
+    horizontal: ResponsiveHelper.getResponsivePadding(c).left,
+  );
+
+  double _maxWidth(BuildContext c) {
+    if (ResponsiveHelper.isExtraLargeScreen(c)) return 980;
+    if (ResponsiveHelper.isLargeScreen(c)) return 860;
+    return double.infinity; // phone
+  }
+
+  // ---------- Data ----------
   final Map<String, Map<String, dynamic>> _sholatWajibData = {
     'Subuh': {
       'time': '04:13',
       'completed': false,
       'alarmActive': false,
       'icon': Icons.wb_sunny_outlined,
-      'color': Colors.orange.shade400,
+      'color': Colors.orange,
     },
     'Dzuhur': {
       'time': '11:37',
       'completed': false,
       'alarmActive': true,
       'icon': Icons.wb_sunny,
-      'color': Colors.amber.shade600,
+      'color': Colors.amber,
     },
     'Ashar': {
       'time': '14:44',
       'completed': false,
       'alarmActive': false,
       'icon': Icons.wb_cloudy,
-      'color': Colors.blue.shade400,
+      'color': Colors.blue,
     },
     'Maghrib': {
       'time': '17:41',
       'completed': false,
       'alarmActive': false,
       'icon': Icons.wb_twilight,
-      'color': Colors.deepOrange.shade400,
+      'color': Colors.deepOrange,
     },
     'Isya': {
       'time': '18:50',
       'completed': false,
       'alarmActive': false,
       'icon': Icons.nights_stay,
-      'color': Colors.indigo.shade400,
+      'color': Colors.indigo,
     },
   };
 
@@ -115,14 +139,11 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  int get completedWajibCount {
-    return _sholatWajibData.values
-        .where((data) => data['completed'] == true)
-        .length;
-  }
+  int get completedWajibCount =>
+      _sholatWajibData.values.where((d) => d['completed'] == true).length;
 
   String get formattedDate {
-    final months = [
+    const months = [
       'Januari',
       'Februari',
       'Maret',
@@ -140,7 +161,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
   }
 
   String get dayName {
-    final days = [
+    const days = [
       'Senin',
       'Selasa',
       'Rabu',
@@ -152,11 +173,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     return days[selectedDate.weekday - 1];
   }
 
-  String get hijriDate {
-    // Simplified - dalam implementasi nyata gunakan package hijri
-    return '8 Rabiul Akhir 1447';
-  }
-
+  String get hijriDate => '8 Rabiul Akhir 1447'; // placeholder
   bool get isToday {
     final now = DateTime.now();
     return selectedDate.year == now.year &&
@@ -164,11 +181,9 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
         selectedDate.day == now.day;
   }
 
+  // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
-    final size = MediaQuery.of(context).size;
-    final isSmallScreen = size.width < 360;
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -184,110 +199,109 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(isSmallScreen),
-              _buildLocationAndStatus(isSmallScreen),
-              _buildCurrentPrayerTime(isSmallScreen),
-              Expanded(child: _buildPrayerTimesList(isSmallScreen)),
-            ],
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: _maxWidth(context)),
+              child: Column(
+                children: [
+                  _buildHeader(context),
+                  _buildLocationAndStatus(context),
+                  _buildCurrentPrayerTime(context),
+                  Expanded(child: _buildPrayerTimesList(context)),
+                ],
+              ),
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader(bool isSmallScreen) {
-    return Container(
-      padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
-      child: Column(
+  Widget _buildHeader(BuildContext context) {
+    return Padding(
+      padding: _hpad(
+        context,
+      ).add(EdgeInsets.symmetric(vertical: _px(context, 12))),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    setState(() {
-                      selectedDate = selectedDate.subtract(
-                        const Duration(days: 1),
-                      );
-                    });
-                  },
-                  icon: const Icon(
-                    Icons.chevron_left_rounded,
+          _circleBtn(
+            context,
+            icon: Icons.chevron_left_rounded,
+            onTap: () => setState(
+              () =>
+                  selectedDate = selectedDate.subtract(const Duration(days: 1)),
+            ),
+          ),
+          Expanded(
+            child: Column(
+              children: [
+                Text(
+                  isToday ? 'Hari ini' : dayName,
+                  style: TextStyle(
                     color: Colors.white,
-                    size: 28,
+                    fontSize: _ts(context, 18),
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-              Expanded(
-                child: Column(
-                  children: [
-                    Text(
-                      isToday ? 'Hari ini' : dayName,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: isSmallScreen ? 16 : 18,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    Text(
-                      formattedDate,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: isSmallScreen ? 13 : 14,
-                      ),
-                    ),
-                    Text(
-                      hijriDate,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.7),
-                        fontSize: isSmallScreen ? 12 : 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Container(
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: IconButton(
-                  onPressed: () {
-                    setState(() {
-                      selectedDate = selectedDate.add(const Duration(days: 1));
-                    });
-                  },
-                  icon: const Icon(
-                    Icons.chevron_right_rounded,
-                    color: Colors.white,
-                    size: 28,
+                Text(
+                  formattedDate,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.9),
+                    fontSize: _ts(context, 14),
                   ),
                 ),
-              ),
-            ],
+                Text(
+                  hijriDate,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: _ts(context, 13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          _circleBtn(
+            context,
+            icon: Icons.chevron_right_rounded,
+            onTap: () => setState(
+              () => selectedDate = selectedDate.add(const Duration(days: 1)),
+            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLocationAndStatus(bool isSmallScreen) {
+  Widget _circleBtn(
+    BuildContext c, {
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: IconButton(
+        onPressed: onTap,
+        icon: Icon(icon, color: Colors.white, size: _px(c, 28)),
+      ),
+    );
+  }
+
+  Widget _buildLocationAndStatus(BuildContext context) {
+    final small = ResponsiveHelper.isSmallScreen(context);
+
     return Padding(
-      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
+      padding: _hpad(context),
       child: Row(
         children: [
           Expanded(
             child: Container(
               padding: EdgeInsets.symmetric(
-                horizontal: isSmallScreen ? 12 : 16,
-                vertical: isSmallScreen ? 6 : 8,
+                horizontal: _px(context, small ? 12 : 16),
+                vertical: _px(context, small ? 6 : 8),
               ),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.15),
@@ -300,15 +314,15 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                   Icon(
                     Icons.location_on_rounded,
                     color: Colors.white,
-                    size: isSmallScreen ? 16 : 18,
+                    size: _px(context, small ? 16 : 18),
                   ),
-                  SizedBox(width: isSmallScreen ? 6 : 8),
+                  SizedBox(width: _px(context, small ? 6 : 8)),
                   Flexible(
                     child: Text(
                       'Purwokerto',
                       style: TextStyle(
                         color: Colors.white,
-                        fontSize: isSmallScreen ? 12 : 14,
+                        fontSize: _ts(context, small ? 12 : 14),
                         fontWeight: FontWeight.w500,
                       ),
                       overflow: TextOverflow.ellipsis,
@@ -318,11 +332,11 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               ),
             ),
           ),
-          SizedBox(width: isSmallScreen ? 8 : 12),
+          SizedBox(width: _px(context, small ? 8 : 12)),
           Container(
             padding: EdgeInsets.symmetric(
-              horizontal: isSmallScreen ? 12 : 16,
-              vertical: isSmallScreen ? 6 : 8,
+              horizontal: _px(context, small ? 12 : 16),
+              vertical: _px(context, small ? 6 : 8),
             ),
             decoration: BoxDecoration(
               color: AppTheme.accentGreen,
@@ -341,14 +355,14 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                 Icon(
                   Icons.check_circle_rounded,
                   color: Colors.white,
-                  size: isSmallScreen ? 14 : 16,
+                  size: _px(context, small ? 14 : 16),
                 ),
-                SizedBox(width: isSmallScreen ? 4 : 6),
+                SizedBox(width: _px(context, small ? 4 : 6)),
                 Text(
                   'KEMENAG',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: isSmallScreen ? 12 : 14,
+                    fontSize: _ts(context, small ? 12 : 14),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -360,14 +374,19 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildCurrentPrayerTime(bool isSmallScreen) {
-    return Container(
-      margin: EdgeInsets.all(isSmallScreen ? 16 : 20),
+  Widget _buildCurrentPrayerTime(BuildContext context) {
+    final small = ResponsiveHelper.isSmallScreen(context);
+
+    return Padding(
+      padding: _hpad(
+        context,
+      ).add(EdgeInsets.symmetric(vertical: _px(context, 12))),
       child: Row(
         children: [
+          // card kiri
           Expanded(
             child: Container(
-              padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+              padding: EdgeInsets.all(_px(context, small ? 16 : 20)),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(20),
@@ -380,23 +399,23 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                     'Waktu Sholat Sekarang',
                     style: TextStyle(
                       color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: isSmallScreen ? 12 : 14,
+                      fontSize: _ts(context, small ? 12 : 14),
                     ),
                   ),
-                  SizedBox(height: isSmallScreen ? 6 : 8),
+                  SizedBox(height: _px(context, small ? 6 : 8)),
                   Row(
                     children: [
                       Text(
                         'Dzuhur',
                         style: TextStyle(
                           color: Colors.white,
-                          fontSize: isSmallScreen ? 18 : 20,
+                          fontSize: _ts(context, small ? 18 : 20),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
                       const SizedBox(width: 8),
                       Container(
-                        padding: const EdgeInsets.all(6),
+                        padding: EdgeInsets.all(_px(context, 6)),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
@@ -409,26 +428,26 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                         child: Icon(
                           Icons.wb_sunny,
                           color: Colors.white,
-                          size: isSmallScreen ? 16 : 20,
+                          size: _px(context, small ? 16 : 20),
                         ),
                       ),
                     ],
                   ),
-                  SizedBox(height: isSmallScreen ? 2 : 4),
+                  SizedBox(height: _px(context, small ? 2 : 4)),
                   Text(
                     '11:37',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: isSmallScreen ? 28 : 32,
+                      fontSize: _ts(context, small ? 28 : 32),
                       fontWeight: FontWeight.bold,
                       height: 1.2,
                     ),
                   ),
-                  SizedBox(height: isSmallScreen ? 6 : 8),
+                  SizedBox(height: _px(context, small ? 6 : 8)),
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 4,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: _px(context, 10),
+                      vertical: _px(context, 4),
                     ),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.2),
@@ -438,7 +457,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                       'Ashar dalam 2j 25m',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: isSmallScreen ? 11 : 13,
+                        fontSize: _ts(context, small ? 11 : 13),
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -447,9 +466,12 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               ),
             ),
           ),
-          SizedBox(width: isSmallScreen ? 12 : 16),
+
+          SizedBox(width: _px(context, small ? 12 : 16)),
+
+          // card kanan
           Container(
-            padding: EdgeInsets.all(isSmallScreen ? 16 : 20),
+            padding: EdgeInsets.all(_px(context, small ? 16 : 20)),
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(20),
@@ -458,7 +480,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
             child: Column(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: EdgeInsets.all(_px(context, 8)),
                   decoration: BoxDecoration(
                     color: AppTheme.accentGreen.withValues(alpha: 0.3),
                     shape: BoxShape.circle,
@@ -466,15 +488,15 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                   child: Icon(
                     Icons.check_circle_rounded,
                     color: AppTheme.accentGreen,
-                    size: isSmallScreen ? 28 : 32,
+                    size: _px(context, small ? 28 : 32),
                   ),
                 ),
-                SizedBox(height: isSmallScreen ? 10 : 12),
+                SizedBox(height: _px(context, small ? 10 : 12)),
                 Text(
                   '$completedWajibCount/5',
                   style: TextStyle(
                     color: Colors.white,
-                    fontSize: isSmallScreen ? 20 : 24,
+                    fontSize: _ts(context, small ? 20 : 24),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -482,7 +504,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
                   'selesai',
                   style: TextStyle(
                     color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: isSmallScreen ? 11 : 12,
+                    fontSize: _ts(context, small ? 11 : 12),
                   ),
                 ),
               ],
@@ -493,7 +515,9 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildPrayerTimesList(bool isSmallScreen) {
+  Widget _buildPrayerTimesList(BuildContext context) {
+    final small = ResponsiveHelper.isSmallScreen(context);
+
     return Container(
       decoration: BoxDecoration(
         color: AppTheme.backgroundWhite,
@@ -512,7 +536,10 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
       child: Column(
         children: [
           Container(
-            margin: EdgeInsets.only(top: 16, bottom: 8),
+            margin: EdgeInsets.only(
+              top: _px(context, 16),
+              bottom: _px(context, 8),
+            ),
             width: 50,
             height: 5,
             decoration: BoxDecoration(
@@ -525,11 +552,11 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               borderRadius: BorderRadius.circular(3),
             ),
           ),
+          // Tab
           Container(
-            margin: EdgeInsets.symmetric(
-              horizontal: isSmallScreen ? 16 : 20,
-              vertical: isSmallScreen ? 12 : 16,
-            ),
+            margin: _hpad(
+              context,
+            ).add(EdgeInsets.only(bottom: _px(context, 8))),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -552,7 +579,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               unselectedLabelColor: AppTheme.onSurface,
               labelStyle: TextStyle(
                 fontWeight: FontWeight.w600,
-                fontSize: isSmallScreen ? 13 : 14,
+                fontSize: _ts(context, small ? 13 : 14),
               ),
               tabs: const [
                 Tab(text: 'Sholat Wajib'),
@@ -560,9 +587,10 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               ],
             ),
           ),
+          // imsak / terbit
           Container(
-            margin: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
-            padding: EdgeInsets.symmetric(vertical: isSmallScreen ? 10 : 12),
+            margin: _hpad(context),
+            padding: EdgeInsets.symmetric(vertical: _px(context, 10)),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
@@ -577,52 +605,47 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               children: [
                 Icon(
                   Icons.wb_sunny_outlined,
-                  size: isSmallScreen ? 14 : 16,
+                  size: _px(context, small ? 14 : 16),
                   color: AppTheme.primaryBlue,
                 ),
-                SizedBox(width: isSmallScreen ? 6 : 8),
+                SizedBox(width: _px(context, small ? 6 : 8)),
                 Text(
                   'Imsak 04:03',
-                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppTheme.onSurface,
-                    fontSize: isSmallScreen ? 12 : 14,
+                    fontSize: _ts(context, small ? 12 : 14),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                SizedBox(width: isSmallScreen ? 12 : 16),
+                SizedBox(width: _px(context, small ? 12 : 16)),
                 Container(
                   width: 1,
-                  height: 16,
+                  height: _px(context, 16),
                   color: AppTheme.primaryBlue.withValues(alpha: 0.3),
                 ),
-                SizedBox(width: isSmallScreen ? 12 : 16),
+                SizedBox(width: _px(context, small ? 12 : 16)),
                 Icon(
                   Icons.wb_sunny,
-                  size: isSmallScreen ? 14 : 16,
+                  size: _px(context, small ? 14 : 16),
                   color: AppTheme.accentGreen,
                 ),
-                SizedBox(width: isSmallScreen ? 6 : 8),
+                SizedBox(width: _px(context, small ? 6 : 8)),
                 Text(
                   'Terbit 05:25',
-                  textAlign: TextAlign.center,
                   style: TextStyle(
                     color: AppTheme.onSurface,
-                    fontSize: isSmallScreen ? 12 : 14,
+                    fontSize: _ts(context, small ? 12 : 14),
                     fontWeight: FontWeight.w600,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: _px(context, 16)),
           Expanded(
             child: TabBarView(
               controller: _tabController,
-              children: [
-                _buildWajibTab(isSmallScreen),
-                _buildSunnahTab(isSmallScreen),
-              ],
+              children: [_buildWajibTab(context), _buildSunnahTab(context)],
             ),
           ),
         ],
@@ -630,29 +653,33 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildWajibTab(bool isSmallScreen) {
+  Widget _buildWajibTab(BuildContext context) {
+    final small = ResponsiveHelper.isSmallScreen(context);
+
     return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
-      itemCount: _sholatWajibData.length,
+      padding: _hpad(context),
       physics: const BouncingScrollPhysics(),
-      itemBuilder: (context, index) {
-        final prayerName = _sholatWajibData.keys.elementAt(index);
-        final prayerData = _sholatWajibData[prayerName]!;
+      itemCount: _sholatWajibData.length,
+      itemBuilder: (_, i) {
+        final name = _sholatWajibData.keys.elementAt(i);
+        final d = _sholatWajibData[name]!;
+        final done = d['completed'] as bool;
+        final iconColor = (d['color'] as Color);
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: EdgeInsets.only(bottom: _px(context, 12)),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: prayerData['completed']
+              color: done
                   ? AppTheme.accentGreen.withValues(alpha: 0.3)
                   : Colors.grey.shade200,
-              width: prayerData['completed'] ? 2 : 1,
+              width: done ? 2 : 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: prayerData['completed']
+                color: done
                     ? AppTheme.accentGreen.withValues(alpha: 0.1)
                     : Colors.grey.withValues(alpha: 0.08),
                 blurRadius: 12,
@@ -660,138 +687,124 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               ),
             ],
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: Padding(
-              padding: EdgeInsets.all(isSmallScreen ? 14 : 16),
-              child: Row(
-                children: [
-                  // Checklist
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        prayerData['completed'] = !prayerData['completed'];
-                      });
-                      if (prayerData['completed']) {
-                        _showCompletionFeedback(prayerName);
-                      }
-                    },
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: prayerData['completed']
-                            ? AppTheme.accentGreen
-                            : Colors.transparent,
-                        border: Border.all(
-                          color: prayerData['completed']
-                              ? AppTheme.accentGreen
-                              : Colors.grey.shade400,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: prayerData['completed']
-                          ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 16,
-                            )
-                          : null,
-                    ),
-                  ),
-                  SizedBox(width: isSmallScreen ? 12 : 16),
-                  Container(
-                    width: isSmallScreen ? 48 : 52,
-                    height: isSmallScreen ? 48 : 52,
+          child: Padding(
+            padding: EdgeInsets.all(_px(context, small ? 14 : 16)),
+            child: Row(
+              children: [
+                // checklist
+                GestureDetector(
+                  onTap: () {
+                    setState(() => d['completed'] = !done);
+                    if (!done) _showCompletionFeedback(name);
+                  },
+                  child: Container(
+                    width: _px(context, 24),
+                    height: _px(context, 24),
                     decoration: BoxDecoration(
-                      gradient: prayerData['completed']
+                      color: d['completed']
+                          ? AppTheme.accentGreen
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: d['completed']
+                            ? AppTheme.accentGreen
+                            : Colors.grey.shade400,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: d['completed']
+                        ? Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: _px(context, 16),
+                          )
+                        : null,
+                  ),
+                ),
+                SizedBox(width: _px(context, small ? 12 : 16)),
+                // icon
+                Container(
+                  width: _px(context, small ? 48 : 52),
+                  height: _px(context, small ? 48 : 52),
+                  decoration: BoxDecoration(
+                    gradient: done
+                        ? LinearGradient(
+                            colors: [
+                              AppTheme.accentGreen,
+                              AppTheme.accentGreen.withValues(alpha: 0.8),
+                            ],
+                          )
+                        : LinearGradient(
+                            colors: [
+                              iconColor.withValues(alpha: 0.2),
+                              iconColor.withValues(alpha: 0.1),
+                            ],
+                          ),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Icon(
+                    done ? Icons.check_circle_rounded : d['icon'],
+                    color: done ? Colors.white : iconColor,
+                    size: _px(context, small ? 24 : 28),
+                  ),
+                ),
+                SizedBox(width: _px(context, small ? 12 : 16)),
+                // text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: _ts(context, small ? 15 : 16),
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.onSurface,
+                        ),
+                      ),
+                      SizedBox(height: _px(context, 4)),
+                      Text(
+                        '${d['time']}',
+                        style: TextStyle(
+                          fontSize: _ts(context, small ? 13 : 14),
+                          color: AppTheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // alarm
+                GestureDetector(
+                  onTap: () => setState(
+                    () => d['alarmActive'] = !(d['alarmActive'] as bool),
+                  ),
+                  child: Container(
+                    padding: EdgeInsets.all(_px(context, small ? 10 : 12)),
+                    decoration: BoxDecoration(
+                      gradient: (d['alarmActive'] as bool)
                           ? LinearGradient(
                               colors: [
-                                AppTheme.accentGreen,
-                                AppTheme.accentGreen.withValues(alpha: 0.8),
+                                AppTheme.primaryBlue,
+                                AppTheme.primaryBlue.withValues(alpha: 0.8),
                               ],
                             )
-                          : LinearGradient(
-                              colors: [
-                                (prayerData['color'] as Color).withValues(
-                                  alpha: 0.2,
-                                ),
-                                (prayerData['color'] as Color).withValues(
-                                  alpha: 0.1,
-                                ),
-                              ],
-                            ),
-                      borderRadius: BorderRadius.circular(16),
+                          : null,
+                      color: (d['alarmActive'] as bool)
+                          ? null
+                          : Colors.grey.shade200,
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: Icon(
-                      prayerData['completed']
-                          ? Icons.check_circle_rounded
-                          : prayerData['icon'],
-                      color: prayerData['completed']
+                      Icons.alarm_rounded,
+                      color: (d['alarmActive'] as bool)
                           ? Colors.white
-                          : prayerData['color'],
-                      size: isSmallScreen ? 24 : 28,
+                          : Colors.grey.shade600,
+                      size: _px(context, small ? 20 : 22),
                     ),
                   ),
-                  SizedBox(width: isSmallScreen ? 12 : 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          prayerName,
-                          style: TextStyle(
-                            fontSize: isSmallScreen ? 15 : 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          prayerData['time'],
-                          style: TextStyle(
-                            fontSize: isSmallScreen ? 13 : 14,
-                            color: AppTheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        prayerData['alarmActive'] = !prayerData['alarmActive'];
-                      });
-                    },
-                    child: Container(
-                      padding: EdgeInsets.all(isSmallScreen ? 10 : 12),
-                      decoration: BoxDecoration(
-                        gradient: prayerData['alarmActive']
-                            ? LinearGradient(
-                                colors: [
-                                  AppTheme.primaryBlue,
-                                  AppTheme.primaryBlue.withValues(alpha: 0.8),
-                                ],
-                              )
-                            : null,
-                        color: prayerData['alarmActive']
-                            ? null
-                            : Colors.grey.shade200,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        Icons.alarm_rounded,
-                        color: prayerData['alarmActive']
-                            ? Colors.white
-                            : Colors.grey.shade600,
-                        size: isSmallScreen ? 20 : 22,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
           ),
         );
@@ -799,29 +812,31 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     );
   }
 
-  Widget _buildSunnahTab(bool isSmallScreen) {
+  Widget _buildSunnahTab(BuildContext context) {
+    final small = ResponsiveHelper.isSmallScreen(context);
+
     return ListView.builder(
-      padding: EdgeInsets.symmetric(horizontal: isSmallScreen ? 16 : 20),
-      itemCount: _sholatSunnahData.length,
+      padding: _hpad(context),
       physics: const BouncingScrollPhysics(),
-      itemBuilder: (context, index) {
-        final prayerName = _sholatSunnahData.keys.elementAt(index);
-        final prayerData = _sholatSunnahData[prayerName]!;
+      itemCount: _sholatSunnahData.length,
+      itemBuilder: (_, i) {
+        final name = _sholatSunnahData.keys.elementAt(i);
+        final d = _sholatSunnahData[name]!;
 
         return Container(
-          margin: const EdgeInsets.only(bottom: 12),
+          margin: EdgeInsets.only(bottom: _px(context, 12)),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
             border: Border.all(
-              color: prayerData['completed']
+              color: (d['completed'] as bool)
                   ? AppTheme.accentGreen.withValues(alpha: 0.3)
                   : Colors.grey.shade200,
-              width: prayerData['completed'] ? 2 : 1,
+              width: (d['completed'] as bool) ? 2 : 1,
             ),
             boxShadow: [
               BoxShadow(
-                color: prayerData['completed']
+                color: (d['completed'] as bool)
                     ? AppTheme.accentGreen.withValues(alpha: 0.1)
                     : Colors.grey.withValues(alpha: 0.08),
                 blurRadius: 12,
@@ -829,103 +844,98 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
               ),
             ],
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: Padding(
-              padding: EdgeInsets.all(isSmallScreen ? 14 : 16),
-              child: Row(
-                children: [
-                  // Checklist
-                  GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        prayerData['completed'] = !prayerData['completed'];
-                      });
-                      if (prayerData['completed']) {
-                        _showCompletionFeedback(prayerName);
-                      }
-                    },
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: prayerData['completed']
-                            ? AppTheme.accentGreen
-                            : Colors.transparent,
-                        border: Border.all(
-                          color: prayerData['completed']
-                              ? AppTheme.accentGreen
-                              : Colors.grey.shade400,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: prayerData['completed']
-                          ? const Icon(
-                              Icons.check,
-                              color: Colors.white,
-                              size: 16,
-                            )
-                          : null,
-                    ),
-                  ),
-                  SizedBox(width: isSmallScreen ? 12 : 16),
-                  Container(
-                    width: isSmallScreen ? 48 : 52,
-                    height: isSmallScreen ? 48 : 52,
+          child: Padding(
+            padding: EdgeInsets.all(_px(context, small ? 14 : 16)),
+            child: Row(
+              children: [
+                // checklist
+                GestureDetector(
+                  onTap: () {
+                    setState(() => d['completed'] = !(d['completed'] as bool));
+                    if (d['completed'] == true) _showCompletionFeedback(name);
+                  },
+                  child: Container(
+                    width: _px(context, 24),
+                    height: _px(context, 24),
                     decoration: BoxDecoration(
-                      gradient: prayerData['completed']
-                          ? LinearGradient(
-                              colors: [
-                                AppTheme.accentGreen,
-                                AppTheme.accentGreen.withValues(alpha: 0.8),
-                              ],
-                            )
-                          : LinearGradient(
-                              colors: [
-                                AppTheme.primaryBlue.withValues(alpha: 0.15),
-                                AppTheme.accentGreen.withValues(alpha: 0.15),
-                              ],
-                            ),
-                      borderRadius: BorderRadius.circular(16),
+                      color: (d['completed'] as bool)
+                          ? AppTheme.accentGreen
+                          : Colors.transparent,
+                      border: Border.all(
+                        color: (d['completed'] as bool)
+                            ? AppTheme.accentGreen
+                            : Colors.grey.shade400,
+                        width: 2,
+                      ),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Icon(
-                      prayerData['completed']
-                          ? Icons.check_circle_rounded
-                          : prayerData['icon'],
-                      color: prayerData['completed']
-                          ? Colors.white
-                          : AppTheme.primaryBlue,
-                      size: isSmallScreen ? 24 : 28,
-                    ),
+                    child: (d['completed'] as bool)
+                        ? Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: _px(context, 16),
+                          )
+                        : null,
                   ),
-                  SizedBox(width: isSmallScreen ? 12 : 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          prayerName,
-                          style: TextStyle(
-                            fontSize: isSmallScreen ? 15 : 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppTheme.onSurface,
+                ),
+                SizedBox(width: _px(context, small ? 12 : 16)),
+                // icon
+                Container(
+                  width: _px(context, small ? 48 : 52),
+                  height: _px(context, small ? 48 : 52),
+                  decoration: BoxDecoration(
+                    gradient: (d['completed'] as bool)
+                        ? LinearGradient(
+                            colors: [
+                              AppTheme.accentGreen,
+                              AppTheme.accentGreen.withValues(alpha: 0.8),
+                            ],
+                          )
+                        : LinearGradient(
+                            colors: [
+                              AppTheme.primaryBlue.withValues(alpha: 0.15),
+                              AppTheme.accentGreen.withValues(alpha: 0.15),
+                            ],
                           ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          prayerData['time'],
-                          style: TextStyle(
-                            fontSize: isSmallScreen ? 12 : 13,
-                            color: AppTheme.onSurfaceVariant,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                      ],
-                    ),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ],
-              ),
+                  child: Icon(
+                    (d['completed'] as bool)
+                        ? Icons.check_circle_rounded
+                        : d['icon'],
+                    color: (d['completed'] as bool)
+                        ? Colors.white
+                        : AppTheme.primaryBlue,
+                    size: _px(context, small ? 24 : 28),
+                  ),
+                ),
+                SizedBox(width: _px(context, small ? 12 : 16)),
+                // text
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        name,
+                        style: TextStyle(
+                          fontSize: _ts(context, small ? 15 : 16),
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.onSurface,
+                        ),
+                      ),
+                      SizedBox(height: _px(context, 4)),
+                      Text(
+                        '${d['time']}',
+                        style: TextStyle(
+                          fontSize: _ts(context, small ? 12 : 13),
+                          color: AppTheme.onSurfaceVariant,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         );
@@ -941,33 +951,31 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
       'Semoga berkah sholat ${sholatName}nya',
       'Subhanallah, terus semangat beribadah',
     ];
-
-    final randomFeedback =
-        feedbacks[DateTime.now().millisecond % feedbacks.length];
+    final msg = feedbacks[DateTime.now().millisecond % feedbacks.length];
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(6),
+              padding: EdgeInsets.all(_px(context, 6)),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.check_circle_rounded,
                 color: Colors.white,
-                size: 20,
+                size: _px(context, 20),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: _px(context, 12)),
             Expanded(
               child: Text(
-                randomFeedback,
-                style: const TextStyle(
+                msg,
+                style: TextStyle(
                   fontWeight: FontWeight.w500,
-                  fontSize: 14,
+                  fontSize: _ts(context, 14),
                 ),
               ),
             ),
