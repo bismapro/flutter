@@ -8,7 +8,7 @@ part of 'sedekah_cache.dart';
 
 class SedekahCacheAdapter extends TypeAdapter<SedekahCache> {
   @override
-  final int typeId = 21;
+  final int typeId = 8;
 
   @override
   SedekahCache read(BinaryReader reader) {
@@ -66,7 +66,7 @@ class SedekahCacheAdapter extends TypeAdapter<SedekahCache> {
 
 class StatistikSedekahCacheAdapter extends TypeAdapter<StatistikSedekahCache> {
   @override
-  final int typeId = 22;
+  final int typeId = 9;
 
   @override
   StatistikSedekahCache read(BinaryReader reader) {

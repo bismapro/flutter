@@ -1,18 +1,20 @@
 import 'package:hive/hive.dart';
+import 'package:test_flutter/core/utils/hive_type_id.dart';
+import 'package:test_flutter/data/models/artikel/kategori_artikel_cache.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 
 part 'komunitas_cache.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: HiveTypeId.komunitas)
 class KomunitasArtikelCache extends HiveObject {
   @HiveField(0)
-  String id;
+  int id;
 
   @HiveField(1)
   int userId;
 
   @HiveField(2)
-  String kategori;
+  int kategoriId;
 
   @HiveField(3)
   String judul;
@@ -21,79 +23,83 @@ class KomunitasArtikelCache extends HiveObject {
   String excerpt;
 
   @HiveField(5)
-  String? isi;
+  String cover;
 
   @HiveField(6)
-  List<String> gambar;
+  List<String> daftarGambar;
 
   @HiveField(7)
-  int isAnonymous;
+  int totalLikes;
 
   @HiveField(8)
-  int jumlahLike;
+  int totalKomentar;
 
   @HiveField(9)
-  int jumlahKomentar;
-
-  @HiveField(10)
   DateTime createdAt;
 
-  @HiveField(11)
+  @HiveField(10)
   DateTime updatedAt;
 
-  @HiveField(12)
+  @HiveField(11)
   DateTime cachedAt;
+
+  @HiveField(12)
+  String penulis;
+
+  @HiveField(13)
+  KategoriArtikelCache kategori;
 
   KomunitasArtikelCache({
     required this.id,
     required this.userId,
-    required this.kategori,
+    required this.kategoriId,
     required this.judul,
     required this.excerpt,
-    this.isi,
-    required this.gambar,
-    required this.isAnonymous,
-    required this.jumlahLike,
-    required this.jumlahKomentar,
+    required this.cover,
+    required this.daftarGambar,
+    required this.totalLikes,
+    required this.totalKomentar,
     required this.createdAt,
     required this.updatedAt,
     required this.cachedAt,
+    required this.penulis,
+    required this.kategori,
   });
 
-  // Convert from KomunitasArtikel to cache model
   factory KomunitasArtikelCache.fromKomunitasArtikel(KomunitasArtikel artikel) {
     return KomunitasArtikelCache(
       id: artikel.id,
       userId: artikel.userId,
-      kategori: artikel.kategori,
+      kategoriId: artikel.kategoriId,
       judul: artikel.judul,
       excerpt: artikel.excerpt,
-      isi: artikel.isi,
-      gambar: artikel.gambar,
-      isAnonymous: artikel.isAnonymous,
-      jumlahLike: artikel.jumlahLike,
-      jumlahKomentar: artikel.jumlahKomentar,
+      cover: artikel.cover,
+      daftarGambar: artikel.daftarGambar,
+      totalLikes: artikel.totalLikes,
+      totalKomentar: artikel.totalKomentar,
       createdAt: artikel.createdAt,
       updatedAt: artikel.updatedAt,
       cachedAt: DateTime.now(),
+      penulis: artikel.penulis,
+      kategori: KategoriArtikelCache.fromKategoriArtikel(artikel.kategori),
     );
   }
 
-  // Convert to KomunitasArtikel
   KomunitasArtikel toKomunitasArtikel() {
     return KomunitasArtikel(
       id: id,
       userId: userId,
-      kategori: kategori,
+      kategoriId: kategoriId,
       judul: judul,
       excerpt: excerpt,
-      isi: isi,
-      gambar: gambar,
-      isAnonymous: isAnonymous,
-      jumlahLike: jumlahLike,
-      jumlahKomentar: jumlahKomentar,
+      cover: cover,
+      daftarGambar: daftarGambar,
+      totalLikes: totalLikes,
+      totalKomentar: totalKomentar,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      penulis: penulis,
+      kategori: kategori.toKategoriArtikel(),
     );
   }
 }

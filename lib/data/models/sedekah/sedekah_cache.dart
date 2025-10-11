@@ -1,9 +1,10 @@
 import 'package:hive/hive.dart';
+import 'package:test_flutter/core/utils/hive_type_id.dart';
 import 'package:test_flutter/data/models/sedekah/sedekah.dart';
 
 part 'sedekah_cache.g.dart';
 
-@HiveType(typeId: 21)
+@HiveType(typeId: HiveTypeId.sedekah)
 class SedekahCache extends HiveObject {
   @HiveField(0)
   int id;
@@ -72,7 +73,7 @@ class SedekahCache extends HiveObject {
   }
 }
 
-@HiveType(typeId: 22)
+@HiveType(typeId: HiveTypeId.statistikSedekah)
 class StatistikSedekahCache extends HiveObject {
   @HiveField(0)
   int totalHariIni;

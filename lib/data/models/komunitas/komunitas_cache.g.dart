@@ -8,7 +8,7 @@ part of 'komunitas_cache.dart';
 
 class KomunitasArtikelCacheAdapter extends TypeAdapter<KomunitasArtikelCache> {
   @override
-  final int typeId = 0;
+  final int typeId = 4;
 
   @override
   KomunitasArtikelCache read(BinaryReader reader) {
@@ -17,52 +17,55 @@ class KomunitasArtikelCacheAdapter extends TypeAdapter<KomunitasArtikelCache> {
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
     return KomunitasArtikelCache(
-      id: fields[0] as String,
+      id: fields[0] as int,
       userId: fields[1] as int,
-      kategori: fields[2] as String,
+      kategoriId: fields[2] as int,
       judul: fields[3] as String,
       excerpt: fields[4] as String,
-      isi: fields[5] as String?,
-      gambar: (fields[6] as List).cast<String>(),
-      isAnonymous: fields[7] as int,
-      jumlahLike: fields[8] as int,
-      jumlahKomentar: fields[9] as int,
-      createdAt: fields[10] as DateTime,
-      updatedAt: fields[11] as DateTime,
-      cachedAt: fields[12] as DateTime,
+      cover: fields[5] as String,
+      daftarGambar: (fields[6] as List).cast<String>(),
+      totalLikes: fields[7] as int,
+      totalKomentar: fields[8] as int,
+      createdAt: fields[9] as DateTime,
+      updatedAt: fields[10] as DateTime,
+      cachedAt: fields[11] as DateTime,
+      penulis: fields[12] as String,
+      kategori: fields[13] as KategoriArtikelCache,
     );
   }
 
   @override
   void write(BinaryWriter writer, KomunitasArtikelCache obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.userId)
       ..writeByte(2)
-      ..write(obj.kategori)
+      ..write(obj.kategoriId)
       ..writeByte(3)
       ..write(obj.judul)
       ..writeByte(4)
       ..write(obj.excerpt)
       ..writeByte(5)
-      ..write(obj.isi)
+      ..write(obj.cover)
       ..writeByte(6)
-      ..write(obj.gambar)
+      ..write(obj.daftarGambar)
       ..writeByte(7)
-      ..write(obj.isAnonymous)
+      ..write(obj.totalLikes)
       ..writeByte(8)
-      ..write(obj.jumlahLike)
+      ..write(obj.totalKomentar)
       ..writeByte(9)
-      ..write(obj.jumlahKomentar)
-      ..writeByte(10)
       ..write(obj.createdAt)
-      ..writeByte(11)
+      ..writeByte(10)
       ..write(obj.updatedAt)
+      ..writeByte(11)
+      ..write(obj.cachedAt)
       ..writeByte(12)
-      ..write(obj.cachedAt);
+      ..write(obj.penulis)
+      ..writeByte(13)
+      ..write(obj.kategori);
   }
 
   @override

@@ -1,18 +1,24 @@
 class Sholat {
+  final String tanggal;
   final SholatWajib wajib;
   final SholatSunnah sunnah;
 
-  Sholat({required this.wajib, required this.sunnah});
+  Sholat({required this.tanggal, required this.wajib, required this.sunnah});
 
   factory Sholat.fromJson(Map<String, dynamic> json) {
     return Sholat(
+      tanggal: json['tanggal'],
       wajib: SholatWajib.fromJson(json['wajib']),
       sunnah: SholatSunnah.fromJson(json['sunnah']),
     );
   }
 
   Map<String, dynamic> toJson() {
-    return {'wajib': wajib.toJson(), 'sunnah': sunnah.toJson()};
+    return {
+      'tanggal': tanggal,
+      'wajib': wajib.toJson(),
+      'sunnah': sunnah.toJson(),
+    };
   }
 }
 
