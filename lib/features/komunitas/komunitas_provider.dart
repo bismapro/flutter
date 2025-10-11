@@ -1,324 +1,301 @@
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:test_flutter/core/utils/logger.dart';
+import 'package:test_flutter/data/models/komunitas/kategori_komunitas.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/models/paginated.dart';
+import 'package:test_flutter/features/komunitas/komunitas_state.dart';
 import 'package:test_flutter/features/komunitas/services/komunitas_cache_service.dart';
 import 'package:test_flutter/features/komunitas/services/komunitas_service.dart';
 
-enum KomunitasArtikelState {
-  initial,
-  loading,
-  loaded,
-  error,
-  loadingMore,
-  offline,
-  refreshing,
-  success,
-}
+// Bagian 3: StateNotifier (Logika Utama Provider)
+class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
+  KomunitasPostinganNotifier() : super(KomunitasState.initial());
 
-class KomunitasArtikelNotifier extends StateNotifier<Map<String, dynamic>> {
-  KomunitasArtikelNotifier()
-    : super({
-        'status': KomunitasArtikelState.initial,
-        'artikel': <KomunitasArtikel>[],
-        'currentPage': 1,
-        'lastPage': 1,
-        'error': null,
-        'isOffline': false,
-      });
-
-  Future<void> loadArtikel({bool loadMore = false}) async {
-    try {
-      // Set appropriate loading state
-      if (loadMore) {
-        state = {...state, 'status': KomunitasArtikelState.loadingMore};
-      } else {
-        state = {...state, 'status': KomunitasArtikelState.loading};
-      }
-
-      int page = loadMore ? (state['currentPage'] as int) + 1 : 1;
-
-      logger.fine('Loading artikel page: $page, loadMore: $loadMore');
-
-      // Try to load from network first
-      try {
-        final resp = await KomunitasService.getAllArtikel(page: page);
-        logger.fine('Get all artikel response: $resp');
-
-        final paginated = PaginatedResponse<KomunitasArtikel>.fromJson(
-          resp,
-          (json) => KomunitasArtikel.fromJson(json),
-        );
-
-        final List<KomunitasArtikel> existing = loadMore
-            ? (state['artikel'] as List<KomunitasArtikel>)
-            : <KomunitasArtikel>[];
-
-        // Cache the data using specific cache service
-        await KomunitasCacheService.cacheArtikel(
-          artikel: paginated.data,
-          currentPage: paginated.currentPage,
-          totalPages: paginated.lastPage,
-          totalItems: paginated.total,
-          isLoadMore: loadMore,
-        );
-
-        state = {
-          'status': KomunitasArtikelState.loaded,
-          'artikel': [...existing, ...paginated.data],
-          'currentPage': paginated.currentPage,
-          'lastPage': paginated.lastPage,
-          'error': null,
-          'isOffline': false,
-        };
-
-        logger.fine(
-          'Successfully loaded ${paginated.data.length} articles from network. ' +
-              'Total: ${(state['artikel'] as List).length}, ' +
-              'Current page: ${paginated.currentPage}, ' +
-              'Last page: ${paginated.lastPage}',
-        );
-      } catch (networkError) {
-        logger.warning(
-          'Network error, trying to load from cache: $networkError',
-        );
-
-        if (!loadMore) {
-          await _loadFromCache();
-        } else {
-          state = {
-            ...state,
-            'status': KomunitasArtikelState.loaded,
-            'error':
-                'Tidak dapat memuat lebih banyak artikel. Periksa koneksi internet.',
-            'isOffline': true,
-          };
-        }
-      }
-    } catch (e) {
-      logger.warning('Error load artikel: $e');
-
-      if (loadMore) {
-        state = {
-          ...state,
-          'status': KomunitasArtikelState.loaded,
-          'error': 'Failed to load more articles: ${e.toString()}',
-        };
-      } else {
-        await _loadFromCache();
-      }
-    }
+  // Init
+  Future<void> init() async {
+    await Future.wait([fetchKategori(), fetchPostingan()]);
   }
 
-  Future<void> _loadFromCache() async {
+  // Get All Kategori Postingan
+  Future<void> fetchKategori() async {
     try {
-      if (KomunitasCacheService.hasCachedArtikel()) {
-        final cachedArtikel = KomunitasCacheService.getCachedArtikel();
-        final metadata = KomunitasCacheService.getCacheMetadata();
+      final resp = await KomunitasService.getAllKategoriPostingan();
+      final kategori = resp['data'] as List<KategoriKomunitas>;
 
-        if (cachedArtikel.isNotEmpty) {
-          state = {
-            'status': KomunitasArtikelState.offline,
-            'artikel': cachedArtikel,
-            'currentPage': metadata?.currentPage ?? 1,
-            'lastPage': metadata?.totalPages ?? 1,
-            'error': KomunitasCacheService.isCacheValid()
-                ? null
-                : 'Data mungkin tidak terbaru. Tidak ada koneksi internet.',
-            'isOffline': true,
-          };
-
-          logger.fine(
-            'Loaded ${cachedArtikel.length} articles from cache. ' +
-                'Cache valid: ${KomunitasCacheService.isCacheValid()}',
-          );
-          return;
-        }
-      }
-
-      state = {
-        ...state,
-        'status': KomunitasArtikelState.error,
-        'error': 'Tidak ada koneksi internet',
-        'isOffline': true,
-      };
-    } catch (e) {
-      logger.warning('Error loading from cache: $e');
-      state = {
-        ...state,
-        'status': KomunitasArtikelState.error,
-        'error': 'Gagal memuat data: ${e.toString()}',
-        'isOffline': true,
-      };
-    }
-  }
-
-  Future<void> createArtikel({
-    required String kategori,
-    required String judul,
-    required String isi,
-    required List<XFile> gambar,
-  }) async {
-    state = {...state, 'status': KomunitasArtikelState.loading};
-    try {
-      final resp = await KomunitasService.createArtikel(
+      // 1. Sukses dari Jaringan: Simpan ke cache dan perbarui state
+      await KomunitasCacheService.cacheKategori(kategori);
+      state = state.copyWith(
+        status: KomunitasStatus.loaded,
         kategori: kategori,
-        judul: judul,
-        isi: isi,
-        gambar: gambar,
+      );
+    } catch (e) {
+      logger.warning(
+        'Gagal fetch kategori dari jaringan: $e. Mencoba dari cache...',
+      );
+      // 2. Gagal dari Jaringan: Coba ambil dari cache
+      final cachedKategori = KomunitasCacheService.getCachedKategori();
+      if (cachedKategori.isNotEmpty) {
+        state = state.copyWith(
+          status: KomunitasStatus.offline, // Gunakan status offline
+          kategori: cachedKategori,
+          message: 'Menampilkan data kategori offline.',
+        );
+      } else {
+        // 3. Gagal dari Cache: Tampilkan error
+        state = state.copyWith(
+          status: KomunitasStatus.error,
+          message: 'Gagal memuat kategori. Periksa koneksi internet Anda.',
+        );
+      }
+    }
+  }
+
+  /// Fungsi utama untuk mengambil data.
+  /// Selalu mencoba dari jaringan terlebih dahulu, jika gagal, beralih ke cache.
+  Future<void> fetchPostingan({
+    bool isLoadMore = false,
+    bool isRefresh = false,
+  }) async {
+    if (isLoadMore && !canLoadMore) return;
+
+    // 1. Atur status loading yang sesuai
+    if (isRefresh) {
+      state = state.copyWith(status: KomunitasStatus.refreshing);
+    } else if (isLoadMore) {
+      state = state.copyWith(status: KomunitasStatus.loadingMore);
+    } else {
+      // Jika sudah ada data, jangan tampilkan loading fullscreen
+      if (state.postinganList.isEmpty) {
+        state = state.copyWith(status: KomunitasStatus.loading);
+      }
+    }
+
+    final pageToLoad = isLoadMore ? state.currentPage + 1 : 1;
+
+    try {
+      // 2. SELALU coba ambil dari Jaringan (API)
+      final resp = await KomunitasService.getAllPostingan(page: pageToLoad);
+      final paginatedData = PaginatedResponse<KomunitasPostingan>.fromJson(
+        resp,
+        (json) => KomunitasPostingan.fromJson(json),
       );
 
-      state = {...state, 'status': KomunitasArtikelState.success};
+      // Simpan data baru ke cache
+      await KomunitasCacheService.cachePostingan(
+        postingan: paginatedData.data,
+        currentPage: paginatedData.currentPage,
+        totalPages: paginatedData.lastPage,
+        totalItems: paginatedData.total,
+        isLoadMore: isLoadMore,
+      );
 
-      logger.fine('Create artikel successful: $resp');
-      await refresh();
+      // 3. Jika berhasil, perbarui state dengan data dari Jaringan
+      final fullList = isLoadMore
+          ? [...state.postinganList, ...paginatedData.data]
+          : paginatedData.data;
+
+      state = state.copyWith(
+        status: KomunitasStatus.loaded,
+        postinganList: fullList,
+        currentPage: paginatedData.currentPage,
+        lastPage: paginatedData.lastPage,
+        isOffline: false,
+      );
     } catch (e) {
-      state = {
-        ...state,
-        'status': KomunitasArtikelState.error,
-        'error': e.toString(),
-      };
-      logger.warning('Error creating artikel: $e');
-      throw Exception('Failed to create artikel: ${e.toString()}');
-    }
-  }
+      logger.warning(
+        'Gagal mengambil data dari jaringan: $e. Mencoba dari cache...',
+      );
 
-  Future<void> deleteArtikel(String id) async {
-    state = {...state, 'status': KomunitasArtikelState.loading};
-    try {
-      final resp = await KomunitasService.deleteArticle(id);
-      state = {...state, 'status': KomunitasArtikelState.success};
-
-      logger.fine('Delete artikel successful: $resp');
-      await refresh();
-    } catch (e) {
-      state = {
-        ...state,
-        'status': KomunitasArtikelState.error,
-        'error': e.toString(),
-      };
-      throw Exception('Failed to delete artikel: ${e.toString()}');
-    }
-  }
-
-  Future<void> toggleLikeArtikel(String id) async {
-    try {
-      final response = await KomunitasService.toggleLike(id);
-
-      logger.fine('Toggle like artikel successful: $response');
-    } catch (e) {
-      logger.warning('Error toggling like artikel: $e');
-      throw Exception('Failed to toggle like artikel: ${e.toString()}');
-    }
-  }
-
-  void clearError() {
-    state = {...state, 'error': null};
-  }
-
-  void clearSuccess() {
-    state = {...state, 'status': KomunitasArtikelState.initial};
-  }
-
-  // Perbaiki refresh method
-  Future<void> refresh() async {
-    try {
-      // Set refreshing state untuk UI yang berbeda jika diperlukan
-      state = {...state, 'status': KomunitasArtikelState.refreshing};
-
-      logger.fine('Refreshing artikel data...');
-
-      // Try network first
-      try {
-        final resp = await KomunitasService.getAllArtikel(page: 1);
-        final paginated = PaginatedResponse<KomunitasArtikel>.fromJson(
-          resp,
-          (json) => KomunitasArtikel.fromJson(json),
+      // 4. Jika Jaringan GAGAL, baru coba ambil dari Cache
+      if (isLoadMore) {
+        state = state.copyWith(
+          status: KomunitasStatus.loaded, // Kembalikan status ke loaded
+          isOffline: true,
+          message: 'Koneksi bermasalah, tidak dapat memuat lebih banyak.',
         );
-
-        // Cache fresh data (isLoadMore: false untuk replace cache)
-        await KomunitasCacheService.cacheArtikel(
-          artikel: paginated.data,
-          currentPage: paginated.currentPage,
-          totalPages: paginated.lastPage,
-          totalItems: paginated.total,
-          isLoadMore: false, // Important: false untuk replace cache
-        );
-
-        // Update state dengan data baru
-        state = {
-          'status': KomunitasArtikelState.loaded,
-          'artikel': paginated.data, // Replace dengan data baru
-          'currentPage': paginated.currentPage,
-          'lastPage': paginated.lastPage,
-          'error': null,
-          'isOffline': false,
-        };
-
-        logger.fine(
-          'Refresh successful: ${paginated.data.length} articles loaded',
-        );
-      } catch (networkError) {
-        logger.warning('Refresh failed, keeping existing data: $networkError');
-
-        // Jika gagal refresh, tetap gunakan data yang ada dan set offline
-        if ((state['artikel'] as List).isNotEmpty) {
-          state = {
-            ...state,
-            'status': KomunitasArtikelState.offline,
-            'error': 'Gagal memperbarui data. Menampilkan data tersimpan.',
-            'isOffline': true,
-          };
-        } else {
-          // Jika tidak ada data sama sekali, coba load dari cache
-          await _loadFromCache();
-        }
-      }
-    } catch (e) {
-      logger.warning('Refresh error: $e');
-
-      // Fallback ke data yang ada atau cache
-      if ((state['artikel'] as List).isEmpty) {
-        await _loadFromCache();
       } else {
-        state = {
-          ...state,
-          'status': KomunitasArtikelState.loaded,
-          'error': 'Gagal memperbarui data: ${e.toString()}',
-        };
+        await _loadFromCache();
       }
     }
   }
 
-  bool get canLoadMore {
-    final currentPage = state['currentPage'] as int;
-    final lastPage = state['lastPage'] as int;
-    final status = state['status'];
-    final isOffline = state['isOffline'] as bool;
+  /// Fungsi private untuk memuat data HANYA dari cache.
+  Future<void> _loadFromCache() async {
+    final cachedPostingan = KomunitasCacheService.getCachedPostingan();
 
-    return currentPage < lastPage &&
-        status != KomunitasArtikelState.loading &&
-        status != KomunitasArtikelState.loadingMore &&
-        status != KomunitasArtikelState.refreshing && // Tambah check refreshing
-        !isOffline;
+    if (cachedPostingan.isNotEmpty) {
+      final metadata = KomunitasCacheService.getCacheMetadata();
+      state = state.copyWith(
+        status: KomunitasStatus.offline,
+        postinganList: cachedPostingan,
+        currentPage: metadata?.currentPage ?? 1,
+        lastPage: metadata?.totalPages ?? 1,
+        isOffline: true,
+        message: 'Menampilkan data offline. Periksa koneksi internet Anda.',
+      );
+    } else {
+      // Jika cache juga kosong, tampilkan error
+      state = state.copyWith(
+        status: KomunitasStatus.error,
+        postinganList: [],
+        isOffline: true,
+        message: 'Gagal memuat data. Periksa koneksi internet Anda.',
+      );
+    }
   }
 
-  bool get isOffline => state['isOffline'] as bool;
+  // Get Detail Postingan
+  Future<void> fetchPostinganById(String id) async {
+    state = state.copyWith(status: KomunitasStatus.loading);
 
-  Future<void> clearCache() async {
-    await KomunitasCacheService.clearCache();
-    logger.fine('Komunitas cache cleared manually');
+    try {
+      final resp = await KomunitasService.getPostinganById(id);
+      final postingan = resp['data'] as KomunitasPostingan;
+
+      state = state.copyWith(
+        status: KomunitasStatus.loaded,
+        postingan: postingan,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: KomunitasStatus.error,
+        message: e.toString(),
+      );
+    }
   }
 
-  Map<String, int> getCacheInfo() {
-    return KomunitasCacheService.getCacheInfo();
+  // Create Postingan
+  Future<void> createPostingan({
+    required String kategoriId,
+    required String judul,
+    required XFile cover,
+    required String konten,
+    List<XFile>? daftarGambar,
+    bool? isAnonymous,
+  }) async {
+    state = state.copyWith(status: KomunitasStatus.loading);
+
+    try {
+      final response = await KomunitasService.createPostingan(
+        kategoriId: kategoriId,
+        judul: judul,
+        cover: cover,
+        konten: konten,
+        daftarGambar: daftarGambar,
+        isAnonymous: isAnonymous,
+      );
+
+      state.copyWith(
+        status: KomunitasStatus.success,
+        message: response['message'],
+      );
+    } catch (e) {
+      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+    }
+  }
+
+  // Delete Postingan
+  Future<void> deletePostingan(String postinganId) async {
+    state = state.copyWith(status: KomunitasStatus.loading);
+    try {
+      final response = await KomunitasService.deletePostingan(postinganId);
+
+      state.copyWith(
+        status: KomunitasStatus.success,
+        message: response['message'],
+        postinganList: state.postinganList
+            .where((post) => post.id != postinganId)
+            .toList(),
+      );
+    } catch (e) {
+      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+    }
+  }
+
+  // Toggle Like
+  Future<void> toggleLike(String postinganId) async {
+    state = state.copyWith(status: KomunitasStatus.loading);
+    try {
+      final response = await KomunitasService.toggleLike(postinganId);
+
+      state.copyWith(
+        status: KomunitasStatus.success,
+        message: response['message'],
+      );
+    } catch (e) {
+      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+    }
+  }
+
+  // Add Comment
+  Future<void> addComment(
+    String postinganId,
+    String komentar,
+    bool isAnonymous,
+  ) async {
+    state = state.copyWith(status: KomunitasStatus.loading);
+    try {
+      final response = await KomunitasService.addComment(
+        postinganId: postinganId,
+        komentar: komentar,
+        isAnonymous: isAnonymous,
+      );
+
+      state.copyWith(
+        status: KomunitasStatus.success,
+        message: response['message'],
+        postingan: state.postingan?.copyWith(
+          komentars: [
+            ...?state.postingan?.komentars,
+            response['data'] as Komentar,
+          ],
+        ),
+      );
+    } catch (e) {
+      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+    }
+  }
+
+  // Report Postingan
+  Future<void> reportPostingan(String postinganId, String alasan) async {
+    state = state.copyWith(status: KomunitasStatus.loading);
+
+    try {
+      final response = await KomunitasService.reportPostingan(
+        postinganId: postinganId,
+        alasan: alasan,
+      );
+
+      state.copyWith(
+        status: KomunitasStatus.success,
+        message: response['message'],
+      );
+    } catch (e) {
+      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+    }
+  }
+
+  /// Fungsi publik untuk melakukan refresh data.
+  Future<void> refresh() async {
+    await fetchPostingan(isRefresh: true);
+  }
+
+  /// Getter untuk memeriksa apakah bisa 'load more'.
+  bool get canLoadMore =>
+      state.currentPage < state.lastPage &&
+      !state.isOffline &&
+      state.status != KomunitasStatus.loadingMore &&
+      state.status != KomunitasStatus.refreshing;
+
+  void clear() {
+    state = state.copyWith(clear: true);
   }
 }
 
+// Bagian 4: Definisi Provider
+// Ini adalah "pintu masuk" yang akan digunakan oleh UI untuk berinteraksi dengan Notifier.
 final komunitasProvider =
-    StateNotifierProvider<KomunitasArtikelNotifier, Map<String, dynamic>>((
-      ref,
-    ) {
-      return KomunitasArtikelNotifier();
+    StateNotifierProvider<KomunitasPostinganNotifier, KomunitasState>((ref) {
+      return KomunitasPostinganNotifier();
     });

@@ -8,7 +8,7 @@ part of 'kategori_artikel_cache.dart';
 
 class KategoriArtikelCacheAdapter extends TypeAdapter<KategoriArtikelCache> {
   @override
-  final int typeId = 1;
+  final int typeId = 2;
 
   @override
   KategoriArtikelCache read(BinaryReader reader) {

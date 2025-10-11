@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'package:test_flutter/core/utils/hive_type_id.dart';
+import 'package:test_flutter/core/constants/hive_type_id.dart';
 import 'package:test_flutter/data/models/artikel/artikel.dart';
 import 'package:test_flutter/data/models/artikel/kategori_artikel_cache.dart';
 

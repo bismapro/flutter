@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'package:test_flutter/core/utils/hive_type_id.dart';
+import 'package:test_flutter/core/constants/hive_type_id.dart';
 import 'package:test_flutter/data/models/progres_sholat/progress_sholat.dart';
 
 part 'progres_sholat_cache.g.dart';

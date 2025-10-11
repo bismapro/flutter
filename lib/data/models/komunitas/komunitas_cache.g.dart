@@ -6,17 +6,18 @@ part of 'komunitas_cache.dart';
 // TypeAdapterGenerator
 // **************************************************************************
 
-class KomunitasArtikelCacheAdapter extends TypeAdapter<KomunitasArtikelCache> {
+class KomunitasPostinganCacheAdapter
+    extends TypeAdapter<KomunitasPostinganCache> {
   @override
-  final int typeId = 4;
+  final int typeId = 5;
 
   @override
-  KomunitasArtikelCache read(BinaryReader reader) {
+  KomunitasPostinganCache read(BinaryReader reader) {
     final numOfFields = reader.readByte();
     final fields = <int, dynamic>{
       for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
     };
-    return KomunitasArtikelCache(
+    return KomunitasPostinganCache(
       id: fields[0] as int,
       userId: fields[1] as int,
       kategoriId: fields[2] as int,
@@ -35,7 +36,7 @@ class KomunitasArtikelCacheAdapter extends TypeAdapter<KomunitasArtikelCache> {
   }
 
   @override
-  void write(BinaryWriter writer, KomunitasArtikelCache obj) {
+  void write(BinaryWriter writer, KomunitasPostinganCache obj) {
     writer
       ..writeByte(14)
       ..writeByte(0)
@@ -74,7 +75,63 @@ class KomunitasArtikelCacheAdapter extends TypeAdapter<KomunitasArtikelCache> {
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
-      other is KomunitasArtikelCacheAdapter &&
+      other is KomunitasPostinganCacheAdapter &&
+          runtimeType == other.runtimeType &&
+          typeId == other.typeId;
+}
+
+class KomentarPostinganCacheAdapter
+    extends TypeAdapter<KomentarPostinganCache> {
+  @override
+  final int typeId = 6;
+
+  @override
+  KomentarPostinganCache read(BinaryReader reader) {
+    final numOfFields = reader.readByte();
+    final fields = <int, dynamic>{
+      for (int i = 0; i < numOfFields; i++) reader.readByte(): reader.read(),
+    };
+    return KomentarPostinganCache(
+      id: fields[0] as int,
+      postinganId: fields[1] as int,
+      userId: fields[2] as int,
+      komentar: fields[3] as String,
+      penulis: fields[4] as String,
+      createdAt: fields[5] as DateTime,
+      updatedAt: fields[6] as DateTime,
+      cachedAt: fields[7] as DateTime,
+    );
+  }
+
+  @override
+  void write(BinaryWriter writer, KomentarPostinganCache obj) {
+    writer
+      ..writeByte(8)
+      ..writeByte(0)
+      ..write(obj.id)
+      ..writeByte(1)
+      ..write(obj.postinganId)
+      ..writeByte(2)
+      ..write(obj.userId)
+      ..writeByte(3)
+      ..write(obj.komentar)
+      ..writeByte(4)
+      ..write(obj.penulis)
+      ..writeByte(5)
+      ..write(obj.createdAt)
+      ..writeByte(6)
+      ..write(obj.updatedAt)
+      ..writeByte(7)
+      ..write(obj.cachedAt);
+  }
+
+  @override
+  int get hashCode => typeId.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is KomentarPostinganCacheAdapter &&
           runtimeType == other.runtimeType &&
           typeId == other.typeId;
 }

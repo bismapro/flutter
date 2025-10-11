@@ -9,7 +9,7 @@ part of 'kategori_komunitas_cache.dart';
 class KategoriKomunitasCacheAdapter
     extends TypeAdapter<KategoriKomunitasCache> {
   @override
-  final int typeId = 3;
+  final int typeId = 4;
 
   @override
   KategoriKomunitasCache read(BinaryReader reader) {

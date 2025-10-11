@@ -8,7 +8,7 @@ part of 'sholat_cache.dart';
 
 class SholatCacheAdapter extends TypeAdapter<SholatCache> {
   @override
-  final int typeId = 5;
+  final int typeId = 7;
 
   @override
   SholatCache read(BinaryReader reader) {
@@ -51,7 +51,7 @@ class SholatCacheAdapter extends TypeAdapter<SholatCache> {
 
 class SholatWajibCacheAdapter extends TypeAdapter<SholatWajibCache> {
   @override
-  final int typeId = 6;
+  final int typeId = 8;
 
   @override
   SholatWajibCache read(BinaryReader reader) {
@@ -97,7 +97,7 @@ class SholatWajibCacheAdapter extends TypeAdapter<SholatWajibCache> {
 
 class SholatSunnahCacheAdapter extends TypeAdapter<SholatSunnahCache> {
   @override
-  final int typeId = 7;
+  final int typeId = 9;
 
   @override
   SholatSunnahCache read(BinaryReader reader) {

@@ -1,5 +1,5 @@
 import 'package:hive/hive.dart';
-import 'package:test_flutter/core/utils/hive_type_id.dart';
+import 'package:test_flutter/core/constants/hive_type_id.dart';
 import 'package:test_flutter/data/models/komunitas/kategori_komunitas.dart';
 
 part 'kategori_komunitas_cache.g.dart';

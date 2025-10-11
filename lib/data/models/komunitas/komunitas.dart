@@ -1,7 +1,6 @@
-import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/data/models/artikel/kategori_artikel.dart';
 
-class KomunitasArtikel {
+class KomunitasPostingan {
   final int id;
   final int userId;
   final int kategoriId;
@@ -15,8 +14,9 @@ class KomunitasArtikel {
   final KategoriArtikel kategori;
   final int totalLikes;
   final int totalKomentar;
+  final List<Komentar>? komentars;
 
-  KomunitasArtikel({
+  KomunitasPostingan({
     required this.id,
     required this.userId,
     required this.kategoriId,
@@ -30,16 +30,17 @@ class KomunitasArtikel {
     required this.updatedAt,
     required this.penulis,
     required this.kategori,
+    this.komentars,
   });
 
-  factory KomunitasArtikel.fromJson(Map<String, dynamic> json) {
+  factory KomunitasPostingan.fromJson(Map<String, dynamic> json) {
     int parseInt(dynamic value) {
       if (value == null) return 0;
       if (value is String) return int.tryParse(value) ?? 0;
       return value as int;
     }
 
-    return KomunitasArtikel(
+    return KomunitasPostingan(
       id: parseInt(json['id']),
       userId: parseInt(json['user_id']),
       kategoriId: parseInt(json['kategori_id']),
@@ -59,6 +60,9 @@ class KomunitasArtikel {
       kategori: KategoriArtikel.fromJson(
         json['kategori'] as Map<String, dynamic>,
       ),
+      komentars: (json['komentars'] as List<dynamic>?)
+          ?.map((e) => Komentar.fromJson(e as Map<String, dynamic>))
+          .toList(),
     );
   }
 
@@ -79,56 +83,73 @@ class KomunitasArtikel {
       'kategori': kategori.toJson(),
     };
   }
+
+  KomunitasPostingan? copyWith({required List<Komentar> komentars}) {
+    return KomunitasPostingan(
+      id: id,
+      userId: userId,
+      kategoriId: kategoriId,
+      judul: judul,
+      excerpt: excerpt,
+      cover: cover,
+      daftarGambar: daftarGambar,
+      totalLikes: totalLikes,
+      totalKomentar: totalKomentar,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+      penulis: penulis,
+      kategori: kategori,
+      komentars: komentars,
+    );
+  }
 }
 
-class KomunitasKomentar {
+class Komentar {
   final int id;
-  final int artikelId;
-  final int? userId;
-  final String content;
-  final bool isAnonymous;
-  final String authorName;
+  final int postinganId;
+  final int userId;
+  final String komentar;
   final DateTime createdAt;
   final DateTime updatedAt;
+  final String penulis;
 
-  KomunitasKomentar({
+  Komentar({
     required this.id,
-    required this.artikelId,
-    this.userId,
-    required this.content,
-    required this.isAnonymous,
-    required this.authorName,
+    required this.postinganId,
+    required this.userId,
+    required this.komentar,
     required this.createdAt,
     required this.updatedAt,
+    required this.penulis,
   });
 
-  factory KomunitasKomentar.fromJson(Map<String, dynamic> json) {
-    return KomunitasKomentar(
-      id: json['id'] ?? 0,
-      artikelId: json['artikel_id'] ?? 0,
-      userId: json['user_id'],
-      content: json['content'] ?? '',
-      isAnonymous: json['is_anonymous'] ?? false,
-      authorName: json['author_name'] ?? 'Unknown',
-      createdAt: DateTime.parse(
-        json['created_at'] ?? DateTime.now().toIso8601String(),
-      ),
-      updatedAt: DateTime.parse(
-        json['updated_at'] ?? DateTime.now().toIso8601String(),
-      ),
+  factory Komentar.fromJson(Map<String, dynamic> json) {
+    int parseInt(dynamic value) {
+      if (value == null) return 0;
+      if (value is String) return int.tryParse(value) ?? 0;
+      return value as int;
+    }
+
+    return Komentar(
+      id: parseInt(json['id']),
+      userId: parseInt(json['user_id']),
+      postinganId: parseInt(json['postingan_id']),
+      komentar: json['komentar'] as String? ?? '',
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+      updatedAt: DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
+      penulis: json['penulis'] as String? ?? 'Unknown',
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'artikel_id': artikelId,
       'user_id': userId,
-      'content': content,
-      'is_anonymous': isAnonymous,
-      'author_name': authorName,
-      'created_at': FormatHelper.getFormattedDate(createdAt),
+      'postingan_id': postinganId,
+      'komentar': komentar,
+      'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
+      'penulis': penulis,
     };
   }
 }

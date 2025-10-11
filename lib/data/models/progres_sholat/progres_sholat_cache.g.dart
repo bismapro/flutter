@@ -8,7 +8,7 @@ part of 'progres_sholat_cache.dart';
 
 class ProgresSholatCacheAdapter extends TypeAdapter<ProgresSholatCache> {
   @override
-  final int typeId = 10;
+  final int typeId = 12;
 
   @override
   ProgresSholatCache read(BinaryReader reader) {

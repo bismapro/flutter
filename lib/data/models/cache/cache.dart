@@ -1,8 +1,9 @@
 import 'package:hive/hive.dart';
+import 'package:test_flutter/core/constants/hive_type_id.dart';
 
 part 'cache.g.dart';
 
-@HiveType(typeId: 0)
+@HiveType(typeId: HiveTypeId.cacheMetadata)
 class CacheMetadata extends HiveObject {
   @HiveField(0)
   DateTime lastFetch;
@@ -32,8 +33,9 @@ class CacheMetadata extends HiveObject {
   });
 }
 
-@HiveType(typeId: 1)
+@HiveType(typeId: HiveTypeId.cacheEntry)
 class CacheEntry extends HiveObject {
+  @override
   @HiveField(0)
   String key;
 

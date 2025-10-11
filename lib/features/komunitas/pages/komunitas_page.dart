@@ -1,18 +1,17 @@
 import 'dart:ui';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
-import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/komunitas/komunitas_provider.dart';
-import '../../../app/theme.dart';
-import 'detail_komunitas_page.dart';
-import 'tambah_post_page.dart';
+import 'package:test_flutter/features/komunitas/komunitas_state.dart';
+import 'package:test_flutter/features/komunitas/pages/detail_postingan_page.dart';
+import 'package:test_flutter/features/komunitas/pages/tambah_postingan_page.dart';
 
 class KomunitasPage extends ConsumerStatefulWidget {
   const KomunitasPage({super.key});
@@ -38,7 +37,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
 
   void _init() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(komunitasProvider.notifier).loadArtikel();
+      ref.read(komunitasProvider.notifier).init();
     });
   }
 
@@ -52,326 +51,147 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
   }
 
   void _loadMoreIfPossible() {
-    final komunitasState = ref.read(komunitasProvider);
-    final currentPage = komunitasState['currentPage'] as int;
-    final lastPage = komunitasState['lastPage'] as int;
-    final status = komunitasState['status'];
+    final notifier = ref.read(komunitasProvider.notifier);
+    final state = ref.read(komunitasProvider);
 
-    // Only load more if not already loading and there are more pages
-    if (status != KomunitasArtikelState.loading &&
-        status != KomunitasArtikelState.loadingMore &&
-        currentPage < lastPage) {
-      ref.read(komunitasProvider.notifier).loadArtikel(loadMore: true);
+    if (notifier.canLoadMore &&
+        state.status != KomunitasStatus.loadingMore &&
+        state.status != KomunitasStatus.refreshing) {
+      ref.read(komunitasProvider.notifier).fetchPostingan(isLoadMore: true);
     }
   }
 
-  // Handle pull to refresh
   Future<void> _handleRefresh() async {
     logger.fine('Pull to refresh triggered');
     await ref.read(komunitasProvider.notifier).refresh();
   }
 
-  List<Map<String, dynamic>> get _filteredPosts {
-    final artikel =
-        ref.read(komunitasProvider)['artikel'] as List<KomunitasArtikel>? ?? [];
+  List<Map<String, dynamic>> get _kategoriList {
+    final kategori = ref.watch(komunitasProvider).kategori;
+    return [
+      {'id': '0', 'nama': 'Semua', 'icon': null},
+      ...kategori.map(
+        (e) => {
+          'id': (e.id).toString(),
+          'nama': e.nama,
+          'icon': e.icon.isNotEmpty
+              ? '${dotenv.env['STORAGE_URL'] ?? ''}/${e.icon}'
+              : null,
+        },
+      ),
+    ];
+  }
 
-    return artikel
+  /// === MAPPING BARU: menyesuaikan struktur response terbaru ===
+  List<Map<String, dynamic>> get _filteredPosts {
+    final List<KomunitasPostingan> postingan = ref
+        .read(komunitasProvider)
+        .postinganList;
+
+    return postingan
         .where((item) {
+          final judul = (item.judul).toLowerCase();
+          final excerpt = (item.excerpt).toLowerCase();
+          final kategoriNama = (item.kategori.nama).toLowerCase();
+
           final matchesCategory =
               _selectedCategory == 'Semua' ||
-              item.kategori == _selectedCategory;
+              (item.kategori.nama) == _selectedCategory;
+
           final matchesSearch =
               _searchQuery.isEmpty ||
-              item.judul.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-              item.excerpt.toLowerCase().contains(_searchQuery.toLowerCase());
+              judul.contains(_searchQuery.toLowerCase()) ||
+              excerpt.contains(_searchQuery.toLowerCase()) ||
+              kategoriNama.contains(_searchQuery.toLowerCase());
+
           return matchesCategory && matchesSearch;
         })
-        .map(
-          (item) => {
-            'id': item.id.toString(),
-            'title': item.judul,
-            'content': item.excerpt,
-            'category': item.kategori,
-            'authorId': item.userId.toString(), // Pastikan ini string
-            'authorName': 'guest',
-            'date': FormatHelper.getFormattedDate(item.createdAt),
-            'likes': item.jumlahLike,
-            'likedBy': [],
-            'comments': item.jumlahKomentar,
-            'imageUrl': (item.gambar.isNotEmpty)
-                ? ("${dotenv.env['STORAGE_URL']}/${item.gambar[0]}")
+        .map((item) {
+          final storage = dotenv.env['STORAGE_URL'] ?? '';
+          final coverPath = item.cover;
+          final iconPath = item.kategori.icon;
+          final galeriList = (item.daftarGambar)
+              .where((e) => (e).isNotEmpty)
+              .map((e) => '$storage/$e')
+              .toList();
+
+          return {
+            // ID
+            'id': (item.id).toString(),
+
+            // Judul & ringkasan
+            'judul': item.judul,
+            'excerpt': item.excerpt,
+
+            // Penulis
+            'authorId': (item.userId).toString(),
+            'penulis': item.penulis,
+
+            // Kategori (nested)
+            'kategoriId': (item.kategoriId).toString(),
+            'kategoriNama': item.kategori.nama,
+            'kategoriIcon': iconPath.isNotEmpty && storage.isNotEmpty
+                ? '$storage/$iconPath'
                 : null,
-          },
-        )
+
+            // Tanggal
+            'date': FormatHelper.getFormattedDate(item.createdAt),
+
+            // Media (cover + galeri)
+            'coverUrl': coverPath.isNotEmpty && storage.isNotEmpty
+                ? '$storage/$coverPath'
+                : null,
+            'galeri': galeriList,
+
+            // Statistik
+            'totalLikes': item.totalLikes,
+            'totalKomentar': item.totalKomentar,
+          };
+        })
         .toList();
   }
 
-  Color _getCategoryColor(String category) {
+  Color _getCategoryColor(String? nama) {
+    final category = (nama ?? 'Umum').toLowerCase();
     switch (category) {
+      case 'ibadah':
+        return const Color(0xFF3B82F6);
+      // tambahkan kategori lain jika ada
       default:
         return AppTheme.primaryBlue;
-    }
-  }
-
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      default:
-        return Icons.forum_rounded;
     }
   }
 
   void _navigateToAddPost() async {
     final newPost = await Navigator.push<Map<String, dynamic>>(
       context,
-      MaterialPageRoute(builder: (context) => const TambahPostPage()),
+      MaterialPageRoute(builder: (context) => const TambahPostinganPage()),
     );
     if (newPost != null) {
-      // Refresh the list after adding new post
-      ref.read(komunitasProvider.notifier).loadArtikel();
+      ref.read(komunitasProvider.notifier).fetchPostingan();
     }
   }
 
   void _toggleLike(String postId) {
-    // TODO: Implement API call to toggle like
     logger.fine('Toggle like for post: $postId');
   }
 
-  void _deletePost(String postId) {
-    _showDeleteConfirmationDialog(postId);
-  }
-
-  void _showDeleteConfirmationDialog(String postId) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: _buildDeleteDialogTitle(),
-        content: _buildDeleteDialogContent(),
-        actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-        actions: [_buildDeleteDialogActions(postId)],
-      ),
-    );
-  }
-
-  Widget _buildDeleteDialogTitle() {
-    return Row(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: Colors.red.shade50,
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            Icons.delete_outline_rounded,
-            color: Colors.red.shade500,
-            size: 24,
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text(
-            'Hapus Artikel',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
-              fontWeight: FontWeight.bold,
-              color: AppTheme.onSurface,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDeleteDialogContent() {
-    return Container(
-      constraints: BoxConstraints(
-        maxWidth: ResponsiveHelper.isSmallScreen(context) ? 300 : 400,
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Apakah Anda yakin ingin menghapus artikel ini?',
-            style: TextStyle(
-              fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
-              color: AppTheme.onSurface,
-              height: 1.4,
-            ),
-          ),
-          const SizedBox(height: 8),
-          _buildDeleteWarningBox(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDeleteWarningBox() {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.red.shade50,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.red.shade200),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.warning_amber_rounded,
-            color: Colors.red.shade600,
-            size: 20,
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              'Artikel yang dihapus tidak dapat dikembalikan.',
-              style: TextStyle(
-                fontSize: ResponsiveHelper.adaptiveTextSize(context, 13),
-                color: Colors.red.shade700,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDeleteDialogActions(String postId) {
-    return Row(
-      children: [
-        Expanded(child: _buildCancelButton()),
-        const SizedBox(width: 12),
-        Expanded(child: _buildDeleteButton(postId)),
-      ],
-    );
-  }
-
-  Widget _buildCancelButton() {
-    return TextButton(
-      onPressed: () => Navigator.pop(context),
-      style: TextButton.styleFrom(
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-          side: BorderSide(
-            color: AppTheme.onSurfaceVariant.withValues(alpha: 0.3),
-          ),
-        ),
-      ),
-      child: Text(
-        'Batal',
-        style: TextStyle(
-          color: AppTheme.onSurfaceVariant,
-          fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildDeleteButton(String postId) {
-    return ElevatedButton(
-      onPressed: () => _handleDeleteConfirmation(postId),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.red.shade500,
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        elevation: 0,
-      ),
-      child: Text(
-        'Hapus',
-        style: TextStyle(
-          fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
-          fontWeight: FontWeight.w600,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _handleDeleteConfirmation(String postId) async {
-    Navigator.pop(context); // Close confirmation dialog
-    _showLoadingDialog();
-
-    try {
-      await _performDeleteOperation(postId);
-      _handleDeleteSuccess();
-    } catch (e) {
-      _handleDeleteError(e);
-    }
-  }
-
-  void _showLoadingDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Menghapus artikel...',
-                style: TextStyle(
-                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
-                  color: AppTheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _performDeleteOperation(String postId) async {
-    await ref.read(komunitasProvider.notifier).deleteArtikel(postId);
-  }
-
-  void _handleDeleteSuccess() {
-    if (mounted) Navigator.pop(context); // Close loading dialog
-
-    showMessageToast(
-      context,
-      message: 'Artikel berhasil dihapus',
-      type: ToastType.success,
-      duration: const Duration(seconds: 3),
-    );
-
-    // Refresh list
-    ref.read(komunitasProvider.notifier).loadArtikel();
-  }
-
-  void _handleDeleteError(dynamic error) {
-    if (mounted) Navigator.pop(context); // Close loading dialog
-
-    showMessageToast(
-      context,
-      message: 'Gagal menghapus artikel: ${error.toString()}',
-      type: ToastType.error,
-      duration: const Duration(seconds: 4),
-    );
-
-    logger.fine('Delete artikel error', error);
-  }
+  // void _deletePost(String postId) {
+  //   showMessageToast(
+  //     context,
+  //     message:
+  //         'Fitur hapus belum tersedia di provider baru. Tambahkan method di Notifier untuk mengaktifkan.',
+  //     type: ToastType.warning,
+  //   );
+  // }
 
   void _navigateToDetail(Map<String, dynamic> post) async {
     final updatedPost = await Navigator.push<Map<String, dynamic>>(
       context,
-      MaterialPageRoute(builder: (context) => DetailKomunitasPage(post: post)),
+      MaterialPageRoute(builder: (context) => DetailPostinganPage(post: post)),
     );
     if (updatedPost != null) {
-      // Optionally refresh the list if needed
-      ref.read(komunitasProvider.notifier).loadArtikel();
+      ref.read(komunitasProvider.notifier).fetchPostingan();
     }
   }
 
@@ -384,9 +204,9 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
   }
 
   int _gridColumns(BuildContext context) {
-    if (ResponsiveHelper.isExtraLargeScreen(context)) return 3; // ≥1200
-    if (ResponsiveHelper.isLargeScreen(context)) return 2; // 900–1199
-    return 1; // mobile & tablet kecil pakai list 1 kolom
+    if (ResponsiveHelper.isExtraLargeScreen(context)) return 3;
+    if (ResponsiveHelper.isLargeScreen(context)) return 2;
+    return 1;
   }
 
   double _cardImageHeight(BuildContext context) {
@@ -403,12 +223,10 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     final subtitleSize = ResponsiveHelper.adaptiveTextSize(context, 15);
     final useGrid = _gridColumns(context) > 1;
 
-    // Watch komunitas state
     final komunitasState = ref.watch(komunitasProvider);
-    final currentPage = komunitasState['currentPage'] as int;
-    final lastPage = komunitasState['lastPage'] as int;
+    final currentPage = komunitasState.currentPage;
+    final lastPage = komunitasState.lastPage;
 
-    // Watch auth state to check if user is logged in
     final authState = ref.watch(authProvider);
     final isLoggedIn = authState['status'] == AuthState.authenticated;
 
@@ -427,7 +245,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
         child: SafeArea(
           child: Column(
             children: [
-              // Header + Search (Fixed at top)
+              // Header + Search
               Padding(
                 padding: EdgeInsets.all(pagePad.horizontal / 2),
                 child: Center(
@@ -554,7 +372,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 ),
               ),
 
-              // Content with RefreshIndicator
+              // Content
               Expanded(
                 child: Center(
                   child: ConstrainedBox(
@@ -572,32 +390,31 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
           ),
         ),
       ),
-      // Only show FAB if user is logged in
       floatingActionButton: isLoggedIn ? _buildFloatingActionButton() : null,
     );
   }
 
   Widget _buildContentArea(
-    Map<String, dynamic> komunitasState,
+    dynamic komunitasState,
     int currentPage,
     int lastPage,
     bool useGrid,
   ) {
-    final status = komunitasState['status'];
-    final isOffline = komunitasState['isOffline'] as bool;
+    final status = komunitasState.status as KomunitasStatus;
+    final isOffline = komunitasState.isOffline as bool;
 
-    // Show initial loading in content area
-    if (status == KomunitasArtikelState.loading && currentPage == 1) {
+    if ((status == KomunitasStatus.loading ||
+            status == KomunitasStatus.initial) &&
+        currentPage == 1 &&
+        komunitasState.postingan.isEmpty) {
       return _buildLoadingState();
     }
 
-    // Show error state in content area (only if no cached data)
-    if (status == KomunitasArtikelState.error && _filteredPosts.isEmpty) {
-      return _buildErrorState(komunitasState['error']);
+    if (status == KomunitasStatus.error && _filteredPosts.isEmpty) {
+      return _buildErrorState(komunitasState.errorMessage);
     }
 
-    // Show content with refresh indicator
-    if (_filteredPosts.isEmpty && status != KomunitasArtikelState.loading) {
+    if (_filteredPosts.isEmpty && status != KomunitasStatus.loading) {
       return RefreshIndicator(
         onRefresh: _handleRefresh,
         color: AppTheme.primaryBlue,
@@ -614,10 +431,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
 
     return Column(
       children: [
-        // Offline indicator - UNCOMMENT INI
-        if (isOffline) ...[_buildOfflineIndicator(), SizedBox(height: 8)],
-
-        // Content
+        if (isOffline) ...[_buildOfflineIndicator(), const SizedBox(height: 8)],
         Expanded(
           child: RefreshIndicator(
             onRefresh: _handleRefresh,
@@ -647,7 +461,11 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       ),
                       itemCount:
                           _filteredPosts.length +
-                          (currentPage < lastPage && !isOffline ? 1 : 0),
+                          ((currentPage < lastPage &&
+                                  !isOffline &&
+                                  status != KomunitasStatus.loadingMore)
+                              ? 1
+                              : 0),
                       itemBuilder: (context, index) {
                         if (index >= _filteredPosts.length) {
                           return _buildLoadMoreIndicator();
@@ -667,7 +485,11 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       ),
                       itemCount:
                           _filteredPosts.length +
-                          (currentPage < lastPage && !isOffline ? 1 : 0),
+                          ((currentPage < lastPage &&
+                                  !isOffline &&
+                                  status != KomunitasStatus.loadingMore)
+                              ? 1
+                              : 0),
                       itemBuilder: (context, index) {
                         if (index >= _filteredPosts.length) {
                           return _buildLoadMoreIndicator();
@@ -726,7 +548,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     );
   }
 
-  // New loading state widget for content area
   Widget _buildLoadingState() {
     return Center(
       child: Column(
@@ -772,7 +593,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     );
   }
 
-  // New error state widget for content area
   Widget _buildErrorState(String? errorMessage) {
     return Center(
       child: Container(
@@ -829,7 +649,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
               width: double.infinity,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  ref.read(komunitasProvider.notifier).loadArtikel();
+                  ref.read(komunitasProvider.notifier).fetchPostingan();
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppTheme.primaryBlue,
@@ -912,7 +732,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     );
   }
 
-  // ===== UI pieces =====
   Widget _emptyState() {
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -972,17 +791,17 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     Map<String, dynamic> post, {
     required double imageHeight,
   }) {
-    final isLiked = false;
+    // final isLiked = false;
     final authState = ref.watch(authProvider);
     final currentUser = authState['user'];
 
-    // Perbaiki logika pengecekan user - pastikan tipe data sama
     final isMyPost =
         currentUser != null &&
         post['authorId'].toString() == currentUser?['user']['id'].toString();
 
-    final categoryColor = _getCategoryColor(post['category']);
-    final categoryIcon = _getCategoryIcon(post['category']);
+    final categoryColor = _getCategoryColor(post['kategoriNama'] as String?);
+    final kategoriIconUrl = post['kategoriIcon'] as String?;
+    final coverUrl = post['coverUrl'] as String?;
 
     logger.info('Post author ID: ${post['authorId']}');
     logger.info('Current user ID: ${currentUser?['user']['id']}');
@@ -1008,7 +827,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Header author
+            // Header penulis
             Padding(
               padding: const EdgeInsets.all(16),
               child: Row(
@@ -1028,7 +847,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       radius: 20,
                       backgroundColor: Colors.white,
                       child: Text(
-                        post['authorName'][0].toUpperCase(),
+                        (post['penulis'] ?? 'G')[0].toUpperCase(),
                         style: TextStyle(
                           color: categoryColor,
                           fontWeight: FontWeight.bold,
@@ -1048,7 +867,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                         Row(
                           children: [
                             Text(
-                              post['authorName'],
+                              (post['penulis'] ?? 'guest') as String,
                               style: TextStyle(
                                 fontWeight: FontWeight.w600,
                                 fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -1093,7 +912,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              post['date'],
+                              (post['date'] ?? '') as String,
                               style: TextStyle(
                                 color: AppTheme.onSurfaceVariant,
                                 fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -1107,78 +926,12 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       ],
                     ),
                   ),
-                  // Show three dots menu only for user's own posts
-                  if (isMyPost)
-                    Container(
-                      decoration: BoxDecoration(
-                        color: categoryColor.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: PopupMenuButton(
-                        icon: Icon(
-                          Icons.more_vert_rounded,
-                          color: categoryColor,
-                          size: 20,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 8,
-                        position: PopupMenuPosition.under,
-                        padding: EdgeInsets.zero,
-                        itemBuilder: (context) => [
-                          PopupMenuItem(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            onTap: () => Future.delayed(
-                              const Duration(milliseconds: 100),
-                              () => _deletePost(post['id']),
-                            ),
-                            child: Row(
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: Colors.red.shade50,
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                  child: Icon(
-                                    Icons.delete_outline_rounded,
-                                    color: Colors.red.shade500,
-                                    size: 18,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Hapus Artikel',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize:
-                                            ResponsiveHelper.adaptiveTextSize(
-                                              context,
-                                              14,
-                                            ),
-                                        color: Colors.red.shade600,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                  // menu tiga titik bisa diaktifkan lagi jika delete tersedia
                 ],
               ),
             ),
 
-            // Category chip
+            // Chip kategori (pakai icon dari API jika ada)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
@@ -1193,10 +946,33 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(categoryIcon, size: 16, color: categoryColor),
+                    if (kategoriIconUrl != null)
+                      Padding(
+                        padding: const EdgeInsets.only(right: 6),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(4),
+                          child: Image.network(
+                            kategoriIconUrl,
+                            width: 16,
+                            height: 16,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.category_rounded,
+                              size: 16,
+                              color: categoryColor,
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Icon(
+                        Icons.category_rounded,
+                        size: 16,
+                        color: categoryColor,
+                      ),
                     const SizedBox(width: 6),
                     Text(
-                      post['category'],
+                      (post['kategoriNama'] ?? 'Umum') as String,
                       style: TextStyle(
                         color: categoryColor,
                         fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -1210,16 +986,17 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 ),
               ),
             ),
+
             const SizedBox(height: 12),
 
-            // Title + content
+            // Judul + excerpt
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    post['title'],
+                    (post['judul'] ?? '') as String,
                     style: TextStyle(
                       fontSize: ResponsiveHelper.adaptiveTextSize(context, 17),
                       fontWeight: FontWeight.bold,
@@ -1230,7 +1007,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    post['content'],
+                    (post['excerpt'] ?? '') as String,
                     style: TextStyle(
                       fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
                       color: AppTheme.onSurface.withValues(alpha: 0.8),
@@ -1243,8 +1020,8 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
               ),
             ),
 
-            // Image
-            if (post['imageUrl'] != null) ...[
+            // Cover image
+            if (coverUrl != null) ...[
               const SizedBox(height: 12),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -1252,7 +1029,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                   borderRadius: BorderRadius.circular(16),
                   child: Stack(
                     children: [
-                      // Blur placeholder
+                      // Placeholder gradient
                       Container(
                         width: double.infinity,
                         height: imageHeight,
@@ -1275,17 +1052,14 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                           ),
                         ),
                       ),
-
                       // Network image
                       Image.network(
-                        post['imageUrl'],
+                        coverUrl,
                         width: double.infinity,
                         height: imageHeight,
                         fit: BoxFit.cover,
                         loadingBuilder: (context, child, loadingProgress) {
-                          if (loadingProgress == null) {
-                            return child;
-                          }
+                          if (loadingProgress == null) return child;
                           return ImageFiltered(
                             imageFilter: ImageFilter.blur(
                               sigmaX: 12,
@@ -1324,25 +1098,23 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
               ),
             ],
 
-            // Actions
+            // Actions (likes & komentar)
             Padding(
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
                   GestureDetector(
-                    onTap: () => _toggleLike(post['id']),
+                    onTap: () => _toggleLike(post['id'] as String),
                     child: Row(
                       children: [
                         Icon(
-                          isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked
-                              ? Colors.red
-                              : AppTheme.onSurfaceVariant,
+                          Icons.favorite_border,
+                          color: AppTheme.onSurfaceVariant,
                           size: 20,
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${post['likes']}',
+                          '${post['totalLikes'] ?? 0}',
                           style: TextStyle(
                             color: AppTheme.onSurfaceVariant,
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -1364,7 +1136,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        '${post['comments']}',
+                        '${post['totalKomentar'] ?? 0}',
                         style: TextStyle(
                           color: AppTheme.onSurfaceVariant,
                           fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -1376,11 +1148,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                     ],
                   ),
                   const Spacer(),
-                  // Icon(
-                  //   Icons.share_outlined,
-                  //   color: AppTheme.onSurfaceVariant,
-                  //   size: 20,
-                  // ),
                 ],
               ),
             ),

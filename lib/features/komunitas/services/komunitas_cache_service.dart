@@ -1,137 +1,110 @@
+import 'package:test_flutter/core/constants/cache_keys.dart';
 import 'package:test_flutter/data/models/cache/cache.dart';
+import 'package:test_flutter/data/models/komunitas/kategori_komunitas.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/services/cache_service.dart';
 
 class KomunitasCacheService {
-  static final DateTime cacheExpiry = DateTime.now().add(
-    const Duration(hours: 2),
-  );
+  static const Duration _cacheDuration = Duration(hours: 24);
 
-  // Cache komunitas artikel
-  static Future<void> cacheArtikel({
-    required List<KomunitasArtikel> artikel,
-    required int currentPage,
-    required int totalPages,
-    required int totalItems,
-    bool isLoadMore = false,
-  }) async {
-    await CacheService.cachePaginatedData<KomunitasArtikel>(
-      key: CacheService.komunitasArtikelKey,
-      data: artikel,
-      currentPage: currentPage,
-      totalPages: totalPages,
-      totalItems: totalItems,
-      dataType: 'komunitas_artikel',
-      isLoadMore: isLoadMore,
-      customExpiry: cacheExpiry,
-    );
-  }
-
-  // Get cached artikel - DIPERBAIKI
-  static List<KomunitasArtikel> getCachedArtikel() {
-    final cached = CacheService.getCachedData<List<KomunitasArtikel>>(
-      key: CacheService.komunitasArtikelKey,
-      fromJson: (jsonData) {
-        if (jsonData is List) {
-          return jsonData
-              .map(
-                (item) =>
-                    KomunitasArtikel.fromJson(item as Map<String, dynamic>),
-              )
-              .toList();
-        }
-        return <KomunitasArtikel>[];
-      },
-    );
-
-    return cached ?? [];
-  }
-
-  // Cache single artikel detail
-  static Future<void> cacheArtikelDetail(KomunitasArtikel artikel) async {
+  // CACHE KATEGORI
+  static Future<void> cacheKategori(List<KategoriKomunitas> kategori) async {
     await CacheService.cacheData(
-      key: '${CacheService.komunitasArtikelKey}_detail_${artikel.id}',
-      data: artikel,
-      dataType: 'komunitas_artikel_detail',
-      customExpiry: cacheExpiry,
+      key: CacheKeys.komunitasKategori, // -> 3. Gunakan key dari CacheKeys
+      data: kategori,
+      dataType: 'komunitas_kategori',
+      customExpiryDuration: _cacheDuration, // -> 4. Kirim sebagai Duration
     );
   }
 
-  // Get cached artikel detail
-  static KomunitasArtikel? getCachedArtikelDetail(String id) {
-    return CacheService.getCachedData<KomunitasArtikel>(
-      key: '${CacheService.komunitasArtikelKey}_detail_$id',
-      fromJson: (json) =>
-          KomunitasArtikel.fromJson(json as Map<String, dynamic>),
-    );
+  static List<KategoriKomunitas> getCachedKategori() {
+    return CacheService.getCachedData<List<KategoriKomunitas>>(
+          key: CacheKeys.komunitasKategori, // -> 3. Gunakan key dari CacheKeys
+          fromJson: (jsonData) {
+            if (jsonData is List) {
+              return jsonData
+                  .map(
+                    (item) => KategoriKomunitas.fromJson(
+                      item as Map<String, dynamic>,
+                    ),
+                  )
+                  .toList();
+            }
+            return [];
+          },
+        ) ??
+        []; // Kembalikan list kosong jika null
   }
 
-  // Cache comments
-  static Future<void> cacheComments({
-    required String artikelId,
-    required List<KomunitasKomentar> comments,
+  // --- CACHE POSTINGAN ---
+  static Future<void> cachePostingan({
+    required List<KomunitasPostingan> postingan,
     required int currentPage,
     required int totalPages,
     required int totalItems,
     bool isLoadMore = false,
   }) async {
-    await CacheService.cachePaginatedData<KomunitasKomentar>(
-      key: '${CacheService.komunitasArtikelKey}_comments_$artikelId',
-      data: comments,
+    await CacheService.cachePaginatedData<KomunitasPostingan>(
+      key: CacheKeys.komunitasPostingan, // -> 3. Gunakan key dari CacheKeys
+      newData: postingan,
       currentPage: currentPage,
       totalPages: totalPages,
       totalItems: totalItems,
-      dataType: 'komunitas_comments',
+      dataType: 'komunitas_postingan',
       isLoadMore: isLoadMore,
-      customExpiry: DateTime.now().add(const Duration(hours: 1)),
+      customExpiryDuration: _cacheDuration, // -> 4. Kirim sebagai Duration
     );
   }
 
-  // Get cached comments
-  static List<KomunitasKomentar> getCachedComments(String artikelId) {
-    final cached = CacheService.getCachedData<List<KomunitasKomentar>>(
-      key: '${CacheService.komunitasArtikelKey}_comments_$artikelId',
-      fromJson: (jsonData) {
-        if (jsonData is List) {
-          return jsonData
-              .map(
-                (item) =>
-                    KomunitasKomentar.fromJson(item as Map<String, dynamic>),
-              )
-              .toList();
-        }
-        return <KomunitasKomentar>[];
-      },
+  // --- GET CACHE POSTINGAN ---
+  static List<KomunitasPostingan> getCachedPostingan() {
+    return CacheService.getCachedData<List<KomunitasPostingan>>(
+          key: CacheKeys.komunitasPostingan, // -> 3. Gunakan key dari CacheKeys
+          fromJson: (jsonData) {
+            if (jsonData is List) {
+              return jsonData
+                  .map(
+                    (item) => KomunitasPostingan.fromJson(
+                      item as Map<String, dynamic>,
+                    ),
+                  )
+                  .toList();
+            }
+            return [];
+          },
+        ) ??
+        []; // Kembalikan list kosong jika null
+  }
+
+  // --- CACHE POSTINGAN DETAIL ---
+  static Future<void> cachePostinganDetail(KomunitasPostingan postingan) async {
+    final postinganId = postingan.id as String;
+
+    await CacheService.cacheData(
+      // Asumsi CacheService punya method `cacheData`
+      key: CacheKeys.postinganDetail(
+        postinganId,
+      ), // -> 5. Gunakan helper method dari CacheKeys
+      data: postingan,
+      dataType: 'komunitas_postingan_detail',
+      customExpiryDuration: _cacheDuration, // -> 4. Kirim sebagai Duration
     );
-
-    return cached ?? [];
   }
 
-  // Helper methods
-  static bool hasCachedArtikel() {
-    return CacheService.hasCachedData(CacheService.komunitasArtikelKey);
-  }
-
-  static bool isCacheValid() {
-    return CacheService.isCacheValid(CacheService.komunitasArtikelKey);
+  // Get cached postingan detail
+  static KomunitasPostingan? getCachedPostinganDetail(String postinganId) {
+    return CacheService.getCachedData<KomunitasPostingan>(
+      key: CacheKeys.postinganDetail(postinganId),
+      fromJson: (json) =>
+          KomunitasPostingan.fromJson(json as Map<String, dynamic>),
+    );
   }
 
   static CacheMetadata? getCacheMetadata() {
-    return CacheService.getCacheMetadata(CacheService.komunitasArtikelKey);
+    return CacheService.getCacheMetadata(CacheKeys.komunitasPostingan);
   }
 
   static Future<void> clearCache() async {
-    await CacheService.clearCache(CacheService.komunitasArtikelKey);
-  }
-
-  static Map<String, int> getCacheInfo() {
-    final info = CacheService.getCacheInfo();
-    final types = info['types'] as Map<String, dynamic>? ?? {};
-
-    return {
-      'artikel_count': types['komunitas_artikel'] ?? 0,
-      'artikel_detail_count': types['komunitas_artikel_detail'] ?? 0,
-      'comments_count': types['komunitas_comments'] ?? 0,
-    };
+    await CacheService.clearCache(CacheKeys.komunitasPostingan);
   }
 }

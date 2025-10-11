@@ -25,45 +25,57 @@ class ApiClient {
     return url;
   }
 
-  static String parseDioError(DioException e, String fallback) {
-    String errorMessage = fallback;
+  static String parseDioError(
+    DioException e, {
+    String fallback = 'Terjadi kesalahan! Silakan coba lagi.',
+  }) {
+    // 1. Prioritaskan pesan error dari Dio jika ada (misal: timeout, no internet)
+    if (e.message != null && e.response == null) {
+      // Cek pesan umum seperti koneksi timeout atau masalah jaringan
+      if (e.message!.contains('SocketException') ||
+          e.message!.contains('Connecting timed out')) {
+        return 'Koneksi internet bermasalah. Silakan coba lagi.';
+      }
+      return e.message!;
+    }
 
-    if (e.response != null && e.response!.data is Map) {
-      final data = e.response!.data as Map;
-
+    // 2. Jika ada respons dari server, coba parse datanya
+    if (e.response?.data != null) {
+      final data = e.response!.data;
       logger.fine('Parsing Dio error response: $data');
 
-      // Check if errors field exists first
-      if (data.containsKey('errors') && data['errors'] != null) {
-        final errors = data['errors'];
+      // Jika respons data adalah Map (JSON Object)
+      if (data is Map<String, dynamic>) {
+        // Cek kunci 'message' (paling umum)
+        if (data.containsKey('message') && data['message'] is String) {
+          return data['message'];
+        }
 
-        // Process errors object that contains field-specific errors
-        if (errors is Map) {
-          // Convert all field errors to a formatted string
-          List<String> errorMessages = [];
-
-          errors.forEach((field, value) {
-            if (value is List) {
-              // For array of error messages
-              errorMessages.add('$field: ${value.join(", ")}');
-            } else {
-              // For single error message
-              errorMessages.add('$field: $value');
-            }
-          });
-
-          if (errorMessages.isNotEmpty) {
-            errorMessage = errorMessages.join('\n');
+        // Cek kunci 'errors' (umum untuk error validasi)
+        if (data.containsKey('errors') && data['errors'] != null) {
+          final errors = data['errors'];
+          // Jika 'errors' adalah String
+          if (errors is String) {
+            return errors;
           }
-        } else if (errors is String) {
-          errorMessage = errors;
+          // Jika 'errors' adalah Map berisi list pesan
+          if (errors is Map) {
+            final firstError = errors.values.first;
+            if (firstError is List && firstError.isNotEmpty) {
+              return firstError.first
+                  .toString(); // Ambil pesan error pertama dari list
+            }
+            return firstError.toString();
+          }
         }
       }
-      // If errors doesn't exist or is null, try message
-      else if (data.containsKey('message') && data['message'] != null) {
-        errorMessage = data['message'].toString();
+      // Jika respons data hanyalah sebuah String
+      else if (data is String) {
+        return data;
       }
     }
-    return errorMessage;
+
+    // 3. Jika semua gagal, gunakan fallback message
+    return fallback;
   }
 }

@@ -1,12 +1,12 @@
 import 'package:hive/hive.dart';
-import 'package:test_flutter/core/utils/hive_type_id.dart';
+import 'package:test_flutter/core/constants/hive_type_id.dart';
 import 'package:test_flutter/data/models/artikel/kategori_artikel_cache.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 
 part 'komunitas_cache.g.dart';
 
-@HiveType(typeId: HiveTypeId.komunitas)
-class KomunitasArtikelCache extends HiveObject {
+@HiveType(typeId: HiveTypeId.postingan)
+class KomunitasPostinganCache extends HiveObject {
   @HiveField(0)
   int id;
 
@@ -49,7 +49,7 @@ class KomunitasArtikelCache extends HiveObject {
   @HiveField(13)
   KategoriArtikelCache kategori;
 
-  KomunitasArtikelCache({
+  KomunitasPostinganCache({
     required this.id,
     required this.userId,
     required this.kategoriId,
@@ -66,8 +66,10 @@ class KomunitasArtikelCache extends HiveObject {
     required this.kategori,
   });
 
-  factory KomunitasArtikelCache.fromKomunitasArtikel(KomunitasArtikel artikel) {
-    return KomunitasArtikelCache(
+  factory KomunitasPostinganCache.fromKomunitasPostingan(
+    KomunitasPostingan artikel,
+  ) {
+    return KomunitasPostinganCache(
       id: artikel.id,
       userId: artikel.userId,
       kategoriId: artikel.kategoriId,
@@ -85,8 +87,8 @@ class KomunitasArtikelCache extends HiveObject {
     );
   }
 
-  KomunitasArtikel toKomunitasArtikel() {
-    return KomunitasArtikel(
+  KomunitasPostingan toKomunitasPostingan() {
+    return KomunitasPostingan(
       id: id,
       userId: userId,
       kategoriId: kategoriId,
@@ -100,6 +102,69 @@ class KomunitasArtikelCache extends HiveObject {
       updatedAt: updatedAt,
       penulis: penulis,
       kategori: kategori.toKategoriArtikel(),
+    );
+  }
+}
+
+@HiveType(typeId: HiveTypeId.komentarPostingan)
+class KomentarPostinganCache extends HiveObject {
+  @HiveField(0)
+  int id;
+
+  @HiveField(1)
+  int postinganId;
+
+  @HiveField(2)
+  int userId;
+
+  @HiveField(3)
+  String komentar;
+
+  @HiveField(4)
+  String penulis;
+
+  @HiveField(5)
+  DateTime createdAt;
+
+  @HiveField(6)
+  DateTime updatedAt;
+
+  @HiveField(7)
+  DateTime cachedAt;
+
+  KomentarPostinganCache({
+    required this.id,
+    required this.postinganId,
+    required this.userId,
+    required this.komentar,
+    required this.penulis,
+    required this.createdAt,
+    required this.updatedAt,
+    required this.cachedAt,
+  });
+
+  factory KomentarPostinganCache.fromKomentarPostingan(Komentar komentar) {
+    return KomentarPostinganCache(
+      id: komentar.id,
+      postinganId: komentar.postinganId,
+      userId: komentar.userId,
+      komentar: komentar.komentar,
+      penulis: komentar.penulis,
+      createdAt: komentar.createdAt,
+      updatedAt: komentar.updatedAt,
+      cachedAt: DateTime.now(),
+    );
+  }
+
+  Komentar toKomentarPostingan() {
+    return Komentar(
+      id: id,
+      postinganId: postinganId,
+      userId: userId,
+      komentar: komentar,
+      penulis: penulis,
+      createdAt: createdAt,
+      updatedAt: updatedAt,
     );
   }
 }

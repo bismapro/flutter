@@ -1,25 +1,27 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
-import 'package:test_flutter/data/models/komunitas/komunitas.dart';
+
+import 'package:test_flutter/data/models/komunitas/komunitas.dart'; // pastikan berisi KomunitasPostingan
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/komunitas/services/komunitas_service.dart';
-import '../../../app/theme.dart';
 
-class DetailKomunitasPage extends ConsumerStatefulWidget {
-  final Map<String, dynamic> post;
+class DetailPostinganPage extends ConsumerStatefulWidget {
+  final Map<String, dynamic> post; // datang dari list (mapped)
 
-  const DetailKomunitasPage({super.key, required this.post});
+  const DetailPostinganPage({super.key, required this.post});
 
   @override
-  ConsumerState<DetailKomunitasPage> createState() =>
-      _DetailKomunitasPageState();
+  ConsumerState<DetailPostinganPage> createState() =>
+      _DetailPostinganPageState();
 }
 
-class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
+class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
   final TextEditingController _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
@@ -28,9 +30,11 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
   bool _isLoadingComments = false;
   bool _isSubmittingComment = false;
   bool _isTogglingLike = false;
+  bool _liked = false; // isi dari API kalau tersedia
+
   String? _error;
 
-  KomunitasArtikel? _artikel;
+  KomunitasPostingan? _post; // MODEL BARU
   List<Map<String, dynamic>> _comments = [];
   int _currentCommentPage = 1;
   int _lastCommentPage = 1;
@@ -59,28 +63,35 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
   @override
   void initState() {
     super.initState();
-    _loadArtikelDetail();
+    _loadDetail();
   }
 
-  Future<void> _loadArtikelDetail() async {
+  Future<void> _loadDetail() async {
     try {
       setState(() {
         _isLoading = true;
         _error = null;
       });
 
-      logger.fine('Loading artikel detail for ID: ${widget.post['id']}');
+      final id =
+          int.tryParse(widget.post['id'].toString()) ??
+          widget.post['id'] as int;
+      logger.fine('Loading postingan detail for ID: $id');
 
-      final response = await KomunitasService.getArtikelById(widget.post['id']);
+      final response = await KomunitasService.getPostinganById(id as String);
+      // response diharapkan: { "data": { ...postingan... , "liked": bool? } }
+      final data = response['data'];
+      final liked = (data?['liked'] == true); // optional
 
       setState(() {
-        _artikel = KomunitasArtikel.fromJson(response['data']);
+        _post = KomunitasPostingan.fromJson(data);
+        _liked = liked;
         _isLoading = false;
       });
 
       await _loadComments();
-    } catch (e) {
-      logger.warning('Error loading artikel detail: $e');
+    } catch (e, st) {
+      logger.warning('Error loading postingan detail: $e', e, st);
       setState(() {
         _error = e.toString();
         _isLoading = false;
@@ -89,29 +100,29 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
   }
 
   Future<void> _loadComments({bool loadMore = false}) async {
-    if (_isLoadingComments) return;
+    if (_isLoadingComments || _post == null) return;
 
     try {
       setState(() => _isLoadingComments = true);
 
       final page = loadMore ? _currentCommentPage + 1 : 1;
 
-      logger.fine('Loading comments for artikel ${_artikel?.id}, page: $page');
+      logger.fine('Loading comments for postingan ${_post!.id}, page: $page');
 
       final response = await KomunitasService.getComments(
-        artikelId: _artikel!.id,
+        artikelId: _post!.id as String, // endpoint sama, param bernama artikelId
         page: page,
       );
 
-      final commentsData = response['data'] as List;
+      final commentsData = (response['data'] as List?) ?? const [];
       final newComments = commentsData
           .map(
             (comment) => {
               'id': comment['id'].toString(),
               'authorName': comment['is_anonymous'] == true
                   ? 'Anonim'
-                  : comment['user']?['name'] ?? 'User',
-              'content': comment['content'],
+                  : (comment['user']?['name'] ?? 'User'),
+              'content': comment['content'] ?? '',
               'date': _formatDate(DateTime.parse(comment['created_at'])),
               'isAnonymous': comment['is_anonymous'] ?? false,
               'authorId': comment['user_id']?.toString() ?? 'anonymous',
@@ -122,28 +133,24 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
       setState(() {
         if (loadMore) {
           _comments.addAll(newComments);
-          _currentCommentPage = response['current_page'];
         } else {
           _comments = newComments;
-          _currentCommentPage = response['current_page'];
         }
-        _lastCommentPage = response['last_page'];
+        _currentCommentPage = response['current_page'] ?? page;
+        _lastCommentPage = response['last_page'] ?? page;
         _isLoadingComments = false;
       });
-    } catch (e) {
-      logger.warning('Error loading comments: $e');
+    } catch (e, st) {
+      logger.warning('Error loading comments: $e', e, st);
       setState(() => _isLoadingComments = false);
 
       if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          showMessageToast(
-            context,
-            message: 'Failed to load comments: ${e.toString()}',
-            type: ToastType.error,
-            duration: const Duration(seconds: 4),
-          );
-          ref.read(authProvider.notifier).clearError();
-        });
+        showMessageToast(
+          context,
+          message: 'Gagal memuat komentar: $e',
+          type: ToastType.error,
+          duration: const Duration(seconds: 4),
+        );
       }
     }
   }
@@ -152,17 +159,11 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     final now = DateTime.now();
     final difference = now.difference(date);
 
-    if (difference.inMinutes < 1) {
-      return 'Just now';
-    } else if (difference.inMinutes < 60) {
-      return '${difference.inMinutes} minutes ago';
-    } else if (difference.inHours < 24) {
-      return '${difference.inHours} hours ago';
-    } else if (difference.inDays < 7) {
-      return '${difference.inDays} days ago';
-    } else {
-      return '${date.day}/${date.month}/${date.year}';
-    }
+    if (difference.inMinutes < 1) return 'Baru saja';
+    if (difference.inMinutes < 60) return '${difference.inMinutes} menit lalu';
+    if (difference.inHours < 24) return '${difference.inHours} jam lalu';
+    if (difference.inDays < 7) return '${difference.inDays} hari lalu';
+    return '${date.day}/${date.month}/${date.year}';
   }
 
   Future<void> _addComment() async {
@@ -171,10 +172,10 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     try {
       setState(() => _isSubmittingComment = true);
 
-      logger.fine('Adding comment to artikel ${_artikel?.id}');
+      logger.fine('Adding comment to postingan ${_post?.id}');
 
       await KomunitasService.addComment(
-        artikelId: _artikel!.id,
+        artikelId: _post!.id as String, // param nama masih artikelId di service
         content: _commentController.text.trim(),
         isAnonymous: _isAnonymous,
       );
@@ -197,7 +198,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text('Comment added successfully'),
+            content: const Text('Komentar berhasil ditambahkan'),
             backgroundColor: AppTheme.accentGreen,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
@@ -207,18 +208,19 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
           ),
         );
       }
-    } catch (e) {
-      logger.warning('Error adding comment: $e');
+    } catch (e, st) {
+      logger.warning('Error adding comment: $e', e, st);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to add comment: ${e.toString()}'),
+            content: Text('Gagal menambahkan komentar: $e'),
             backgroundColor: Colors.red.shade400,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -228,28 +230,37 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
   }
 
   Future<void> _toggleLike() async {
-    if (_isTogglingLike || _artikel == null) return;
+    if (_isTogglingLike || _post == null) return;
 
     try {
       setState(() => _isTogglingLike = true);
 
-      logger.fine('Toggling like for artikel ${_artikel?.id}');
+      logger.fine('Toggling like for postingan ${_post?.id}');
 
-      await KomunitasService.toggleLike(_artikel!.id);
+      await KomunitasService.toggleLike(_post!.id as String);
 
-      await _loadArtikelDetail();
-    } catch (e) {
-      logger.warning('Error toggling like: $e');
+      // Optimistic update (kalau API tidak kembalikan detail liked)
+      setState(() {
+        _liked = !_liked;
+        // final current = _post!.totalLikes;
+        // _post = _post!.copyWith(totalLikes: _liked ? current + 1 : current - 1);
+      });
+
+      // kalau mau strict dari server:
+      // await _loadDetail();
+    } catch (e, st) {
+      logger.warning('Error toggling like: $e', e, st);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to toggle like: ${e.toString()}'),
+            content: Text('Gagal mengubah like: $e'),
             backgroundColor: Colors.red.shade400,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(12),
             ),
+            margin: const EdgeInsets.all(16),
           ),
         );
       }
@@ -258,30 +269,35 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     }
   }
 
-  Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'Sharing':
-        return AppTheme.accentGreen;
-      case 'Pertanyaan':
-        return AppTheme.primaryBlue;
-      case 'Event':
-        return Colors.orange.shade600;
-      case 'Diskusi':
+  // Kategori warna/icon menggunakan nama kategori
+  Color _getCategoryColor(String nama) {
+    switch (nama.toLowerCase()) {
+      case 'ibadah':
+        return const Color(0xFF3B82F6);
+      case 'event':
+        return const Color(0xFFF97316);
+      case 'sharing':
+        return const Color(0xFF10B981);
+      case 'pertanyaan':
+        return const Color(0xFF8B5CF6);
+      case 'diskusi':
         return Colors.purple.shade400;
       default:
         return AppTheme.primaryBlue;
     }
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Sharing':
-        return Icons.people_rounded;
-      case 'Pertanyaan':
-        return Icons.help_outline_rounded;
-      case 'Event':
+  IconData _getCategoryIcon(String nama) {
+    switch (nama.toLowerCase()) {
+      case 'ibadah':
+        return Icons.auto_awesome_rounded;
+      case 'event':
         return Icons.event_rounded;
-      case 'Diskusi':
+      case 'sharing':
+        return Icons.share_rounded;
+      case 'pertanyaan':
+        return Icons.help_outline_rounded;
+      case 'diskusi':
         return Icons.forum_rounded;
       default:
         return Icons.forum_rounded;
@@ -297,6 +313,8 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     final appbarSubSize = ResponsiveHelper.adaptiveTextSize(context, 13);
     final iconSize = ResponsiveHelper.adaptiveTextSize(context, 22);
     final appbarPad = ResponsiveHelper.isSmallScreen(context) ? 14.0 : 16.0;
+
+    final totalComments = _post?.totalKomentar ?? _comments.length;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -357,7 +375,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Detail Discussion',
+                                'Detail Postingan',
                                 style: TextStyle(
                                   fontSize: appbarTitleSize,
                                   fontWeight: FontWeight.bold,
@@ -366,7 +384,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                                 ),
                               ),
                               Text(
-                                '${_artikel?.jumlahKomentar ?? 0} comments',
+                                '$totalComments komentar',
                                 style: TextStyle(
                                   fontSize: appbarSubSize,
                                   color: AppTheme.onSurfaceVariant,
@@ -382,7 +400,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               ),
 
               // Content
-              Expanded(child: _buildContent()),
+              Expanded(child: _buildContent(isLoggedIn)),
             ],
           ),
         ),
@@ -393,7 +411,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(bool isLoggedIn) {
     if (_isLoading) {
       return _buildLoadingState();
     }
@@ -402,12 +420,11 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
       return _buildErrorState();
     }
 
-    if (_artikel == null) {
-      return _buildErrorState(message: 'Article not found');
+    if (_post == null) {
+      return _buildErrorState(message: 'Postingan tidak ditemukan');
     }
 
-    final extraBottom =
-        ref.watch(authProvider)['status'] == AuthState.authenticated
+    final extraBottom = isLoggedIn
         ? (ResponsiveHelper.isSmallScreen(context) ? 100 : 120)
         : 20;
 
@@ -420,7 +437,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildArtikelCard(),
+            _buildPostCard(),
             SizedBox(height: _gap(context) + 4),
             _buildCommentsSection(),
           ],
@@ -450,7 +467,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Load article...',
+              'Memuat postingan...',
               style: TextStyle(
                 color: AppTheme.onSurface,
                 fontSize: titleSize,
@@ -459,7 +476,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Please wait a moment...',
+              'Mohon tunggu sebentar',
               style: TextStyle(
                 color: AppTheme.onSurfaceVariant,
                 fontSize: subSize,
@@ -514,7 +531,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               ),
               const SizedBox(height: 20),
               Text(
-                'Failed to Load Data',
+                'Gagal Memuat Data',
                 style: TextStyle(
                   fontSize: titleSize,
                   fontWeight: FontWeight.bold,
@@ -523,9 +540,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                message ??
-                    _error ??
-                    'An unexpected error occurred. Please try again later.',
+                message ?? _error ?? 'Terjadi kesalahan. Coba lagi nanti.',
                 style: TextStyle(color: Colors.red.shade600, fontSize: subSize),
                 textAlign: TextAlign.center,
               ),
@@ -544,13 +559,13 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         ),
                       ),
                       icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                      label: const Text('Back'),
+                      label: const Text('Kembali'),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: _loadArtikelDetail,
+                      onPressed: _loadDetail,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryBlue,
                         foregroundColor: Colors.white,
@@ -560,7 +575,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         ),
                       ),
                       icon: const Icon(Icons.refresh_rounded, size: 20),
-                      label: const Text('Try Again'),
+                      label: const Text('Coba Lagi'),
                     ),
                   ),
                 ],
@@ -572,15 +587,19 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     );
   }
 
-  Widget _buildArtikelCard() {
-    final categoryColor = _getCategoryColor(_artikel!.kategori);
-    final categoryIcon = _getCategoryIcon(_artikel!.kategori);
-    final isLiked = false; // TODO: map dari API
+  Widget _buildPostCard() {
+    final kategoriNama = _post!.kategori.nama;
+    final categoryColor = _getCategoryColor(kategoriNama);
+    final categoryIcon = _getCategoryIcon(kategoriNama);
 
     final titleSize = ResponsiveHelper.adaptiveTextSize(context, 22);
     final bodySize = ResponsiveHelper.adaptiveTextSize(context, 15);
     final chipSize = ResponsiveHelper.adaptiveTextSize(context, 13);
     final iconSz = ResponsiveHelper.adaptiveTextSize(context, 20);
+
+    final coverUrl = _post!
+        .cover; // string path (udah absolute di model?), kalau masih relatif, format di model
+    final gallery = _post!.daftarGambar; // List<String>
 
     return Container(
       padding: EdgeInsets.all(_gap(context) + 4),
@@ -600,7 +619,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Author Info
+          // Author + kategori chip
           Row(
             children: [
               Container(
@@ -618,7 +637,8 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                   radius: ResponsiveHelper.isSmallScreen(context) ? 22 : 24,
                   backgroundColor: Colors.white,
                   child: Text(
-                    'G',
+                    (_post!.penulis.isNotEmpty ? _post!.penulis[0] : 'G')
+                        .toUpperCase(),
                     style: TextStyle(
                       color: categoryColor,
                       fontWeight: FontWeight.bold,
@@ -633,7 +653,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Guest',
+                      _post!.penulis,
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -653,7 +673,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          FormatHelper.getFormattedDate(_artikel!.createdAt),
+                          FormatHelper.getFormattedDate(_post!.createdAt),
                           style: TextStyle(
                             color: AppTheme.onSurfaceVariant,
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -682,7 +702,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                     Icon(categoryIcon, size: 16, color: categoryColor),
                     const SizedBox(width: 6),
                     Text(
-                      _artikel!.kategori,
+                      kategoriNama,
                       style: TextStyle(
                         color: categoryColor,
                         fontSize: chipSize,
@@ -694,11 +714,36 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
 
-          // Post Title
+          const SizedBox(height: 16),
+
+          // Cover image (jika ada)
+          if (coverUrl.isNotEmpty) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: AspectRatio(
+                aspectRatio: 16 / 9,
+                child: Image.network(
+                  coverUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    alignment: Alignment.center,
+                    color: categoryColor.withValues(alpha: 0.08),
+                    child: Icon(
+                      Icons.broken_image_rounded,
+                      color: categoryColor.withValues(alpha: 0.4),
+                      size: 40,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+          ],
+
+          // Judul
           Text(
-            _artikel!.judul,
+            _post!.judul,
             style: TextStyle(
               fontSize: titleSize,
               fontWeight: FontWeight.bold,
@@ -707,11 +752,11 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               letterSpacing: -0.5,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
 
-          // Post Content
+          // Konten (pakai isi jika ada; fallback excerpt)
           Text(
-            _artikel!.isi ?? _artikel!.excerpt,
+            (_post!.isi?.isNotEmpty == true) ? _post!.isi! : _post!.excerpt,
             style: TextStyle(
               fontSize: bodySize,
               color: AppTheme.onSurface.withValues(alpha: 0.9),
@@ -719,7 +764,41 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             ),
           ),
 
-          const SizedBox(height: 20),
+          // Galeri
+          if (gallery.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            SizedBox(
+              height: 110,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: gallery.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                itemBuilder: (context, i) {
+                  final url = gallery[i];
+                  return ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: AspectRatio(
+                      aspectRatio: 1.4,
+                      child: Image.network(
+                        url,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: categoryColor.withValues(alpha: 0.08),
+                          alignment: Alignment.center,
+                          child: Icon(
+                            Icons.broken_image_rounded,
+                            color: categoryColor.withValues(alpha: 0.4),
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ],
+
+          const SizedBox(height: 16),
 
           // Action Buttons
           Wrap(
@@ -736,12 +815,12 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                     vertical: ResponsiveHelper.isSmallScreen(context) ? 8 : 10,
                   ),
                   decoration: BoxDecoration(
-                    color: isLiked
+                    color: _liked
                         ? Colors.red.withValues(alpha: 0.1)
                         : AppTheme.primaryBlue.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: isLiked
+                      color: _liked
                           ? Colors.red.withValues(alpha: 0.2)
                           : AppTheme.primaryBlue.withValues(alpha: 0.1),
                     ),
@@ -762,17 +841,17 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         )
                       else
                         Icon(
-                          isLiked ? Icons.favorite : Icons.favorite_border,
-                          color: isLiked
+                          _liked ? Icons.favorite : Icons.favorite_border,
+                          color: _liked
                               ? Colors.red
                               : AppTheme.onSurfaceVariant,
                           size: iconSz,
                         ),
                       const SizedBox(width: 8),
                       Text(
-                        '${_artikel!.jumlahLike}',
+                        '${_post!.totalLikes}',
                         style: TextStyle(
-                          color: isLiked
+                          color: _liked
                               ? Colors.red
                               : AppTheme.onSurfaceVariant,
                           fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -792,13 +871,11 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                   vertical: ResponsiveHelper.isSmallScreen(context) ? 8 : 10,
                 ),
                 decoration: BoxDecoration(
-                  color: _getCategoryColor(
-                    _artikel!.kategori,
-                  ).withValues(alpha: 0.1),
+                  color: _getCategoryColor(kategoriNama).withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _getCategoryColor(
-                      _artikel!.kategori,
+                      kategoriNama,
                     ).withValues(alpha: 0.2),
                   ),
                 ),
@@ -807,14 +884,14 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                   children: [
                     Icon(
                       Icons.chat_bubble_outline,
-                      color: _getCategoryColor(_artikel!.kategori),
+                      color: _getCategoryColor(kategoriNama),
                       size: iconSz,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${_comments.length}',
+                      '${_post!.totalKomentar}',
                       style: TextStyle(
-                        color: _getCategoryColor(_artikel!.kategori),
+                        color: _getCategoryColor(kategoriNama),
                         fontSize: ResponsiveHelper.adaptiveTextSize(
                           context,
                           14,
@@ -878,7 +955,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Comment (${_comments.length})',
+                  'Komentar (${_comments.length})',
                   style: TextStyle(
                     fontSize: titleSize,
                     fontWeight: FontWeight.bold,
@@ -906,7 +983,6 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             _buildEmptyCommentsState()
           else ...[
             ..._comments.map((comment) => _buildCommentItem(comment)),
-
             if (_currentCommentPage < _lastCommentPage)
               Padding(
                 padding: const EdgeInsets.only(top: 16),
@@ -926,7 +1002,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                       ),
                     ),
                     child: Text(
-                      _isLoadingComments ? 'Loading...' : 'Load More Comments',
+                      _isLoadingComments ? 'Memuat...' : 'Muat Komentar Lain',
                     ),
                   ),
                 ),
@@ -941,6 +1017,9 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
     final titleSize = ResponsiveHelper.adaptiveTextSize(context, 16);
     final subSize = ResponsiveHelper.adaptiveTextSize(context, 14);
     final iconSz = ResponsiveHelper.adaptiveTextSize(context, 48);
+
+    final isLoggedIn =
+        ref.watch(authProvider)['status'] == AuthState.authenticated;
 
     return Center(
       child: Container(
@@ -968,7 +1047,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              'No comments yet',
+              'Belum ada komentar',
               style: TextStyle(
                 fontSize: titleSize,
                 color: AppTheme.onSurface,
@@ -977,9 +1056,9 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
             ),
             const SizedBox(height: 6),
             Text(
-              ref.watch(authProvider)['status'] == AuthState.authenticated
-                  ? 'Be the first to comment'
-                  : 'Login to comment',
+              isLoggedIn
+                  ? 'Jadilah yang pertama berkomentar'
+                  : 'Masuk untuk berkomentar',
               style: TextStyle(
                 fontSize: subSize,
                 color: AppTheme.onSurfaceVariant,
@@ -993,7 +1072,8 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
 
   Widget _buildCommentItem(Map<String, dynamic> comment) {
     final isAnonymous = comment['isAnonymous'] ?? false;
-    final categoryColor = _getCategoryColor(_artikel!.kategori);
+    final kategoriNama = _post!.kategori.nama;
+    final categoryColor = _getCategoryColor(kategoriNama);
 
     final nameSize = ResponsiveHelper.adaptiveTextSize(context, 14);
     final timeSize = ResponsiveHelper.adaptiveTextSize(context, 12);
@@ -1039,7 +1119,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                           size: nameSize,
                         )
                       : Text(
-                          comment['authorName'][0].toUpperCase(),
+                          (comment['authorName'] ?? 'U')[0].toUpperCase(),
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1213,7 +1293,7 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         borderRadius: BorderRadius.circular(16),
                       ),
                       child: Text(
-                        _isAnonymous ? 'Used Name' : 'Send Anonymously',
+                        _isAnonymous ? 'Pakai Nama' : 'Kirim Anonim',
                         style: TextStyle(
                           fontSize: toggleSize,
                           color: _isAnonymous
@@ -1245,8 +1325,8 @@ class _DetailKomunitasPageState extends ConsumerState<DetailKomunitasPage> {
                         enabled: !_isSubmittingComment,
                         decoration: InputDecoration(
                           hintText: _isAnonymous
-                              ? 'Write your comment as anonymous...'
-                              : 'Write your comment...',
+                              ? 'Tulis komentar sebagai anonim...'
+                              : 'Tulis komentar...',
                           hintStyle: TextStyle(
                             color: AppTheme.onSurfaceVariant.withValues(
                               alpha: 0.6,
