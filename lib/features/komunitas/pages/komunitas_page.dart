@@ -25,7 +25,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
-  final String _selectedCategory = 'Semua';
+  String _selectedCategory = 'Semua';
   String _searchQuery = '';
 
   @override
@@ -82,7 +82,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     ];
   }
 
-  /// === MAPPING BARU: menyesuaikan struktur response terbaru ===
   List<Map<String, dynamic>> get _filteredPosts {
     final List<KomunitasPostingan> postingan = ref
         .read(komunitasProvider)
@@ -116,34 +115,21 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
               .toList();
 
           return {
-            // ID
             'id': (item.id).toString(),
-
-            // Judul & ringkasan
             'judul': item.judul,
             'excerpt': item.excerpt,
-
-            // Penulis
             'authorId': (item.userId).toString(),
             'penulis': item.penulis,
-
-            // Kategori (nested)
             'kategoriId': (item.kategoriId).toString(),
             'kategoriNama': item.kategori.nama,
             'kategoriIcon': iconPath.isNotEmpty && storage.isNotEmpty
                 ? '$storage/$iconPath'
                 : null,
-
-            // Tanggal
             'date': FormatHelper.getFormattedDate(item.createdAt),
-
-            // Media (cover + galeri)
             'coverUrl': coverPath.isNotEmpty && storage.isNotEmpty
                 ? '$storage/$coverPath'
                 : null,
             'galeri': galeriList,
-
-            // Statistik
             'totalLikes': item.totalLikes,
             'totalKomentar': item.totalKomentar,
           };
@@ -156,42 +142,40 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     switch (category) {
       case 'ibadah':
         return const Color(0xFF3B82F6);
-      // tambahkan kategori lain jika ada
+      case 'event':
+        return const Color(0xFFF97316);
+      case 'sharing':
+        return const Color(0xFF10B981);
+      case 'pertanyaan':
+        return const Color(0xFF8B5CF6);
+      case 'diskusi':
+        return Colors.purple.shade400;
       default:
         return AppTheme.primaryBlue;
     }
   }
 
   void _navigateToAddPost() async {
-    final newPost = await Navigator.push<Map<String, dynamic>>(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (context) => const TambahPostinganPage()),
     );
-    if (newPost != null) {
-      ref.read(komunitasProvider.notifier).fetchPostingan();
+
+    if (result == true && mounted) {
+      // Refresh list setelah berhasil membuat postingan
+      ref.read(komunitasProvider.notifier).fetchPostingan(isRefresh: true);
     }
   }
 
-  void _toggleLike(String postId) {
-    logger.fine('Toggle like for post: $postId');
-  }
-
-  // void _deletePost(String postId) {
-  //   showMessageToast(
-  //     context,
-  //     message:
-  //         'Fitur hapus belum tersedia di provider baru. Tambahkan method di Notifier untuk mengaktifkan.',
-  //     type: ToastType.warning,
-  //   );
-  // }
-
   void _navigateToDetail(Map<String, dynamic> post) async {
-    final updatedPost = await Navigator.push<Map<String, dynamic>>(
+    final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (context) => DetailPostinganPage(post: post)),
     );
-    if (updatedPost != null) {
-      ref.read(komunitasProvider.notifier).fetchPostingan();
+
+    if (result == true && mounted) {
+      // Refresh list jika ada perubahan dari detail page
+      ref.read(komunitasProvider.notifier).fetchPostingan(isRefresh: true);
     }
   }
 
@@ -395,23 +379,23 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
   }
 
   Widget _buildContentArea(
-    dynamic komunitasState,
+    KomunitasState komunitasState,
     int currentPage,
     int lastPage,
     bool useGrid,
   ) {
-    final status = komunitasState.status as KomunitasStatus;
-    final isOffline = komunitasState.isOffline as bool;
+    final status = komunitasState.status;
+    final isOffline = komunitasState.isOffline;
 
     if ((status == KomunitasStatus.loading ||
             status == KomunitasStatus.initial) &&
         currentPage == 1 &&
-        komunitasState.postingan.isEmpty) {
+        komunitasState.postinganList.isEmpty) {
       return _buildLoadingState();
     }
 
     if (status == KomunitasStatus.error && _filteredPosts.isEmpty) {
-      return _buildErrorState(komunitasState.errorMessage);
+      return _buildErrorState(komunitasState.message);
     }
 
     if (_filteredPosts.isEmpty && status != KomunitasStatus.loading) {
@@ -791,21 +775,16 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     Map<String, dynamic> post, {
     required double imageHeight,
   }) {
-    // final isLiked = false;
     final authState = ref.watch(authProvider);
     final currentUser = authState['user'];
 
     final isMyPost =
         currentUser != null &&
-        post['authorId'].toString() == currentUser?['user']['id'].toString();
+        post['authorId'].toString() == currentUser['id'].toString();
 
     final categoryColor = _getCategoryColor(post['kategoriNama'] as String?);
     final kategoriIconUrl = post['kategoriIcon'] as String?;
     final coverUrl = post['coverUrl'] as String?;
-
-    logger.info('Post author ID: ${post['authorId']}');
-    logger.info('Current user ID: ${currentUser?['user']['id']}');
-    logger.info('Is my post: $isMyPost');
 
     return GestureDetector(
       onTap: () => _navigateToDetail(post),
@@ -926,12 +905,11 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       ],
                     ),
                   ),
-                  // menu tiga titik bisa diaktifkan lagi jika delete tersedia
                 ],
               ),
             ),
 
-            // Chip kategori (pakai icon dari API jika ada)
+            // Chip kategori
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Container(
@@ -1029,7 +1007,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                   borderRadius: BorderRadius.circular(16),
                   child: Stack(
                     children: [
-                      // Placeholder gradient
                       Container(
                         width: double.infinity,
                         height: imageHeight,
@@ -1052,7 +1029,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                           ),
                         ),
                       ),
-                      // Network image
                       Image.network(
                         coverUrl,
                         width: double.infinity,
@@ -1098,33 +1074,30 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
               ),
             ],
 
-            // Actions (likes & komentar)
+            // Actions
             Padding(
               padding: const EdgeInsets.all(14),
               child: Row(
                 children: [
-                  GestureDetector(
-                    onTap: () => _toggleLike(post['id'] as String),
-                    child: Row(
-                      children: [
-                        Icon(
-                          Icons.favorite_border,
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.favorite_border,
+                        color: AppTheme.onSurfaceVariant,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${post['totalLikes'] ?? 0}',
+                        style: TextStyle(
                           color: AppTheme.onSurfaceVariant,
-                          size: 20,
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${post['totalLikes'] ?? 0}',
-                          style: TextStyle(
-                            color: AppTheme.onSurfaceVariant,
-                            fontSize: ResponsiveHelper.adaptiveTextSize(
-                              context,
-                              13.5,
-                            ),
+                          fontSize: ResponsiveHelper.adaptiveTextSize(
+                            context,
+                            13.5,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                   const SizedBox(width: 22),
                   Row(
@@ -1147,7 +1120,6 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       ),
                     ],
                   ),
-                  const Spacer(),
                 ],
               ),
             ),

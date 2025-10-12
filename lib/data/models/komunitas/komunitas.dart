@@ -6,6 +6,7 @@ class KomunitasPostingan {
   final int kategoriId;
   final String judul;
   final String cover;
+  final String? isi; // Tambahkan field konten
   final List<String> daftarGambar;
   final DateTime createdAt;
   final DateTime updatedAt;
@@ -14,6 +15,7 @@ class KomunitasPostingan {
   final KategoriArtikel kategori;
   final int totalLikes;
   final int totalKomentar;
+  final bool? liked; // Tambahkan field liked
   final List<Komentar>? komentars;
 
   KomunitasPostingan({
@@ -23,6 +25,7 @@ class KomunitasPostingan {
     required this.judul,
     required this.excerpt,
     required this.cover,
+    this.isi,
     required this.daftarGambar,
     required this.totalLikes,
     required this.totalKomentar,
@@ -30,6 +33,7 @@ class KomunitasPostingan {
     required this.updatedAt,
     required this.penulis,
     required this.kategori,
+    this.liked,
     this.komentars,
   });
 
@@ -47,8 +51,8 @@ class KomunitasPostingan {
       judul: json['judul'] as String? ?? '',
       excerpt: json['excerpt'] as String? ?? '',
       cover: json['cover'] as String? ?? '',
-      daftarGambar:
-          (json['daftar_gambar'] as List<dynamic>?)
+      isi: json['konten'] as String?, // Map dari 'konten'
+      daftarGambar: (json['daftar_gambar'] as List<dynamic>?)
               ?.map((e) => e.toString())
               .toList() ??
           [],
@@ -60,6 +64,7 @@ class KomunitasPostingan {
       kategori: KategoriArtikel.fromJson(
         json['kategori'] as Map<String, dynamic>,
       ),
+      liked: json['liked'] as bool?,
       komentars: (json['komentars'] as List<dynamic>?)
           ?.map((e) => Komentar.fromJson(e as Map<String, dynamic>))
           .toList(),
@@ -74,6 +79,7 @@ class KomunitasPostingan {
       'judul': judul,
       'excerpt': excerpt,
       'cover': cover,
+      'konten': isi,
       'daftar_gambar': daftarGambar,
       'total_likes': totalLikes,
       'total_komentar': totalKomentar,
@@ -81,10 +87,17 @@ class KomunitasPostingan {
       'updated_at': updatedAt.toIso8601String(),
       'penulis': penulis,
       'kategori': kategori.toJson(),
+      'liked': liked,
+      'komentars': komentars?.map((e) => e.toJson()).toList(),
     };
   }
 
-  KomunitasPostingan? copyWith({required List<Komentar> komentars}) {
+  KomunitasPostingan copyWith({
+    List<Komentar>? komentars,
+    bool? liked,
+    int? totalLikes,
+    int? totalKomentar,
+  }) {
     return KomunitasPostingan(
       id: id,
       userId: userId,
@@ -92,14 +105,16 @@ class KomunitasPostingan {
       judul: judul,
       excerpt: excerpt,
       cover: cover,
+      isi: isi,
       daftarGambar: daftarGambar,
-      totalLikes: totalLikes,
-      totalKomentar: totalKomentar,
+      totalLikes: totalLikes ?? this.totalLikes,
+      totalKomentar: totalKomentar ?? this.totalKomentar,
       createdAt: createdAt,
       updatedAt: updatedAt,
       penulis: penulis,
       kategori: kategori,
-      komentars: komentars,
+      liked: liked ?? this.liked,
+      komentars: komentars ?? this.komentars,
     );
   }
 }
@@ -112,6 +127,7 @@ class Komentar {
   final DateTime createdAt;
   final DateTime updatedAt;
   final String penulis;
+  final bool? isAnonymous; // Tambahkan field ini
 
   Komentar({
     required this.id,
@@ -121,6 +137,7 @@ class Komentar {
     required this.createdAt,
     required this.updatedAt,
     required this.penulis,
+    this.isAnonymous,
   });
 
   factory Komentar.fromJson(Map<String, dynamic> json) {
@@ -138,6 +155,7 @@ class Komentar {
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
       penulis: json['penulis'] as String? ?? 'Unknown',
+      isAnonymous: json['is_anonymous'] as bool?,
     );
   }
 
@@ -150,6 +168,7 @@ class Komentar {
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),
       'penulis': penulis,
+      'is_anonymous': isAnonymous,
     };
   }
 }

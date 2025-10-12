@@ -1,56 +1,33 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:test_flutter/core/utils/logger.dart';
-import 'package:test_flutter/data/models/komunitas/komunitas.dart';
-import 'package:test_flutter/data/models/sholat/sholat.dart';
 import 'package:test_flutter/data/services/location_service.dart';
+import 'package:test_flutter/features/home/home_state.dart';
 import 'package:test_flutter/features/home/services/home_cache_service.dart';
 import 'package:test_flutter/features/home/services/home_service.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest.dart' as tz;
 
-enum HomeState {
-  initial,
-  loadingLocation,
-  loadingJadwalSholat,
-  loadingLatestArticle,
-  loadingAll,
-  loadedJadwalSholat,
-  loadedLatestArticle,
-  loadedAll,
-  error,
-  refreshingLocation,
-  refreshingJadwalSholat,
-  refreshingLatestArticle,
-  offline,
-}
+class HomeNotifier extends StateNotifier<HomeState> {
+  HomeNotifier() : super(HomeState.initial()) {
+    _initializeTimezone();
+  }
 
-class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
-  HomeNotifier()
-    : super({
-        'status': HomeState.initial,
-        'articles': <KomunitasArtikel>[],
-        'jadwalSholat': null,
-        'error': null,
-        'lastLocation': null,
-        'isOffline': false,
-        'locationError': null,
-      });
-
-  // Initialize timezone data (call this once in your app)
-  Future<void> initializeTimezone() async {
-    tz.initializeTimeZones();
+  // Initialize timezone data
+  void _initializeTimezone() {
+    try {
+      tz.initializeTimeZones();
+    } catch (e) {
+      logger.warning('Failed to initialize timezones: $e');
+    }
   }
 
   // Get timezone based on latitude and longitude
   String _getTimezoneFromLocation(double latitude, double longitude) {
-    // Simplified timezone detection based on coordinates
-    // For more accurate results, consider using a timezone API service
-
     if (latitude >= -11 &&
         latitude <= 6 &&
         longitude >= 95 &&
         longitude <= 141) {
-      // Indonesia timezone ranges
       if (longitude >= 95 && longitude <= 105) {
         return 'Asia/Jakarta'; // WIB (UTC+7)
       } else if (longitude >= 105 && longitude <= 120) {
@@ -59,80 +36,98 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
         return 'Asia/Jayapura'; // WIT (UTC+9)
       }
     }
-
-    // Default fallback
     return 'Asia/Jakarta';
   }
 
   // Get current time based on location
   DateTime _getCurrentTimeForLocation() {
-    final location = state['lastLocation'] as Map<String, dynamic>?;
+    final location = state.lastLocation;
     if (location == null) {
-      return DateTime.now(); // Fallback to system time
+      return DateTime.now();
     }
 
     final latitude = location['latitude'] as double;
     final longitude = location['longitude'] as double;
 
-    final timezoneName = _getTimezoneFromLocation(latitude, longitude);
-    final timezone = tz.getLocation(timezoneName);
-
-    return tz.TZDateTime.now(timezone);
+    try {
+      final timezoneName = _getTimezoneFromLocation(latitude, longitude);
+      final timezone = tz.getLocation(timezoneName);
+      return tz.TZDateTime.now(timezone);
+    } catch (e) {
+      logger.warning('Failed to get timezone time: $e');
+      return DateTime.now();
+    }
   }
 
-  // Load location and then jadwal sholat
-  Future<void> loadLocationAndJadwalSholat() async {
+  // Load all data when page loads
+  Future<void> loadAllData() async {
     try {
-      state = {...state, 'status': HomeState.loadingLocation};
+      state = state.copyWith(status: HomeStatus.loading);
 
+      // Load articles first (doesn't need location)
+      await _loadLatestArticlesInternal();
+
+      // Load location and jadwal sholat
+      await _loadLocationAndJadwalSholatInternal();
+
+      // Check final state
+      final hasJadwalSholat = state.jadwalSholat != null;
+      final hasArticles = state.articles.isNotEmpty;
+
+      if (hasJadwalSholat && hasArticles) {
+        state = state.copyWith(status: HomeStatus.loaded);
+      }
+    } catch (e) {
+      logger.warning('Error loading all data: $e');
+      state = state.copyWith(
+        status: HomeStatus.error,
+        error: 'Failed to load data: ${e.toString()}',
+      );
+    }
+  }
+
+  // Internal method to load location and jadwal sholat
+  Future<void> _loadLocationAndJadwalSholatInternal() async {
+    try {
       final position = await LocationService.getCurrentLocation();
       if (position == null) {
-        state = {
-          ...state,
-          'status': HomeState.error,
-          'locationError':
+        state = state.copyWith(
+          status: HomeStatus.error,
+          locationError:
               'Failed to get location. Please enable location services.',
-        };
+        );
         return;
       }
 
       // Store location
-      state = {
-        ...state,
-        'lastLocation': {
+      state = state.copyWith(
+        lastLocation: {
           'latitude': position.latitude,
           'longitude': position.longitude,
         },
-        'locationError': null,
-      };
+        clearLocationError: true,
+      );
 
       // Load jadwal sholat
-      await loadJadwalSholat(
+      await _loadJadwalSholatInternal(
         latitude: position.latitude,
         longitude: position.longitude,
       );
     } catch (e) {
       logger.warning('Error loading location: $e');
-      state = {
-        ...state,
-        'status': HomeState.error,
-        'error': 'Failed to load location: ${e.toString()}',
-      };
+      state = state.copyWith(
+        status: HomeStatus.error,
+        error: 'Failed to load location: ${e.toString()}',
+      );
     }
   }
 
-  Future<void> loadJadwalSholat({
+  // Internal method to load jadwal sholat
+  Future<void> _loadJadwalSholatInternal({
     required double latitude,
     required double longitude,
   }) async {
     try {
-      // Set loading state
-      state = {
-        ...state,
-        'status': HomeState.loadingJadwalSholat,
-        'isOffline': false,
-      };
-
       logger.fine('Loading jadwal sholat for location: $latitude, $longitude');
 
       // Try network first
@@ -142,7 +137,7 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
           longitude: longitude,
         );
 
-        final sholat = resp['data'] as Sholat;
+        final sholat = resp['data'];
 
         // Cache the data
         await HomeCacheService.cacheJadwalSholat(
@@ -151,14 +146,11 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
           longitude: longitude,
         );
 
-        state = {
-          ...state,
-          'status': HomeState.loadedJadwalSholat,
-          'jadwalSholat': sholat,
-          'error': null,
-          'isOffline': false,
-          'lastLocation': {'latitude': latitude, 'longitude': longitude},
-        };
+        state = state.copyWith(
+          jadwalSholat: sholat,
+          clearError: true,
+          isOffline: false,
+        );
 
         logger.fine('Jadwal sholat loaded successfully from network');
       } catch (networkError) {
@@ -171,87 +163,55 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
         );
 
         if (cachedSholat != null) {
-          state = {
-            ...state,
-            'status': HomeState.offline,
-            'jadwalSholat': cachedSholat,
-            'error':
+          state = state.copyWith(
+            status: HomeStatus.offline,
+            jadwalSholat: cachedSholat,
+            error:
                 HomeCacheService.isJadwalSholatCacheValid(
                   latitude: latitude,
                   longitude: longitude,
                 )
                 ? null
                 : 'Prayer schedule may not be up to date. No internet connection.',
-            'isOffline': true,
-          };
+            isOffline: true,
+          );
 
           logger.fine('Jadwal sholat loaded from cache');
         } else {
-          state = {
-            ...state,
-            'status': HomeState.error,
-            'error':
-                'Failed to load prayer schedule: ${networkError.toString()}',
-            'isOffline': true,
-          };
+          state = state.copyWith(
+            status: HomeStatus.error,
+            error: 'Failed to load prayer schedule: ${networkError.toString()}',
+            isOffline: true,
+          );
         }
       }
     } catch (e) {
       logger.warning('Error loading jadwal sholat: $e');
-      state = {
-        ...state,
-        'status': HomeState.error,
-        'error': 'Failed to load prayer schedule: ${e.toString()}',
-      };
-    }
-  }
-
-  Future<void> refreshJadwalSholat() async {
-    final lastLocation = state['lastLocation'] as Map<String, dynamic>?;
-
-    if (lastLocation == null) {
-      await loadLocationAndJadwalSholat();
-      return;
-    }
-
-    try {
-      state = {...state, 'status': HomeState.refreshingJadwalSholat};
-
-      await loadJadwalSholat(
-        latitude: lastLocation['latitude'],
-        longitude: lastLocation['longitude'],
+      state = state.copyWith(
+        status: HomeStatus.error,
+        error: 'Failed to load prayer schedule: ${e.toString()}',
       );
-    } catch (e) {
-      logger.warning('Error refreshing jadwal sholat: $e');
-      state = {
-        ...state,
-        'status': HomeState.loadedJadwalSholat,
-        'error': 'Failed to refresh prayer schedule: ${e.toString()}',
-      };
     }
   }
 
-  Future<void> loadLatestArticles() async {
+  // Internal method to load latest articles
+  Future<void> _loadLatestArticlesInternal() async {
     try {
-      state = {...state, 'status': HomeState.loadingLatestArticle};
-
       logger.fine('Loading latest articles');
 
       // Try network first
       try {
         final resp = await HomeService.getLatestArticle();
-        final articles = resp['data'] as List<KomunitasArtikel>;
+        final articles = resp['data'];
 
         // Cache the data
         await HomeCacheService.cacheLatestArticle(articles: articles);
 
-        state = {
-          ...state,
-          'status': HomeState.loadedLatestArticle,
-          'articles': articles,
-          'error': null,
-          'isOffline': false,
-        };
+        state = state.copyWith(
+          articles: articles,
+          clearError: true,
+          isOffline: false,
+        );
 
         logger.fine(
           'Latest articles loaded successfully: ${articles.length} articles',
@@ -263,127 +223,97 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
         final cachedArticles = HomeCacheService.getCachedLatestArticle();
 
         if (cachedArticles.isNotEmpty) {
-          state = {
-            ...state,
-            'status': HomeState.offline,
-            'articles': cachedArticles,
-            'error': HomeCacheService.isLatestArticleCacheValid()
+          state = state.copyWith(
+            status: HomeStatus.offline,
+            articles: cachedArticles,
+            error: HomeCacheService.isLatestArticleCacheValid()
                 ? null
                 : 'Articles may not be up to date. No internet connection.',
-            'isOffline': true,
-          };
+            isOffline: true,
+          );
 
           logger.fine(
             'Latest articles loaded from cache: ${cachedArticles.length} articles',
           );
         } else {
-          state = {
-            ...state,
-            'status': HomeState.error,
-            'error': 'Failed to load articles: ${networkError.toString()}',
-            'isOffline': true,
-          };
+          state = state.copyWith(
+            status: HomeStatus.error,
+            error: 'Failed to load articles: ${networkError.toString()}',
+            isOffline: true,
+          );
         }
       }
     } catch (e) {
       logger.warning('Error loading latest articles: $e');
-      state = {
-        ...state,
-        'status': HomeState.error,
-        'error': 'Failed to load articles: ${e.toString()}',
-      };
+      state = state.copyWith(
+        status: HomeStatus.error,
+        error: 'Failed to load articles: ${e.toString()}',
+      );
     }
   }
 
-  Future<void> refreshLatestArticles() async {
-    try {
-      state = {...state, 'status': HomeState.refreshingLatestArticle};
-      await loadLatestArticles();
-    } catch (e) {
-      logger.warning('Error refreshing latest articles: $e');
-      state = {
-        ...state,
-        'status': HomeState.loadedLatestArticle,
-        'error': 'Failed to refresh articles: ${e.toString()}',
-      };
-    }
-  }
-
-  Future<void> loadAllData() async {
-    try {
-      state = {...state, 'status': HomeState.loadingAll};
-
-      // Load articles first (doesn't need location)
-      await loadLatestArticles();
-
-      // Load location and jadwal sholat
-      await loadLocationAndJadwalSholat();
-
-      // Check final state
-      final hasJadwalSholat = state['jadwalSholat'] != null;
-      final hasArticles = (state['articles'] as List).isNotEmpty;
-
-      if (hasJadwalSholat && hasArticles) {
-        state = {...state, 'status': HomeState.loadedAll};
-      }
-    } catch (e) {
-      logger.warning('Error loading all data: $e');
-      state = {
-        ...state,
-        'status': HomeState.error,
-        'error': 'Failed to load data: ${e.toString()}',
-      };
-    }
-  }
-
-  // Refresh location dan jadwal sholat
+  // Public method to refresh location and jadwal sholat
   Future<void> refreshLocationAndJadwalSholat() async {
     try {
-      state = {...state, 'status': HomeState.refreshingLocation};
+      state = state.copyWith(status: HomeStatus.refreshing);
 
       final position = await LocationService.getCurrentLocation();
       if (position == null) {
-        state = {
-          ...state,
-          'status': HomeState.error,
-          'locationError':
+        state = state.copyWith(
+          status: HomeStatus.error,
+          locationError:
               'Failed to get location. Please enable location services.',
-        };
+        );
         return;
       }
 
       // Update location
-      state = {
-        ...state,
-        'lastLocation': {
+      state = state.copyWith(
+        lastLocation: {
           'latitude': position.latitude,
           'longitude': position.longitude,
         },
-        'locationError': null,
-      };
+        clearLocationError: true,
+      );
 
       // Refresh jadwal sholat with new location
-      await loadJadwalSholat(
+      await _loadJadwalSholatInternal(
         latitude: position.latitude,
         longitude: position.longitude,
       );
+
+      state = state.copyWith(status: HomeStatus.loaded);
     } catch (e) {
       logger.warning('Error refreshing location: $e');
-      state = {
-        ...state,
-        'status': HomeState.error,
-        'error': 'Failed to refresh location: ${e.toString()}',
-      };
+      state = state.copyWith(
+        status: HomeStatus.error,
+        error: 'Failed to refresh location: ${e.toString()}',
+      );
+    }
+  }
+
+  // Public method to refresh latest articles
+  Future<void> refreshLatestArticles() async {
+    try {
+      state = state.copyWith(status: HomeStatus.refreshing);
+      await _loadLatestArticlesInternal();
+      state = state.copyWith(status: HomeStatus.loaded);
+    } catch (e) {
+      logger.warning('Error refreshing latest articles: $e');
+      state = state.copyWith(
+        status: HomeStatus.error,
+        error: 'Failed to refresh articles: ${e.toString()}',
+      );
     }
   }
 
   void clearError() {
-    state = {...state, 'error': null, 'locationError': null};
+    state = state.copyWith(clearError: true, clearLocationError: true);
   }
 
   // Helper methods for prayer times
   String? getCurrentPrayerTime() {
-    final sholat = state['jadwalSholat'] as Sholat?;
+    final sholat = state.jadwalSholat;
     if (sholat == null) return null;
 
     final now = _getCurrentTimeForLocation();
@@ -392,7 +322,6 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
 
     final prayerTimes = sholat.wajib.getAllPrayerTimes();
 
-    // Find current prayer time
     for (int i = 0; i < prayerTimes.length; i++) {
       final prayerTime = prayerTimes[i]['time']!;
       if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
@@ -400,12 +329,11 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
       }
     }
 
-    // If past all prayers for today, return first prayer of next day
     return prayerTimes.first['time'];
   }
 
   String? getCurrentPrayerName() {
-    final sholat = state['jadwalSholat'] as Sholat?;
+    final sholat = state.jadwalSholat;
     if (sholat == null) return null;
 
     final now = _getCurrentTimeForLocation();
@@ -414,7 +342,6 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
 
     final prayerTimes = sholat.wajib.getAllPrayerTimes();
 
-    // Find current prayer name
     for (int i = 0; i < prayerTimes.length; i++) {
       final prayerTime = prayerTimes[i]['time']!;
       if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
@@ -422,12 +349,11 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
       }
     }
 
-    // If past all prayers for today, return first prayer of next day
     return prayerTimes.first['name'];
   }
 
   String? getTimeUntilNextPrayer() {
-    final sholat = state['jadwalSholat'] as Sholat?;
+    final sholat = state.jadwalSholat;
     if (sholat == null) return null;
 
     final now = _getCurrentTimeForLocation();
@@ -436,7 +362,6 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
 
     final prayerTimes = sholat.wajib.getAllPrayerTimes();
 
-    // Find next prayer time
     for (int i = 0; i < prayerTimes.length; i++) {
       final prayerTime = prayerTimes[i]['time']!;
       if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
@@ -453,7 +378,6 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
       }
     }
 
-    // If past all prayers for today, calculate time until first prayer of next day
     final firstPrayerTime = prayerTimes.first['time']!;
     final minutesUntilMidnight = (24 * 60) - _timeToMinutes(currentTime);
     final minutesFromMidnight = _timeToMinutes(firstPrayerTime);
@@ -465,15 +389,13 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
     return '$hours hour $minutes min left';
   }
 
-  // Helper method to get formatted current time for location
   String getCurrentTimeString() {
     final now = _getCurrentTimeForLocation();
     return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
   }
 
-  // Helper method to get timezone info
   String getCurrentTimezone() {
-    final location = state['lastLocation'] as Map<String, dynamic>?;
+    final location = state.lastLocation;
     if (location == null) {
       return 'Unknown';
     }
@@ -502,8 +424,6 @@ class HomeNotifier extends StateNotifier<Map<String, dynamic>> {
   }
 }
 
-final homeProvider = StateNotifierProvider<HomeNotifier, Map<String, dynamic>>((
-  ref,
-) {
+final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
   return HomeNotifier();
 });

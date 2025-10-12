@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
-import 'package:test_flutter/core/utils/logger.dart';
+import 'package:test_flutter/data/models/reponse_format.dart';
 
 class ProfileService {
-  static Future<Map<String, dynamic>> updateProfile(
+  static Future<ResponseFormat> updateProfile(
     String name,
     String email,
     String? phone,
@@ -14,19 +14,18 @@ class ProfileService {
         data: {'name': name, 'email': email, if (phone != null) 'phone': phone},
       );
 
-      logger.fine('Update Profile Response Data: ${response.data}');
-      return response.data as Map<String, dynamic>;
+      final responseData = ResponseFormat.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+
+      return responseData;
     } on DioException catch (e) {
-      logger.warning('DioException: ${e.message}');
-      String errorMessage = 'Failed to update profile';
-
-      ApiClient.parseDioError(e, errorMessage);
-
-      throw Exception(errorMessage);
+      final error = ApiClient.parseDioError(e);
+      throw Exception(error);
     }
   }
 
-  static Future<Map<String, dynamic>> updatePassword(
+  static Future<ResponseFormat> updatePassword(
     String currentPassword,
     String newPassword,
     String confirmPassword,
@@ -41,13 +40,14 @@ class ProfileService {
         },
       );
 
-      return response.data as Map<String, dynamic>;
+      final responseData = ResponseFormat.fromJson(
+        response.data as Map<String, dynamic>,
+      );
+
+      return responseData;
     } on DioException catch (e) {
-      String errorMessage = 'Failed to update password';
-
-      ApiClient.parseDioError(e, errorMessage);
-
-      throw Exception(errorMessage);
+      final error = ApiClient.parseDioError(e);
+      throw Exception(error);
     }
   }
 }

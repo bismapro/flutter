@@ -153,10 +153,119 @@ class CacheService {
     return data != null;
   }
 
+  /// FUNGSI isCacheValid()
+  ///
+  /// Tugas: Mengecek apakah cache masih valid (belum expired)
+  /// Return true jika cache ada dan belum expired
+  /// Return false jika cache tidak ada atau sudah expired
+  static bool isCacheValid(String key) {
+    final entry = _cacheBox?.get(key);
+    if (entry == null) {
+      return false;
+    }
+
+    final DateTime expiryDate =
+        entry.customExpiry ?? entry.cachedAt.add(const Duration(hours: 24));
+    final bool isExpired = DateTime.now().isAfter(expiryDate);
+
+    return !isExpired;
+  }
+
+  /// FUNGSI getAllCacheKeys()
+  ///
+  /// Tugas: Mendapatkan semua key yang ada di cache box
+  /// Return list of string keys
+  static List<String> getAllCacheKeys() {
+    return _cacheBox?.keys.cast<String>().toList() ?? [];
+  }
+
+  /// FUNGSI getCacheInfo()
+  ///
+  /// Tugas: Mendapatkan informasi statistik cache
+  /// Return map dengan info total cache, types, dll
+  static Map<String, dynamic> getCacheInfo() {
+    final allEntries = _cacheBox?.values.toList() ?? [];
+
+    // Group by dataType
+    final Map<String, int> typeCount = {};
+    for (final entry in allEntries) {
+      final type = entry.dataType;
+      typeCount[type] = (typeCount[type] ?? 0) + 1;
+    }
+
+    return {
+      'total_entries': allEntries.length,
+      'types': typeCount,
+      'cache_box_name': _cacheBoxName,
+      'metadata_box_name': _metadataBoxName,
+    };
+  }
+
+  /// FUNGSI getCacheMetadata()
+  ///
+  /// Tugas: Mendapatkan metadata dari cache (untuk paginated data)
   static CacheMetadata? getCacheMetadata(String key) => _metadataBox?.get(key);
 
+  /// FUNGSI clearCache()
+  ///
+  /// Tugas: Menghapus cache berdasarkan key
   static Future<void> clearCache(String key) async {
     await _cacheBox?.delete(key);
     await _metadataBox?.delete(key);
+  }
+
+  /// FUNGSI clearAllCache()
+  ///
+  /// Tugas: Menghapus semua cache yang ada
+  static Future<void> clearAllCache() async {
+    await _cacheBox?.clear();
+    await _metadataBox?.clear();
+  }
+
+  /// FUNGSI getCacheSize()
+  ///
+  /// Tugas: Mendapatkan estimasi ukuran cache dalam bytes
+  static int getCacheSize() {
+    int totalSize = 0;
+    final allEntries = _cacheBox?.values.toList() ?? [];
+
+    for (final entry in allEntries) {
+      // Estimate size based on JSON string length
+      totalSize += entry.jsonData.length;
+    }
+
+    return totalSize;
+  }
+
+  /// FUNGSI clearExpiredCache()
+  ///
+  /// Tugas: Menghapus semua cache yang sudah expired
+  static Future<int> clearExpiredCache() async {
+    int deletedCount = 0;
+    final allKeys = getAllCacheKeys();
+
+    for (final key in allKeys) {
+      final entry = _cacheBox?.get(key);
+      if (entry != null) {
+        final DateTime expiryDate =
+            entry.customExpiry ?? entry.cachedAt.add(const Duration(hours: 24));
+        final bool isExpired = DateTime.now().isAfter(expiryDate);
+
+        if (isExpired) {
+          await clearCache(key);
+          deletedCount++;
+        }
+      }
+    }
+
+    return deletedCount;
+  }
+
+  /// FUNGSI close()
+  ///
+  /// Tugas: Menutup box cache (biasanya dipanggil saat app terminate)
+  static Future<void> close() async {
+    await _cacheBox?.close();
+    await _metadataBox?.close();
   }
 }

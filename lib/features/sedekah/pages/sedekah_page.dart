@@ -3,9 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/data/models/sedekah/sedekah.dart';
 import 'package:test_flutter/features/sedekah/pages/tambah_sedekah_page.dart';
 import 'package:test_flutter/features/sedekah/sedekah_provider.dart';
+import 'package:test_flutter/features/sedekah/sedekah_state.dart';
 
 class SedekahPage extends ConsumerStatefulWidget {
   const SedekahPage({super.key});
@@ -38,12 +40,15 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
   );
 
   Future<void> _goToAdd() async {
-    await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const TambahSedekahPage()),
     );
-    // Refresh data after coming back from add page
-    await _refreshData();
+
+    // Refresh data after coming back from add page if success
+    if (result != null && result['success'] == true) {
+      await _refreshData();
+    }
   }
 
   Future<void> _refreshData() async {
@@ -61,21 +66,35 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-  }
-
-  // ---------- UI ----------
-  @override
   Widget build(BuildContext context) {
     // Watch provider
     final sedekahState = ref.watch(sedekahProvider);
-    final sedekahStats = sedekahState['sedekahStats'] as StatistikSedekah?;
+    final sedekahStats = sedekahState.sedekahStats;
     final totalHariIni = sedekahStats?.totalHariIni ?? 0;
     final totalBulanIni = sedekahStats?.totalBulanIni ?? 0;
     final riwayat = sedekahStats?.riwayat ?? <Sedekah>[];
-    final error = sedekahState['error'];
-    final status = sedekahState['status'] as SedekahState;
+    final status = sedekahState.status;
+    final message = sedekahState.message;
+    final isOffline = sedekahState.isOffline;
+
+    // Listen to state changes for showing messages
+    ref.listen<SedekahState>(sedekahProvider, (previous, next) {
+      if (next.status == SedekahStatus.success && next.message != null) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: ToastType.success,
+        );
+        ref.read(sedekahProvider.notifier).clearMessage();
+      } else if (next.status == SedekahStatus.error && next.message != null) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: ToastType.error,
+        );
+        ref.read(sedekahProvider.notifier).clearMessage();
+      }
+    });
 
     return Scaffold(
       body: Container(
@@ -139,6 +158,40 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
                                           letterSpacing: -0.5,
                                         ),
                                       ),
+                                      if (isOffline) ...[
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 8,
+                                            vertical: 4,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: Colors.orange.shade100,
+                                            borderRadius: BorderRadius.circular(
+                                              6,
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Icon(
+                                                Icons.cloud_off,
+                                                size: 12,
+                                                color: Colors.orange.shade700,
+                                              ),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Offline',
+                                                style: TextStyle(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Colors.orange.shade700,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                   SizedBox(height: _px(context, 4)),
@@ -153,7 +206,8 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
                               ),
                             ),
                             // Refresh button
-                            if (status != SedekahState.loading)
+                            if (status != SedekahStatus.loading &&
+                                status != SedekahStatus.refreshing)
                               Container(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -186,7 +240,7 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
                     child: _buildContent(
                       context,
                       status,
-                      error,
+                      message,
                       riwayat,
                       totalHariIni,
                       totalBulanIni,
@@ -224,23 +278,23 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
 
   Widget _buildContent(
     BuildContext context,
-    SedekahState status,
-    dynamic error,
+    SedekahStatus status,
+    String? message,
     List<Sedekah> riwayat,
     int totalHariIni,
     int totalBulanIni,
   ) {
-    // Loading state
-    if (status == SedekahState.loading) {
+    // Loading state (initial load)
+    if (status == SedekahStatus.loading) {
       return _buildLoadingState(context);
     }
 
     // Error state
-    if (status == SedekahState.error && error != null) {
-      return _buildErrorState(context, error.toString());
+    if (status == SedekahStatus.error && message != null) {
+      return _buildErrorState(context, message);
     }
 
-    // Success state
+    // Success state (loaded, offline, refreshing)
     return Column(
       children: [
         // Statistics
@@ -323,7 +377,9 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
                   color: AppTheme.primaryBlue,
                   child: ListView.builder(
                     padding: _hpad(context),
-                    physics: const BouncingScrollPhysics(),
+                    physics: const AlwaysScrollableScrollPhysics(
+                      parent: BouncingScrollPhysics(),
+                    ),
                     itemCount: riwayat.length,
                     itemBuilder: (_, i) => _riwayatTile(context, riwayat[i]),
                   ),
@@ -659,11 +715,15 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
                         color: AppTheme.onSurfaceVariant,
                       ),
                       const SizedBox(width: 4),
-                      Text(
-                        formattedDate,
-                        style: TextStyle(
-                          fontSize: _ts(context, 13),
-                          color: AppTheme.onSurfaceVariant,
+                      Expanded(
+                        child: Text(
+                          formattedDate,
+                          style: TextStyle(
+                            fontSize: _ts(context, 13),
+                            color: AppTheme.onSurfaceVariant,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],

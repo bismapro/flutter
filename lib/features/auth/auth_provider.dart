@@ -62,7 +62,7 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
         logger.fine('Access token 401 → try refresh once');
         try {
           final r = await AuthService.refresh(); // pastikan ada endpoint ini
-          final newAccess = r['access_token'] as String?;
+          final newAccess = r['token'] as String?;
 
           if (newAccess == null || newAccess.isEmpty) {
             logger.fine('Refresh failed: empty access token');
@@ -122,10 +122,10 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       }
 
       // Save token first
-      if (data['access_token'] != null &&
-          data['access_token'].toString().isNotEmpty) {
-        await StorageHelper.saveToken(data['access_token']);
-        logger.fine('Access Token saved: ${data['access_token']}');
+      if (data['token'] != null &&
+          data['token'].toString().isNotEmpty) {
+        await StorageHelper.saveToken(data['token']);
+        logger.fine('Access Token saved: ${data['token']}');
       } else if (data['token'] != null && data['token'].toString().isNotEmpty) {
         await StorageHelper.saveToken(data['token']);
         logger.fine('Token saved: ${data['token']}');

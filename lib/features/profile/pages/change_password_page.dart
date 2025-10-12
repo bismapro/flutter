@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/features/profile/profile_provider.dart';
+import 'package:test_flutter/features/profile/profile_state.dart';
 
 class ChangePasswordPage extends ConsumerStatefulWidget {
   const ChangePasswordPage({super.key});
@@ -39,9 +40,13 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
       final newPassword = _newPasswordController.text.trim();
       final confirmPassword = _confirmPasswordController.text.trim();
 
-      ref
+      await ref
           .read(profileProvider.notifier)
-          .editPassword(currentPassword, newPassword, confirmPassword);
+          .editPassword(
+            currentPassword: currentPassword,
+            newPassword: newPassword,
+            confirmPassword: confirmPassword,
+          );
     }
   }
 
@@ -52,37 +57,37 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
 
     // Watch profile state
     final profileState = ref.watch(profileProvider);
-    final _isLoading = profileState['status'] == ProfileState.loading;
-    final error = profileState['error'];
+    final isLoading = profileState.status == ProfileStatus.loading;
 
-    if (profileState['status'] == ProfileState.error && error != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Listen to state changes for showing messages
+    ref.listen<ProfileState>(profileProvider, (previous, next) {
+      if (next.status == ProfileStatus.success && next.message != null) {
         showMessageToast(
           context,
-          message: error.toString(),
-          type: ToastType.error,
-          duration: const Duration(seconds: 4),
-        );
-        ref.read(profileProvider.notifier).clearError();
-      });
-    }
-
-    if (profileState['status'] == ProfileState.success) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showMessageToast(
-          context,
-          message: 'Password updated successfully',
+          message: next.message!,
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );
-        ref.read(profileProvider.notifier).clearSuccess();
-      });
+        ref.read(profileProvider.notifier).clearMessage();
+        ref.read(profileProvider.notifier).resetStatus();
 
-      // Clear form fields
-      _currentPasswordController.clear();
-      _newPasswordController.clear();
-      _confirmPasswordController.clear();
-    }
+        // Clear form fields
+        _currentPasswordController.clear();
+        _newPasswordController.clear();
+        _confirmPasswordController.clear();
+
+        // Navigate back after successful password change
+        Navigator.pop(context, true);
+      } else if (next.status == ProfileStatus.error && next.message != null) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: ToastType.error,
+          duration: const Duration(seconds: 4),
+        );
+        ref.read(profileProvider.notifier).clearMessage();
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -95,6 +100,10 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
         foregroundColor: const Color(0xFF2D3748),
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: isLoading ? null : () => Navigator.pop(context),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -159,6 +168,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   label: 'Password Saat Ini',
                   icon: Icons.lock_outline,
                   isVisible: _showCurrentPassword,
+                  enabled: !isLoading,
                   onVisibilityToggle: () {
                     setState(() {
                       _showCurrentPassword = !_showCurrentPassword;
@@ -184,6 +194,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   label: 'Password Baru',
                   icon: Icons.lock,
                   isVisible: _showNewPassword,
+                  enabled: !isLoading,
                   onVisibilityToggle: () {
                     setState(() {
                       _showNewPassword = !_showNewPassword;
@@ -201,6 +212,9 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                     ).hasMatch(value)) {
                       return 'Password harus mengandung huruf besar, kecil, dan angka';
                     }
+                    if (value == _currentPasswordController.text) {
+                      return 'Password baru harus berbeda dari password lama';
+                    }
                     return null;
                   },
                   isTablet: isTablet,
@@ -214,6 +228,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   label: 'Konfirmasi Password Baru',
                   icon: Icons.lock_reset,
                   isVisible: _showConfirmPassword,
+                  enabled: !isLoading,
                   onVisibilityToggle: () {
                     setState(() {
                       _showConfirmPassword = !_showConfirmPassword;
@@ -263,6 +278,10 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                         '✓ Mengandung simbol (!@#\$%^&*)',
                         isTablet,
                       ),
+                      _buildPasswordTip(
+                        '✓ Berbeda dari password sebelumnya',
+                        isTablet,
+                      ),
                     ],
                   ),
                 ),
@@ -274,31 +293,82 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   width: double.infinity,
                   height: isTablet ? 56 : 48,
                   child: ElevatedButton(
-                    onPressed: _isLoading ? null : _changePassword,
+                    onPressed: isLoading ? null : _changePassword,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E88E5),
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey[300],
+                      disabledForegroundColor: Colors.grey[500],
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 2,
+                      elevation: isLoading ? 0 : 2,
                     ),
-                    child: _isLoading
-                        ? SizedBox(
-                            width: isTablet ? 24 : 20,
-                            height: isTablet ? 24 : 20,
-                            child: const CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
+                    child: isLoading
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: isTablet ? 20 : 18,
+                                height: isTablet ? 20 : 18,
+                                child: const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: isTablet ? 12 : 10),
+                              Text(
+                                'Mengubah Password...',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 18 : 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           )
-                        : Text(
-                            'Ubah Password',
-                            style: TextStyle(
-                              fontSize: isTablet ? 18 : 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.lock_reset, size: isTablet ? 22 : 20),
+                              SizedBox(width: isTablet ? 10 : 8),
+                              Text(
+                                'Ubah Password',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 18 : 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
+                  ),
+                ),
+
+                SizedBox(height: isTablet ? 20 : 16),
+
+                // Cancel Button
+                SizedBox(
+                  width: double.infinity,
+                  height: isTablet ? 56 : 48,
+                  child: OutlinedButton(
+                    onPressed: isLoading ? null : () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E88E5),
+                      side: BorderSide(
+                        color: isLoading
+                            ? Colors.grey[300]!
+                            : const Color(0xFF1E88E5),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Batal',
+                      style: TextStyle(
+                        fontSize: isTablet ? 18 : 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -317,29 +387,31 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
     required VoidCallback onVisibilityToggle,
     String? Function(String?)? validator,
     required bool isTablet,
+    bool enabled = true,
   }) {
     return TextFormField(
       controller: controller,
       obscureText: !isVisible,
       validator: validator,
+      enabled: enabled,
       style: TextStyle(
         fontSize: isTablet ? 18 : 16,
-        color: const Color(0xFF2D3748),
+        color: enabled ? const Color(0xFF2D3748) : Colors.grey[600],
       ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(
           icon,
-          color: const Color(0xFF1E88E5),
+          color: enabled ? const Color(0xFF1E88E5) : Colors.grey[400],
           size: isTablet ? 24 : 20,
         ),
         suffixIcon: IconButton(
           icon: Icon(
             isVisible ? Icons.visibility : Icons.visibility_off,
-            color: const Color(0xFF4A5568),
+            color: enabled ? const Color(0xFF4A5568) : Colors.grey[400],
             size: isTablet ? 24 : 20,
           ),
-          onPressed: onVisibilityToggle,
+          onPressed: enabled ? onVisibilityToggle : null,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -353,6 +425,10 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red),
@@ -362,13 +438,13 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: enabled ? Colors.grey[50] : Colors.grey[100],
         contentPadding: EdgeInsets.symmetric(
           horizontal: isTablet ? 20 : 16,
           vertical: isTablet ? 20 : 16,
         ),
         labelStyle: TextStyle(
-          color: const Color(0xFF4A5568),
+          color: enabled ? const Color(0xFF4A5568) : Colors.grey[500],
           fontSize: isTablet ? 16 : 14,
         ),
       ),

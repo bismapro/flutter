@@ -32,8 +32,7 @@ class SholatService {
         'data': sholat,
       };
     } on DioException catch (e) {
-      String errorMessage = 'Failed to fetch jadwal sholat';
-      final error = ApiClient.parseDioError(e, errorMessage);
+      final error = ApiClient.parseDioError(e);
       throw Exception(error);
     }
   }

@@ -5,6 +5,7 @@ import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/features/sedekah/sedekah_provider.dart';
+import 'package:test_flutter/features/sedekah/sedekah_state.dart';
 
 class TambahSedekahPage extends ConsumerStatefulWidget {
   const TambahSedekahPage({super.key});
@@ -45,29 +46,36 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
   @override
   void initState() {
     super.initState();
+
     // Listen to provider state changes
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.listenManual(sedekahProvider, (previous, next) {
-        final status = next['status'] as SedekahState;
-        final error = next['error'];
+      // Using ref.listen to listen for state changes
+      ref.listen<SedekahState>(sedekahProvider, (previous, next) {
+        if (next.status == SedekahStatus.success && next.message != null) {
+          // Success - navigate back with success result
+          Navigator.pop(context, {'success': true});
 
-        if (status == SedekahState.success) {
-          // Success - navigate back and show success message
-          Navigator.pop(context);
+          // Show success toast
           showMessageToast(
             context,
-            message: 'Sedekah berhasil ditambahkan',
+            message: next.message ?? 'Sedekah berhasil ditambahkan',
             type: ToastType.success,
             duration: const Duration(seconds: 3),
           );
-        } else if (status == SedekahState.error && error != null) {
-          // Error - show error message
+
+          // Clear message after showing
+          ref.read(sedekahProvider.notifier).clearMessage();
+        } else if (next.status == SedekahStatus.error && next.message != null) {
+          // Error - show error toast
           showMessageToast(
             context,
-            message: 'Gagal menambahkan sedekah: $error',
+            message: next.message ?? 'Gagal menambahkan sedekah',
             type: ToastType.error,
             duration: const Duration(seconds: 4),
           );
+
+          // Clear message after showing
+          ref.read(sedekahProvider.notifier).clearMessage();
         }
       });
     });
@@ -102,21 +110,74 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
   }
 
   Future<void> _save() async {
-    if (_formKey.currentState!.validate()) {
-      final tanggal = DateFormat('yyyy-MM-dd').format(_selectedDate);
-      final amount = _amountController.text.replaceAll('.', '');
-      final type = _typeController.text.trim();
-      final note = _noteController.text.trim();
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
 
+    final tanggal = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final amount = _amountController.text.replaceAll('.', '');
+    final type = _typeController.text.trim();
+    final note = _noteController.text.trim();
+
+    try {
       // Use the provider's addSedekah method
       await ref
           .read(sedekahProvider.notifier)
           .addSedekah(
-            type,
-            tanggal,
-            int.parse(amount),
-            note.isNotEmpty ? note : null,
+            jenisSedekah: type,
+            tanggal: tanggal,
+            jumlah: int.parse(amount),
+            keterangan: note.isNotEmpty ? note : null,
           );
+    } catch (e) {
+      // Error handling is done in the listener
+    }
+  }
+
+  void _handleBack() {
+    final sedekahState = ref.read(sedekahProvider);
+    final isLoading = sedekahState.status == SedekahStatus.loading;
+
+    if (isLoading) return;
+
+    // Check if there's unsaved data
+    final hasData =
+        _typeController.text.trim().isNotEmpty ||
+        _amountController.text.trim().isNotEmpty ||
+        _noteController.text.trim().isNotEmpty;
+
+    if (hasData) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Batalkan Input?'),
+          content: const Text(
+            'Data yang sudah diisi akan hilang. Apakah Anda yakin ingin keluar?',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tidak'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Close page
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade400,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Keluar'),
+            ),
+          ],
+        ),
+      );
+    } else {
+      Navigator.pop(context);
     }
   }
 
@@ -124,7 +185,7 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
   Widget build(BuildContext context) {
     // Watch provider state
     final sedekahState = ref.watch(sedekahProvider);
-    final isLoading = sedekahState['status'] == SedekahState.loading;
+    final isLoading = sedekahState.status == SedekahStatus.loading;
 
     return Scaffold(
       body: Container(
@@ -172,9 +233,7 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
-                            onPressed: isLoading
-                                ? null
-                                : () => Navigator.pop(context),
+                            onPressed: isLoading ? null : _handleBack,
                             icon: const Icon(Icons.arrow_back_rounded),
                             color: AppTheme.primaryBlue,
                           ),
@@ -203,6 +262,20 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                             ],
                           ),
                         ),
+                        if (isLoading)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppTheme.primaryBlue,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -220,30 +293,22 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             // Jenis Sedekah - Text Input
-                            Text(
-                              'Jenis Sedekah',
-                              style: TextStyle(
-                                fontSize: _ts(context, 15),
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.onSurface,
-                              ),
-                            ),
+                            _buildLabel(context, 'Jenis Sedekah'),
                             SizedBox(height: _px(context, 10)),
-                            Container(
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(16),
-                                border: Border.all(
-                                  color: AppTheme.primaryBlue.withValues(
-                                    alpha: 0.1,
-                                  ),
-                                ),
-                              ),
+                            _buildInputContainer(
+                              context,
                               child: TextFormField(
                                 controller: _typeController,
                                 enabled: !isLoading,
                                 decoration: InputDecoration(
-                                  hintText: 'Masukkan jenis sedekah',
+                                  hintText:
+                                      'Contoh: Sedekah Jumat, Infaq Masjid',
+                                  hintStyle: TextStyle(
+                                    fontSize: _ts(context, 14),
+                                    color: AppTheme.onSurfaceVariant.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                  ),
                                   prefixIcon: const Icon(
                                     Icons.category_rounded,
                                     color: AppTheme.primaryBlue,
@@ -254,6 +319,10 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                                     vertical: _px(context, 14),
                                   ),
                                 ),
+                                style: TextStyle(
+                                  fontSize: _ts(context, 15),
+                                  fontWeight: FontWeight.w500,
+                                ),
                                 validator: (v) =>
                                     (v == null || v.trim().isEmpty)
                                     ? 'Masukkan jenis sedekah'
@@ -261,68 +330,56 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                               ),
                             ),
 
-                            SizedBox(height: _px(context, 16)),
+                            SizedBox(height: _px(context, 20)),
 
                             // Tanggal
-                            Text(
-                              'Tanggal Sedekah',
-                              style: TextStyle(
-                                fontSize: _ts(context, 15),
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.onSurface,
-                              ),
-                            ),
+                            _buildLabel(context, 'Tanggal Sedekah'),
                             SizedBox(height: _px(context, 10)),
                             InkWell(
                               onTap: isLoading ? null : _pickDate,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: _px(context, 20),
-                                  vertical: _px(context, 14),
-                                ),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: AppTheme.primaryBlue.withValues(
-                                      alpha: 0.1,
-                                    ),
+                              borderRadius: BorderRadius.circular(16),
+                              child: _buildInputContainer(
+                                context,
+                                child: Padding(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: _px(context, 20),
+                                    vertical: _px(context, 14),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Icon(
+                                        Icons.calendar_today_rounded,
+                                        color: AppTheme.primaryBlue,
+                                        size: _px(context, 22),
+                                      ),
+                                      const SizedBox(width: 16),
+                                      Text(
+                                        DateFormat(
+                                          'dd MMMM yyyy',
+                                          'id_ID',
+                                        ).format(_selectedDate),
+                                        style: TextStyle(
+                                          fontSize: _ts(context, 15),
+                                          color: AppTheme.onSurface,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const Spacer(),
+                                      Icon(
+                                        Icons.arrow_drop_down_rounded,
+                                        color: AppTheme.onSurfaceVariant,
+                                        size: _px(context, 24),
+                                      ),
+                                    ],
                                   ),
                                 ),
-                                child: Row(
-                                  children: [
-                                    Icon(
-                                      Icons.calendar_today_rounded,
-                                      color: AppTheme.primaryBlue,
-                                      size: _px(context, 22),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    Text(
-                                      DateFormat(
-                                        'dd MMMM yyyy',
-                                        'id_ID',
-                                      ).format(_selectedDate),
-                                      style: TextStyle(
-                                        fontSize: _ts(context, 15),
-                                        color: AppTheme.onSurface,
-                                      ),
-                                    ),
-                                  ],
-                                ),
                               ),
                             ),
 
-                            SizedBox(height: _px(context, 16)),
+                            SizedBox(height: _px(context, 20)),
 
                             // Nominal
-                            Text(
-                              'Nominal Sedekah',
-                              style: TextStyle(
-                                fontSize: _ts(context, 15),
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.onSurface,
-                              ),
-                            ),
+                            _buildLabel(context, 'Nominal Sedekah'),
                             SizedBox(height: _px(context, 10)),
                             Container(
                               decoration: BoxDecoration(
@@ -333,13 +390,33 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                                     alpha: 0.2,
                                   ),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.accentGreen.withValues(
+                                      alpha: 0.05,
+                                    ),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: TextFormField(
                                 controller: _amountController,
                                 enabled: !isLoading,
                                 keyboardType: TextInputType.number,
+                                style: TextStyle(
+                                  fontSize: _ts(context, 15),
+                                  fontWeight: FontWeight.w600,
+                                  color: AppTheme.accentGreen,
+                                ),
                                 decoration: InputDecoration(
-                                  hintText: 'Masukkan nominal',
+                                  hintText: '0',
+                                  hintStyle: TextStyle(
+                                    fontSize: _ts(context, 15),
+                                    color: AppTheme.onSurfaceVariant.withValues(
+                                      alpha: 0.4,
+                                    ),
+                                  ),
                                   prefixIcon: const Icon(
                                     Icons.payments_rounded,
                                     color: AppTheme.accentGreen,
@@ -348,7 +425,7 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                                   prefixStyle: TextStyle(
                                     color: AppTheme.onSurface,
                                     fontSize: _ts(context, 15),
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w600,
                                   ),
                                   border: InputBorder.none,
                                   contentPadding: EdgeInsets.symmetric(
@@ -372,7 +449,7 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                                             ),
                                           );
                                     } catch (e) {
-                                      // Handle parsing errors
+                                      // Handle parsing errors silently
                                     }
                                   }
                                 },
@@ -390,17 +467,10 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                               ),
                             ),
 
-                            SizedBox(height: _px(context, 16)),
+                            SizedBox(height: _px(context, 20)),
 
                             // Catatan
-                            Text(
-                              'Catatan (Opsional)',
-                              style: TextStyle(
-                                fontSize: _ts(context, 15),
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.onSurface,
-                              ),
-                            ),
+                            _buildLabel(context, 'Catatan (Opsional)'),
                             SizedBox(height: _px(context, 10)),
                             Container(
                               decoration: BoxDecoration(
@@ -411,16 +481,37 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                                     alpha: 0.1,
                                   ),
                                 ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: AppTheme.primaryBlue.withValues(
+                                      alpha: 0.05,
+                                    ),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: TextFormField(
                                 controller: _noteController,
                                 enabled: !isLoading,
                                 maxLines: 4,
+                                style: TextStyle(
+                                  fontSize: _ts(context, 14),
+                                  height: 1.5,
+                                ),
                                 decoration: InputDecoration(
-                                  hintText: 'Tulis catatan...',
+                                  hintText:
+                                      'Tambahkan catatan untuk mengingatkan tujuan sedekah ini...',
+                                  hintStyle: TextStyle(
+                                    fontSize: _ts(context, 14),
+                                    color: AppTheme.onSurfaceVariant.withValues(
+                                      alpha: 0.6,
+                                    ),
+                                  ),
                                   prefixIcon: Padding(
                                     padding: EdgeInsets.only(
                                       bottom: _px(context, 60),
+                                      top: _px(context, 12),
                                     ),
                                     child: const Icon(
                                       Icons.note_alt_rounded,
@@ -436,11 +527,11 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                               ),
                             ),
 
-                            SizedBox(height: _px(context, 24)),
+                            SizedBox(height: _px(context, 28)),
 
                             // Save Button
                             SizedBox(
-                              height: _px(context, 52),
+                              height: _px(context, 54),
                               child: DecoratedBox(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -467,11 +558,11 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                                           width: 20,
                                           height: 20,
                                           child: CircularProgressIndicator(
-                                            strokeWidth: 2,
+                                            strokeWidth: 2.5,
                                             valueColor:
                                                 AlwaysStoppedAnimation<Color>(
                                                   Colors.white.withValues(
-                                                    alpha: 0.8,
+                                                    alpha: 0.9,
                                                   ),
                                                 ),
                                           ),
@@ -487,13 +578,15 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
                                         : 'Simpan Sedekah',
                                     style: TextStyle(
                                       fontSize: _ts(context, 16),
-                                      fontWeight: FontWeight.w600,
+                                      fontWeight: FontWeight.bold,
                                       color: Colors.white,
+                                      letterSpacing: 0.3,
                                     ),
                                   ),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: Colors.transparent,
                                     shadowColor: Colors.transparent,
+                                    disabledBackgroundColor: Colors.transparent,
                                     shape: RoundedRectangleBorder(
                                       borderRadius: BorderRadius.circular(16),
                                     ),
@@ -512,6 +605,36 @@ class _TambahSedekahPageState extends ConsumerState<TambahSedekahPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildLabel(BuildContext context, String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: _ts(context, 15),
+        fontWeight: FontWeight.w600,
+        color: AppTheme.onSurface,
+        letterSpacing: -0.2,
+      ),
+    );
+  }
+
+  Widget _buildInputContainer(BuildContext context, {required Widget child}) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppTheme.primaryBlue.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: child,
     );
   }
 }

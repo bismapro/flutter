@@ -5,11 +5,11 @@ import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
-import 'package:test_flutter/core/widgets/toast.dart';
 
-import 'package:test_flutter/data/models/komunitas/komunitas.dart'; // pastikan berisi KomunitasPostingan
+import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
-import 'package:test_flutter/features/komunitas/services/komunitas_service.dart';
+import 'package:test_flutter/features/komunitas/komunitas_provider.dart';
+import 'package:test_flutter/features/komunitas/komunitas_state.dart';
 
 class DetailPostinganPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> post; // datang dari list (mapped)
@@ -26,18 +26,6 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
   final ScrollController _scrollController = ScrollController();
 
   bool _isAnonymous = false;
-  bool _isLoading = true;
-  bool _isLoadingComments = false;
-  bool _isSubmittingComment = false;
-  bool _isTogglingLike = false;
-  bool _liked = false; // isi dari API kalau tersedia
-
-  String? _error;
-
-  KomunitasPostingan? _post; // MODEL BARU
-  List<Map<String, dynamic>> _comments = [];
-  int _currentCommentPage = 1;
-  int _lastCommentPage = 1;
 
   // ===== Responsive helpers =====
   double _maxWidth(BuildContext context) {
@@ -67,92 +55,11 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
   }
 
   Future<void> _loadDetail() async {
-    try {
-      setState(() {
-        _isLoading = true;
-        _error = null;
-      });
+    final id = widget.post['id'].toString();
+    logger.fine('Loading postingan detail for ID: $id');
 
-      final id =
-          int.tryParse(widget.post['id'].toString()) ??
-          widget.post['id'] as int;
-      logger.fine('Loading postingan detail for ID: $id');
-
-      final response = await KomunitasService.getPostinganById(id as String);
-      // response diharapkan: { "data": { ...postingan... , "liked": bool? } }
-      final data = response['data'];
-      final liked = (data?['liked'] == true); // optional
-
-      setState(() {
-        _post = KomunitasPostingan.fromJson(data);
-        _liked = liked;
-        _isLoading = false;
-      });
-
-      await _loadComments();
-    } catch (e, st) {
-      logger.warning('Error loading postingan detail: $e', e, st);
-      setState(() {
-        _error = e.toString();
-        _isLoading = false;
-      });
-    }
-  }
-
-  Future<void> _loadComments({bool loadMore = false}) async {
-    if (_isLoadingComments || _post == null) return;
-
-    try {
-      setState(() => _isLoadingComments = true);
-
-      final page = loadMore ? _currentCommentPage + 1 : 1;
-
-      logger.fine('Loading comments for postingan ${_post!.id}, page: $page');
-
-      final response = await KomunitasService.getComments(
-        artikelId: _post!.id as String, // endpoint sama, param bernama artikelId
-        page: page,
-      );
-
-      final commentsData = (response['data'] as List?) ?? const [];
-      final newComments = commentsData
-          .map(
-            (comment) => {
-              'id': comment['id'].toString(),
-              'authorName': comment['is_anonymous'] == true
-                  ? 'Anonim'
-                  : (comment['user']?['name'] ?? 'User'),
-              'content': comment['content'] ?? '',
-              'date': _formatDate(DateTime.parse(comment['created_at'])),
-              'isAnonymous': comment['is_anonymous'] ?? false,
-              'authorId': comment['user_id']?.toString() ?? 'anonymous',
-            },
-          )
-          .toList();
-
-      setState(() {
-        if (loadMore) {
-          _comments.addAll(newComments);
-        } else {
-          _comments = newComments;
-        }
-        _currentCommentPage = response['current_page'] ?? page;
-        _lastCommentPage = response['last_page'] ?? page;
-        _isLoadingComments = false;
-      });
-    } catch (e, st) {
-      logger.warning('Error loading comments: $e', e, st);
-      setState(() => _isLoadingComments = false);
-
-      if (mounted) {
-        showMessageToast(
-          context,
-          message: 'Gagal memuat komentar: $e',
-          type: ToastType.error,
-          duration: const Duration(seconds: 4),
-        );
-      }
-    }
+    // Fetch detail postingan menggunakan provider (includes comments)
+    await ref.read(komunitasProvider.notifier).fetchPostinganById(id);
   }
 
   String _formatDate(DateTime date) {
@@ -167,46 +74,62 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
   }
 
   Future<void> _addComment() async {
-    if (_commentController.text.trim().isEmpty || _isSubmittingComment) return;
+    if (_commentController.text.trim().isEmpty) return;
+
+    final komunitasState = ref.read(komunitasProvider);
+    final postingan = komunitasState.postingan;
+    if (postingan == null) return;
+
+    // Check if already submitting
+    if (komunitasState.status == KomunitasStatus.loading) return;
 
     try {
-      setState(() => _isSubmittingComment = true);
+      logger.fine('Adding comment to postingan ${postingan.id}');
 
-      logger.fine('Adding comment to postingan ${_post?.id}');
+      // Menggunakan provider untuk add comment
+      await ref
+          .read(komunitasProvider.notifier)
+          .addComment(
+            postinganId: postingan.id.toString(),
+            komentar: _commentController.text.trim(),
+            isAnonymous: _isAnonymous,
+          );
 
-      await KomunitasService.addComment(
-        artikelId: _post!.id as String, // param nama masih artikelId di service
-        content: _commentController.text.trim(),
-        isAnonymous: _isAnonymous,
-      );
+      // Check if success
+      final newState = ref.read(komunitasProvider);
+      if (newState.status == KomunitasStatus.success) {
+        _commentController.clear();
+        setState(() => _isAnonymous = false);
 
-      _commentController.clear();
-      setState(() => _isAnonymous = false);
+        // Reload detail postingan untuk update comments
+        await ref
+            .read(komunitasProvider.notifier)
+            .fetchPostinganById(postingan.id.toString());
 
-      await _loadComments();
+        // Scroll to bottom after comment added
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
 
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (_scrollController.hasClients) {
-          _scrollController.animateTo(
-            _scrollController.position.maxScrollExtent,
-            duration: const Duration(milliseconds: 300),
-            curve: Curves.easeOut,
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Komentar berhasil ditambahkan'),
+              backgroundColor: AppTheme.accentGreen,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              margin: const EdgeInsets.all(16),
+            ),
           );
         }
-      });
-
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Komentar berhasil ditambahkan'),
-            backgroundColor: AppTheme.accentGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
-        );
       }
     } catch (e, st) {
       logger.warning('Error adding comment: $e', e, st);
@@ -224,30 +147,29 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
           ),
         );
       }
-    } finally {
-      setState(() => _isSubmittingComment = false);
     }
   }
 
   Future<void> _toggleLike() async {
-    if (_isTogglingLike || _post == null) return;
+    final komunitasState = ref.read(komunitasProvider);
+    final postingan = komunitasState.postingan;
+    if (postingan == null) return;
+
+    // Check if already toggling
+    if (komunitasState.status == KomunitasStatus.loading) return;
 
     try {
-      setState(() => _isTogglingLike = true);
+      logger.fine('Toggling like for postingan ${postingan.id}');
 
-      logger.fine('Toggling like for postingan ${_post?.id}');
+      // Menggunakan provider untuk toggle like
+      await ref
+          .read(komunitasProvider.notifier)
+          .toggleLike(postingan.id.toString());
 
-      await KomunitasService.toggleLike(_post!.id as String);
-
-      // Optimistic update (kalau API tidak kembalikan detail liked)
-      setState(() {
-        _liked = !_liked;
-        // final current = _post!.totalLikes;
-        // _post = _post!.copyWith(totalLikes: _liked ? current + 1 : current - 1);
-      });
-
-      // kalau mau strict dari server:
-      // await _loadDetail();
+      // Reload detail postingan untuk update status like
+      await ref
+          .read(komunitasProvider.notifier)
+          .fetchPostinganById(postingan.id.toString());
     } catch (e, st) {
       logger.warning('Error toggling like: $e', e, st);
 
@@ -264,8 +186,6 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
           ),
         );
       }
-    } finally {
-      setState(() => _isTogglingLike = false);
     }
   }
 
@@ -274,12 +194,14 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     switch (nama.toLowerCase()) {
       case 'ibadah':
         return const Color(0xFF3B82F6);
+      case 'doa':
+        return const Color(0xFF8B5CF6);
       case 'event':
         return const Color(0xFFF97316);
       case 'sharing':
         return const Color(0xFF10B981);
       case 'pertanyaan':
-        return const Color(0xFF8B5CF6);
+        return const Color(0xFFEF4444);
       case 'diskusi':
         return Colors.purple.shade400;
       default:
@@ -291,6 +213,8 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     switch (nama.toLowerCase()) {
       case 'ibadah':
         return Icons.auto_awesome_rounded;
+      case 'doa':
+        return Icons.spa_rounded;
       case 'event':
         return Icons.event_rounded;
       case 'sharing':
@@ -309,12 +233,16 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final authState = ref.watch(authProvider);
     final isLoggedIn = authState['status'] == AuthState.authenticated;
 
+    final komunitasState = ref.watch(komunitasProvider);
+    final postingan = komunitasState.postingan;
+
     final appbarTitleSize = ResponsiveHelper.adaptiveTextSize(context, 20);
     final appbarSubSize = ResponsiveHelper.adaptiveTextSize(context, 13);
     final iconSize = ResponsiveHelper.adaptiveTextSize(context, 22);
     final appbarPad = ResponsiveHelper.isSmallScreen(context) ? 14.0 : 16.0;
 
-    final totalComments = _post?.totalKomentar ?? _comments.length;
+    final totalComments = postingan?.komentars?.length ?? 0;
+    final isSubmitting = komunitasState.status == KomunitasStatus.loading;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -363,7 +291,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: IconButton(
-                            onPressed: () => Navigator.pop(context),
+                            onPressed: () => Navigator.pop(context, true),
                             icon: const Icon(Icons.arrow_back_rounded),
                             color: AppTheme.primaryBlue,
                             iconSize: iconSize,
@@ -400,27 +328,32 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
               ),
 
               // Content
-              Expanded(child: _buildContent(isLoggedIn)),
+              Expanded(child: _buildContent(isLoggedIn, komunitasState)),
             ],
           ),
         ),
       ),
 
       // Comment Input (Only show if logged in)
-      bottomSheet: isLoggedIn ? _buildCommentInput() : null,
+      bottomSheet: isLoggedIn && postingan != null
+          ? _buildCommentInput(isSubmitting)
+          : null,
     );
   }
 
-  Widget _buildContent(bool isLoggedIn) {
-    if (_isLoading) {
+  Widget _buildContent(bool isLoggedIn, KomunitasState state) {
+    // Loading state
+    if (state.status == KomunitasStatus.loading && state.postingan == null) {
       return _buildLoadingState();
     }
 
-    if (_error != null) {
-      return _buildErrorState();
+    // Error state
+    if (state.status == KomunitasStatus.error && state.postingan == null) {
+      return _buildErrorState(message: state.message);
     }
 
-    if (_post == null) {
+    // Empty state
+    if (state.postingan == null) {
       return _buildErrorState(message: 'Postingan tidak ditemukan');
     }
 
@@ -428,19 +361,21 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
         ? (ResponsiveHelper.isSmallScreen(context) ? 100 : 120)
         : 20;
 
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: _maxWidth(context)),
-      child: SingleChildScrollView(
-        controller: _scrollController,
-        padding: _pagePadding(context, extraBottom: extraBottom.toDouble()),
-        physics: const BouncingScrollPhysics(),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildPostCard(),
-            SizedBox(height: _gap(context) + 4),
-            _buildCommentsSection(),
-          ],
+    return Center(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxWidth: _maxWidth(context)),
+        child: SingleChildScrollView(
+          controller: _scrollController,
+          padding: _pagePadding(context, extraBottom: extraBottom.toDouble()),
+          physics: const BouncingScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildPostCard(state.postingan!),
+              SizedBox(height: _gap(context) + 4),
+              _buildCommentsSection(state.postingan!),
+            ],
+          ),
         ),
       ),
     );
@@ -540,7 +475,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                message ?? _error ?? 'Terjadi kesalahan. Coba lagi nanti.',
+                message ?? 'Terjadi kesalahan. Coba lagi nanti.',
                 style: TextStyle(color: Colors.red.shade600, fontSize: subSize),
                 textAlign: TextAlign.center,
               ),
@@ -587,8 +522,8 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     );
   }
 
-  Widget _buildPostCard() {
-    final kategoriNama = _post!.kategori.nama;
+  Widget _buildPostCard(KomunitasPostingan post) {
+    final kategoriNama = post.kategori.nama;
     final categoryColor = _getCategoryColor(kategoriNama);
     final categoryIcon = _getCategoryIcon(kategoriNama);
 
@@ -597,9 +532,12 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final chipSize = ResponsiveHelper.adaptiveTextSize(context, 13);
     final iconSz = ResponsiveHelper.adaptiveTextSize(context, 20);
 
-    final coverUrl = _post!
-        .cover; // string path (udah absolute di model?), kalau masih relatif, format di model
-    final gallery = _post!.daftarGambar; // List<String>
+    final coverUrl = post.cover;
+    final gallery = post.daftarGambar;
+    final liked = post.liked ?? false;
+
+    final komunitasState = ref.watch(komunitasProvider);
+    final isTogglingLike = komunitasState.status == KomunitasStatus.loading;
 
     return Container(
       padding: EdgeInsets.all(_gap(context) + 4),
@@ -637,7 +575,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   radius: ResponsiveHelper.isSmallScreen(context) ? 22 : 24,
                   backgroundColor: Colors.white,
                   child: Text(
-                    (_post!.penulis.isNotEmpty ? _post!.penulis[0] : 'G')
+                    (post.penulis.isNotEmpty ? post.penulis[0] : 'G')
                         .toUpperCase(),
                     style: TextStyle(
                       color: categoryColor,
@@ -653,7 +591,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      _post!.penulis,
+                      post.penulis,
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -673,7 +611,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          FormatHelper.getFormattedDate(_post!.createdAt),
+                          FormatHelper.getFormattedDate(post.createdAt),
                           style: TextStyle(
                             color: AppTheme.onSurfaceVariant,
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -743,7 +681,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
 
           // Judul
           Text(
-            _post!.judul,
+            post.judul,
             style: TextStyle(
               fontSize: titleSize,
               fontWeight: FontWeight.bold,
@@ -756,7 +694,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
 
           // Konten (pakai isi jika ada; fallback excerpt)
           Text(
-            (_post!.isi?.isNotEmpty == true) ? _post!.isi! : _post!.excerpt,
+            (post.isi?.isNotEmpty == true) ? post.isi! : post.excerpt,
             style: TextStyle(
               fontSize: bodySize,
               color: AppTheme.onSurface.withValues(alpha: 0.9),
@@ -806,7 +744,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
             runSpacing: 8,
             children: [
               GestureDetector(
-                onTap: _isTogglingLike ? null : _toggleLike,
+                onTap: isTogglingLike ? null : _toggleLike,
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: ResponsiveHelper.isSmallScreen(context)
@@ -815,12 +753,12 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                     vertical: ResponsiveHelper.isSmallScreen(context) ? 8 : 10,
                   ),
                   decoration: BoxDecoration(
-                    color: _liked
+                    color: liked
                         ? Colors.red.withValues(alpha: 0.1)
                         : AppTheme.primaryBlue.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: _liked
+                      color: liked
                           ? Colors.red.withValues(alpha: 0.2)
                           : AppTheme.primaryBlue.withValues(alpha: 0.1),
                     ),
@@ -828,7 +766,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (_isTogglingLike)
+                      if (isTogglingLike)
                         SizedBox(
                           width: iconSz,
                           height: iconSz,
@@ -841,19 +779,15 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                         )
                       else
                         Icon(
-                          _liked ? Icons.favorite : Icons.favorite_border,
-                          color: _liked
-                              ? Colors.red
-                              : AppTheme.onSurfaceVariant,
+                          liked ? Icons.favorite : Icons.favorite_border,
+                          color: liked ? Colors.red : AppTheme.onSurfaceVariant,
                           size: iconSz,
                         ),
                       const SizedBox(width: 8),
                       Text(
-                        '${_post!.totalLikes}',
+                        '${post.totalLikes}',
                         style: TextStyle(
-                          color: _liked
-                              ? Colors.red
-                              : AppTheme.onSurfaceVariant,
+                          color: liked ? Colors.red : AppTheme.onSurfaceVariant,
                           fontSize: ResponsiveHelper.adaptiveTextSize(
                             context,
                             14,
@@ -871,12 +805,10 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   vertical: ResponsiveHelper.isSmallScreen(context) ? 8 : 10,
                 ),
                 decoration: BoxDecoration(
-                  color: _getCategoryColor(kategoriNama).withValues(alpha: 0.1),
+                  color: categoryColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: _getCategoryColor(
-                      kategoriNama,
-                    ).withValues(alpha: 0.2),
+                    color: categoryColor.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -884,14 +816,14 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   children: [
                     Icon(
                       Icons.chat_bubble_outline,
-                      color: _getCategoryColor(kategoriNama),
+                      color: categoryColor,
                       size: iconSz,
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '${_post!.totalKomentar}',
+                      '${post.totalKomentar}',
                       style: TextStyle(
-                        color: _getCategoryColor(kategoriNama),
+                        color: categoryColor,
                         fontSize: ResponsiveHelper.adaptiveTextSize(
                           context,
                           14,
@@ -909,9 +841,11 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     );
   }
 
-  Widget _buildCommentsSection() {
+  Widget _buildCommentsSection(KomunitasPostingan post) {
     final titleSize = ResponsiveHelper.adaptiveTextSize(context, 18);
     final iconSz = ResponsiveHelper.adaptiveTextSize(context, 22);
+
+    final comments = post.komentars ?? [];
 
     return Container(
       padding: EdgeInsets.all(_gap(context) + 4),
@@ -955,7 +889,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
-                  'Komentar (${_comments.length})',
+                  'Komentar (${comments.length})',
                   style: TextStyle(
                     fontSize: titleSize,
                     fontWeight: FontWeight.bold,
@@ -964,50 +898,14 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   ),
                 ),
               ),
-              if (_isLoadingComments)
-                SizedBox(
-                  width: ResponsiveHelper.isSmallScreen(context) ? 16 : 20,
-                  height: ResponsiveHelper.isSmallScreen(context) ? 16 : 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    valueColor: AlwaysStoppedAnimation<Color>(
-                      AppTheme.primaryBlue,
-                    ),
-                  ),
-                ),
             ],
           ),
           const SizedBox(height: 20),
 
-          if (_comments.isEmpty && !_isLoadingComments)
+          if (comments.isEmpty)
             _buildEmptyCommentsState()
-          else ...[
-            ..._comments.map((comment) => _buildCommentItem(comment)),
-            if (_currentCommentPage < _lastCommentPage)
-              Padding(
-                padding: const EdgeInsets.only(top: 16),
-                child: Center(
-                  child: ElevatedButton(
-                    onPressed: _isLoadingComments
-                        ? null
-                        : () => _loadComments(loadMore: true),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppTheme.primaryBlue.withValues(
-                        alpha: 0.1,
-                      ),
-                      foregroundColor: AppTheme.primaryBlue,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                    child: Text(
-                      _isLoadingComments ? 'Memuat...' : 'Muat Komentar Lain',
-                    ),
-                  ),
-                ),
-              ),
-          ],
+          else
+            ...comments.map((comment) => _buildCommentItem(comment, post)),
         ],
       ),
     );
@@ -1070,9 +968,9 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     );
   }
 
-  Widget _buildCommentItem(Map<String, dynamic> comment) {
-    final isAnonymous = comment['isAnonymous'] ?? false;
-    final kategoriNama = _post!.kategori.nama;
+  Widget _buildCommentItem(Komentar comment, KomunitasPostingan post) {
+    final isAnonymous = comment.isAnonymous ?? false;
+    final kategoriNama = post.kategori.nama;
     final categoryColor = _getCategoryColor(kategoriNama);
 
     final nameSize = ResponsiveHelper.adaptiveTextSize(context, 14);
@@ -1119,7 +1017,10 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                           size: nameSize,
                         )
                       : Text(
-                          (comment['authorName'] ?? 'U')[0].toUpperCase(),
+                          (comment.penulis.isNotEmpty
+                                  ? comment.penulis[0]
+                                  : 'U')
+                              .toUpperCase(),
                           style: TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.bold,
@@ -1138,14 +1039,17 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   children: [
                     Row(
                       children: [
-                        Text(
-                          comment['authorName'],
-                          style: TextStyle(
-                            fontWeight: FontWeight.w600,
-                            fontSize: nameSize,
-                            color: isAnonymous
-                                ? AppTheme.onSurfaceVariant
-                                : AppTheme.onSurface,
+                        Flexible(
+                          child: Text(
+                            comment.penulis,
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              fontSize: nameSize,
+                              color: isAnonymous
+                                  ? AppTheme.onSurfaceVariant
+                                  : AppTheme.onSurface,
+                            ),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                         if (isAnonymous) ...[
@@ -1184,7 +1088,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          comment['date'],
+                          _formatDate(comment.createdAt),
                           style: TextStyle(
                             fontSize: timeSize,
                             color: AppTheme.onSurfaceVariant,
@@ -1199,7 +1103,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
           ),
           const SizedBox(height: 10),
           Text(
-            comment['content'],
+            comment.komentar,
             style: TextStyle(
               fontSize: contentSize,
               color: AppTheme.onSurface.withValues(alpha: 0.9),
@@ -1211,7 +1115,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     );
   }
 
-  Widget _buildCommentInput() {
+  Widget _buildCommentInput(bool isSubmitting) {
     final authState = ref.watch(authProvider);
     final currentUserName = authState['user']?['name'] ?? 'User';
 
@@ -1274,7 +1178,9 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   ),
                   const Spacer(),
                   GestureDetector(
-                    onTap: () => setState(() => _isAnonymous = !_isAnonymous),
+                    onTap: isSubmitting
+                        ? null
+                        : () => setState(() => _isAnonymous = !_isAnonymous),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 12,
@@ -1322,7 +1228,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                       ),
                       child: TextField(
                         controller: _commentController,
-                        enabled: !_isSubmittingComment,
+                        enabled: !isSubmitting,
                         decoration: InputDecoration(
                           hintText: _isAnonymous
                               ? 'Tulis komentar sebagai anonim...'
@@ -1364,8 +1270,8 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                       ],
                     ),
                     child: IconButton(
-                      onPressed: _isSubmittingComment ? null : _addComment,
-                      icon: _isSubmittingComment
+                      onPressed: isSubmitting ? null : _addComment,
+                      icon: isSubmitting
                           ? SizedBox(
                               width: sendIconSize,
                               height: sendIconSize,

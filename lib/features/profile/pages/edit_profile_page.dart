@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
-import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/profile/profile_provider.dart';
+import 'package:test_flutter/features/profile/profile_state.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -24,19 +24,15 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   }
 
   void _loadProfileData() {
-    // Load profile data from storage first
-
-    // Listen to profile state changes
+    // Load profile data after the first frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(profileProvider.notifier).loadUser();
       final profileState = ref.read(profileProvider);
-      final profile =
-          profileState['profile']['user'] ?? profileState['profile'];
+      final profile = profileState.profile;
 
       if (profile != null) {
-        _nameController.text = profile['name']?.toString() ?? '';
-        _emailController.text = profile['email']?.toString() ?? '';
-        _phoneController.text = profile['phone']?.toString() ?? '';
+        _nameController.text = profile.name ?? '';
+        _emailController.text = profile.email ?? '';
+        _phoneController.text = profile.phone ?? '';
       }
     });
   }
@@ -54,7 +50,14 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       final name = _nameController.text.trim();
       final email = _emailController.text.trim();
       final phone = _phoneController.text.trim();
-      ref.read(profileProvider.notifier).updateProfile(name, email, phone);
+
+      await ref
+          .read(profileProvider.notifier)
+          .updateProfile(
+            name: name,
+            email: email,
+            phone: phone.isNotEmpty ? phone : null,
+          );
     }
   }
 
@@ -65,32 +68,32 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
     // Watch profile state
     final profileState = ref.watch(profileProvider);
-    final isLoading = profileState['status'] == ProfileState.loading;
-    final error = profileState['error'];
+    final isLoading = profileState.status == ProfileStatus.loading;
 
-    if (profileState['status'] == ProfileState.error && error != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+    // Listen to state changes for showing messages
+    ref.listen<ProfileState>(profileProvider, (previous, next) {
+      if (next.status == ProfileStatus.success && next.message != null) {
         showMessageToast(
           context,
-          message: error.toString(),
-          type: ToastType.error,
-          duration: const Duration(seconds: 4),
-        );
-        ref.read(profileProvider.notifier).clearError();
-      });
-    }
-
-    if (profileState['status'] == ProfileState.success) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        showMessageToast(
-          context,
-          message: 'Profile updated successfully',
+          message: next.message!,
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );
-        ref.read(profileProvider.notifier).clearSuccess();
-      });
-    }
+        ref.read(profileProvider.notifier).clearMessage();
+        ref.read(profileProvider.notifier).resetStatus();
+
+        // Navigate back with success result
+        Navigator.pop(context, true);
+      } else if (next.status == ProfileStatus.error && next.message != null) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: ToastType.error,
+          duration: const Duration(seconds: 4),
+        );
+        ref.read(profileProvider.notifier).clearMessage();
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -103,6 +106,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         foregroundColor: const Color(0xFF2D3748),
         elevation: 0,
         centerTitle: true,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: isLoading ? null : () => Navigator.pop(context),
+        ),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -111,7 +118,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             key: _formKey,
             child: Column(
               children: [
-                // Avatar Section
+                // Avatar Section (Commented out for future use)
                 // Center(
                 //   child: Stack(
                 //     children: [
@@ -153,16 +160,53 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                 //     ],
                 //   ),
                 // ),
-                SizedBox(height: isTablet ? 32 : 24),
+                // SizedBox(height: isTablet ? 32 : 24),
+
+                // Info Section
+                Container(
+                  padding: EdgeInsets.all(isTablet ? 20 : 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: const Color(0xFF1E88E5).withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        color: const Color(0xFF1E88E5),
+                        size: isTablet ? 24 : 20,
+                      ),
+                      SizedBox(width: isTablet ? 12 : 10),
+                      Expanded(
+                        child: Text(
+                          'Perubahan akan disimpan ke server dan disinkronkan',
+                          style: TextStyle(
+                            fontSize: isTablet ? 14 : 12,
+                            color: const Color(0xFF1E88E5),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: isTablet ? 28 : 24),
 
                 // Form Fields
                 _buildTextField(
                   controller: _nameController,
                   label: 'Nama Lengkap',
                   icon: Icons.person_outline,
+                  enabled: !isLoading,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Nama tidak boleh kosong';
+                    }
+                    if (value.length < 3) {
+                      return 'Nama minimal 3 karakter';
                     }
                     return null;
                   },
@@ -176,6 +220,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                   label: 'Email',
                   icon: Icons.email_outlined,
                   keyboardType: TextInputType.emailAddress,
+                  enabled: !isLoading,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Email tidak boleh kosong';
@@ -194,12 +239,18 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
                 _buildTextField(
                   controller: _phoneController,
-                  label: 'Nomor Telepon',
+                  label: 'Nomor Telepon (Opsional)',
                   icon: Icons.phone_outlined,
                   keyboardType: TextInputType.phone,
+                  enabled: !isLoading,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Nomor telepon tidak boleh kosong';
+                    if (value != null && value.isNotEmpty) {
+                      if (value.length < 10) {
+                        return 'Nomor telepon minimal 10 digit';
+                      }
+                      if (!RegExp(r'^[0-9]+$').hasMatch(value)) {
+                        return 'Nomor telepon hanya boleh berisi angka';
+                      }
                     }
                     return null;
                   },
@@ -217,27 +268,81 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF1E88E5),
                       foregroundColor: Colors.white,
+                      disabledBackgroundColor: Colors.grey[300],
+                      disabledForegroundColor: Colors.grey[500],
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      elevation: 2,
+                      elevation: isLoading ? 0 : 2,
                     ),
                     child: isLoading
-                        ? SizedBox(
-                            width: isTablet ? 24 : 20,
-                            height: isTablet ? 24 : 20,
-                            child: const CircularProgressIndicator(
-                              color: Colors.white,
-                              strokeWidth: 2,
-                            ),
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: isTablet ? 20 : 18,
+                                height: isTablet ? 20 : 18,
+                                child: const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                              SizedBox(width: isTablet ? 12 : 10),
+                              Text(
+                                'Menyimpan...',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 18 : 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           )
-                        : Text(
-                            'Simpan Perubahan',
-                            style: TextStyle(
-                              fontSize: isTablet ? 18 : 16,
-                              fontWeight: FontWeight.w600,
-                            ),
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.save_outlined,
+                                size: isTablet ? 22 : 20,
+                              ),
+                              SizedBox(width: isTablet ? 10 : 8),
+                              Text(
+                                'Simpan Perubahan',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 18 : 16,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
                           ),
+                  ),
+                ),
+
+                SizedBox(height: isTablet ? 20 : 16),
+
+                // Cancel Button
+                SizedBox(
+                  width: double.infinity,
+                  height: isTablet ? 56 : 48,
+                  child: OutlinedButton(
+                    onPressed: isLoading ? null : () => Navigator.pop(context),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1E88E5),
+                      side: BorderSide(
+                        color: isLoading
+                            ? Colors.grey[300]!
+                            : const Color(0xFF1E88E5),
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Batal',
+                      style: TextStyle(
+                        fontSize: isTablet ? 18 : 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -256,21 +361,23 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     int maxLines = 1,
     String? Function(String?)? validator,
     required bool isTablet,
+    bool enabled = true,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       maxLines: maxLines,
       validator: validator,
+      enabled: enabled,
       style: TextStyle(
         fontSize: isTablet ? 18 : 16,
-        color: const Color(0xFF2D3748),
+        color: enabled ? const Color(0xFF2D3748) : Colors.grey[600],
       ),
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(
           icon,
-          color: const Color(0xFF1E88E5),
+          color: enabled ? const Color(0xFF1E88E5) : Colors.grey[400],
           size: isTablet ? 24 : 20,
         ),
         border: OutlineInputBorder(
@@ -285,6 +392,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: Colors.grey[300]!),
         ),
+        disabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey[200]!),
+        ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red),
@@ -294,13 +405,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
         filled: true,
-        fillColor: Colors.grey[50],
+        fillColor: enabled ? Colors.grey[50] : Colors.grey[100],
         contentPadding: EdgeInsets.symmetric(
           horizontal: isTablet ? 20 : 16,
           vertical: isTablet ? 20 : 16,
         ),
         labelStyle: TextStyle(
-          color: const Color(0xFF4A5568),
+          color: enabled ? const Color(0xFF4A5568) : Colors.grey[500],
           fontSize: isTablet ? 16 : 14,
         ),
       ),

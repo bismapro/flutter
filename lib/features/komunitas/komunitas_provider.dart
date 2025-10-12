@@ -229,11 +229,11 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
   }
 
   // Add Comment
-  Future<void> addComment(
-    String postinganId,
-    String komentar,
-    bool isAnonymous,
-  ) async {
+  Future<void> addComment({
+    required String postinganId,
+    required String komentar,
+    required bool isAnonymous,
+  }) async {
     state = state.copyWith(status: KomunitasStatus.loading);
     try {
       final response = await KomunitasService.addComment(

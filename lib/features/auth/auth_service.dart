@@ -1,7 +1,10 @@
 import 'package:dio/dio.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
+import 'package:test_flutter/data/models/user/user.dart';
 
 class AuthService {
+
+  // Login
   static Future<Map<String, dynamic>> login(
     String email,
     String password,
@@ -12,16 +15,23 @@ class AuthService {
         data: {'email': email, 'password': password},
       );
 
-      return response.data as Map<String, dynamic>;
+      final responseData = response.data as Map<String, dynamic>;
+      final authResponse = AuthResponse.fromJson(
+        responseData['data'] as Map<String, dynamic>,
+      );
+
+      return {
+        'status': responseData['status'],
+        'message': responseData['message'],
+        'data': authResponse,
+      };
     } on DioException catch (e) {
-      String errorMessage = 'Login failed';
-
-      final error = ApiClient.parseDioError(e, errorMessage);
-
+      final error = ApiClient.parseDioError(e);
       throw Exception(error);
     }
   }
 
+// Register
   static Future<Map<String, dynamic>> register(
     String name,
     String email,
@@ -39,58 +49,60 @@ class AuthService {
         },
       );
 
-      return response.data as Map<String, dynamic>;
+      final responseData = response.data as Map<String, dynamic>;
+      final authResponse = responseData['data'] as Map<String, dynamic>;
+
+      return {
+        'status': responseData['status'],
+        'message': responseData['message'],
+        'data': {
+          'token': authResponse['token'] ?? '',
+          'user': {
+            'id': authResponse['user']['id'],
+            'name': authResponse['user']['name'],
+            'email': authResponse['user']['email'],
+          },
+        },
+      };
     } on DioException catch (e) {
-      String errorMessage = 'Register failed';
-
-      final error = ApiClient.parseDioError(e, errorMessage);
-
+      final error = ApiClient.parseDioError(e);
       throw Exception(error);
     }
   }
 
+// Refresh Token
   static Future<Map<String, dynamic>> refresh() async {
     try {
       final response = await ApiClient.dio.post('/refresh');
 
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      String errorMessage = 'Refresh token failed';
-
-      final error = ApiClient.parseDioError(e, errorMessage);
-
+      final error = ApiClient.parseDioError(e);
       throw Exception(error);
     }
   }
 
+  // Get Current User
   static Future<Map<String, dynamic>> getCurrentUser() async {
     try {
       final response = await ApiClient.dio.get('/me');
 
       return response.data as Map<String, dynamic>;
     } on DioException catch (e) {
-      String errorMessage = 'Get current user failed';
-
-      final error = ApiClient.parseDioError(e, errorMessage);
-
+      final error = ApiClient.parseDioError(e);
       throw Exception(error);
     }
   }
 
   static Future<bool> logout() async {
     try {
-      return true;
-      // final response = await ApiClient.dio.post('/logout');
+      final response = await ApiClient.dio.post('/logout');
 
-      // if (response.data['success'] == true) {
-      //   return true;
-      // }
-      // return false;
+      final responseData = response.data as Map<String, dynamic>;
+
+      return responseData['status'] as bool;
     } on DioException catch (e) {
-      String errorMessage = 'Logout failed';
-
-      final error = ApiClient.parseDioError(e, errorMessage);
-
+      final error = ApiClient.parseDioError(e);
       throw Exception(error);
     }
   }

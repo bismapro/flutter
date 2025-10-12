@@ -4,6 +4,7 @@ import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/profile/profile_provider.dart';
+import 'package:test_flutter/features/profile/profile_state.dart';
 import 'edit_profile_page.dart';
 import 'change_password_page.dart';
 import 'manage_family_page.dart';
@@ -49,20 +50,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   }
 
   @override
-  void dispose() {
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
-    final authState = ref.watch(profileProvider);
-    final profileData = authState['profile'];
-    final user = profileData is Map<String, dynamic>
-        ? (profileData['user'] ?? profileData)
-        : null;
-    final status = authState['status'] as ProfileState?;
-    final error = authState['error'];
-    final isOffline = authState['isOffline'] as bool? ?? false;
+    // Watch profile state
+    final profileState = ref.watch(profileProvider);
+    final user = profileState.profile;
+    final status = profileState.status;
+    final message = profileState.message;
+
+    // Listen to state changes for showing messages
+    ref.listen<ProfileState>(profileProvider, (previous, next) {
+      if (next.status == ProfileStatus.success && next.message != null) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: ToastType.success,
+        );
+        ref.read(profileProvider.notifier).clearMessage();
+        ref.read(profileProvider.notifier).resetStatus();
+      } else if (next.status == ProfileStatus.error && next.message != null) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: ToastType.error,
+        );
+        ref.read(profileProvider.notifier).clearMessage();
+      }
+    });
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -100,107 +113,29 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                   ),
                                 ),
                               ),
-                              // Offline indicator
-                              if (isOffline)
+                              // Refresh button
+                              if (status != ProfileStatus.loading)
                                 Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: _px(context, 12),
-                                    vertical: _px(context, 6),
-                                  ),
                                   decoration: BoxDecoration(
-                                    color: Colors.orange.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(16),
-                                    border: Border.all(
-                                      color: Colors.orange.withValues(
-                                        alpha: 0.3,
-                                      ),
-                                    ),
+                                    color: const Color(
+                                      0xFF1E88E5,
+                                    ).withValues(alpha: 0.1),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        Icons.wifi_off_rounded,
-                                        size: _px(context, 16),
-                                        color: Colors.orange,
-                                      ),
-                                      SizedBox(width: _px(context, 6)),
-                                      Text(
-                                        'Offline',
-                                        style: TextStyle(
-                                          fontSize: _ts(context, 12),
-                                          fontWeight: FontWeight.w600,
-                                          color: Colors.orange,
-                                        ),
-                                      ),
-                                    ],
+                                  child: IconButton(
+                                    onPressed: () {
+                                      ref
+                                          .read(profileProvider.notifier)
+                                          .loadUser();
+                                    },
+                                    icon: const Icon(Icons.refresh_rounded),
+                                    color: const Color(0xFF1E88E5),
+                                    tooltip: 'Refresh',
                                   ),
                                 ),
                             ],
                           ),
                         ),
-
-                        // Error
-                        // if (error != null)
-                        //   Container(
-                        //     width: double.infinity,
-                        //     margin: const EdgeInsets.only(bottom: 16),
-                        //     padding: const EdgeInsets.all(16),
-                        //     decoration: BoxDecoration(
-                        //       color: Colors.red[50],
-                        //       borderRadius: BorderRadius.circular(8),
-                        //       border: Border.all(color: Colors.red[200]!),
-                        //     ),
-                        //     child: Row(
-                        //       children: [
-                        //         const Icon(Icons.error, color: Colors.red),
-                        //         const SizedBox(width: 8),
-                        //         Expanded(
-                        //           child: Text(
-                        //             error,
-                        //             style: TextStyle(color: Colors.red[700]),
-                        //           ),
-                        //         ),
-                        //         IconButton(
-                        //           onPressed: () => ref
-                        //               .read(profileProvider.notifier)
-                        //               .clearError(),
-                        //           icon: const Icon(
-                        //             Icons.close,
-                        //             color: Colors.red,
-                        //           ),
-                        //         ),
-                        //       ],
-                        //     ),
-                        //   ),
-
-                        // Offline Notice (when user data is null but we're offline)
-                        if (isOffline && user == null)
-                          Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.only(bottom: 16),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: Colors.orange[50],
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: Colors.orange[200]!),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.wifi_off,
-                                  color: Colors.orange,
-                                ),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Data profil tidak tersedia dalam mode offline. Silakan sambungkan ke internet untuk memuat data terbaru.',
-                                    style: TextStyle(color: Colors.orange[700]),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
 
                         // Profile Card
                         Container(
@@ -220,11 +155,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           ),
                           child: Column(
                             children: [
-                              if (status == ProfileState.loading)
+                              if (status == ProfileStatus.loading)
                                 _buildLoadingProfile(context)
-                              else if (status == ProfileState.error &&
-                                  !isOffline)
-                                _buildErrorProfile(context)
+                              else if (status == ProfileStatus.error)
+                                _buildErrorProfile(context, message)
                               else
                                 _buildProfileContent(context, user),
                             ],
@@ -233,26 +167,32 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
                         SizedBox(height: _px(context, 28)),
 
-                        // Menu Items - disable when offline and no user data
+                        // Menu Items
                         _buildMenuItem(
                           context: context,
                           icon: Icons.person_outline,
                           title: 'Edit Profile',
                           subtitle: 'Ubah informasi profil Anda',
-                          enabled: user != null && user['name'] != null,
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const EditProfilePage(),
-                            ),
-                          ),
+                          enabled: user != null,
+                          onTap: () async {
+                            final result = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const EditProfilePage(),
+                              ),
+                            );
+                            // Refresh if profile was updated
+                            if (result == true) {
+                              ref.read(profileProvider.notifier).loadUser();
+                            }
+                          },
                         ),
                         _buildMenuItem(
                           context: context,
                           icon: Icons.security,
                           title: 'Ubah Password',
                           subtitle: 'Ubah password untuk keamanan akun',
-                          enabled: !isOffline,
+                          enabled: user != null,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -265,7 +205,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           icon: Icons.family_restroom,
                           title: 'Kelola Keluarga',
                           subtitle: 'Tambah atau edit anggota keluarga',
-                          enabled: !isOffline,
+                          enabled: user != null,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -290,47 +230,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           onTap: () => _showAbout(context),
                         ),
 
-                        // Refresh button when offline or no data
-                        if (isOffline || (user == null || user['name'] == null))
-                          Container(
-                            width: double.infinity,
-                            margin: EdgeInsets.only(bottom: _px(context, 16)),
-                            padding: EdgeInsets.symmetric(
-                              vertical: _px(context, 16),
-                            ),
-                            decoration: BoxDecoration(
-                              color: Colors.blue[50],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.blue[200]!),
-                            ),
-                            child: InkWell(
-                              onTap: () {
-                                ref.read(profileProvider.notifier).loadUser();
-                              },
-                              borderRadius: BorderRadius.circular(12),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.refresh,
-                                    color: Colors.blue,
-                                    size: _px(context, 22),
-                                  ),
-                                  SizedBox(width: _px(context, 10)),
-                                  Text(
-                                    isOffline
-                                        ? 'Coba Sambungkan Lagi'
-                                        : 'Muat Ulang Profil',
-                                    style: TextStyle(
-                                      fontSize: _ts(context, 16),
-                                      fontWeight: FontWeight.w600,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                        SizedBox(height: _px(context, 16)),
 
                         // Logout
                         Container(
@@ -432,7 +332,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildErrorProfile(BuildContext context) {
+  Widget _buildErrorProfile(BuildContext context, String? errorMessage) {
     return Column(
       children: [
         Icon(Icons.error_outline, size: _px(context, 64), color: Colors.red),
@@ -446,35 +346,58 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ),
         SizedBox(height: _px(context, 8)),
-        Text(
-          'Silakan coba lagi',
-          style: TextStyle(fontSize: _ts(context, 14), color: Colors.grey[600]),
-        ),
+        if (errorMessage != null)
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: _px(context, 20)),
+            child: Text(
+              errorMessage,
+              style: TextStyle(
+                fontSize: _ts(context, 14),
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          )
+        else
+          Text(
+            'Silakan coba lagi',
+            style: TextStyle(
+              fontSize: _ts(context, 14),
+              color: Colors.grey[600],
+            ),
+          ),
         SizedBox(height: _px(context, 16)),
-        ElevatedButton(
+        ElevatedButton.icon(
           onPressed: () {
             ref.read(profileProvider.notifier).loadUser();
           },
+          icon: const Icon(Icons.refresh_rounded),
+          label: const Text('Coba Lagi'),
           style: ElevatedButton.styleFrom(
             backgroundColor: const Color(0xFF1E88E5),
             foregroundColor: Colors.white,
+            padding: EdgeInsets.symmetric(
+              horizontal: _px(context, 20),
+              vertical: _px(context, 12),
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
-          child: const Text('Coba Lagi'),
         ),
         SizedBox(height: _px(context, 22)),
       ],
     );
   }
 
-  Widget _buildProfileContent(
-    BuildContext context,
-    Map<String, dynamic>? user,
-  ) {
-    // Handle offline/unauthenticated state with fallback data
-    final name = user?['name']?.toString() ?? '-';
-    final email = user?['email']?.toString() ?? '-';
-    final isDataAvailable =
-        user != null && user['name'] != null && user['email'] != null;
+  Widget _buildProfileContent(BuildContext context, user) {
+    // Handle case when user is null
+    final name = user?.name ?? '-';
+    final email = user?.email ?? '-';
+    final phone = user?.phone;
+    final isDataAvailable = user != null;
 
     return Column(
       children: [
@@ -524,7 +447,30 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ),
 
-        // Offline/Unavailable indicator
+        // Phone (if available)
+        if (phone != null && phone.isNotEmpty) ...[
+          SizedBox(height: _px(context, 4)),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.phone,
+                size: _px(context, 14),
+                color: const Color(0xFF4A5568),
+              ),
+              SizedBox(width: _px(context, 4)),
+              Text(
+                phone,
+                style: TextStyle(
+                  fontSize: _ts(context, 13),
+                  color: const Color(0xFF4A5568),
+                ),
+              ),
+            ],
+          ),
+        ],
+
+        // Unavailable indicator
         if (!isDataAvailable) ...[
           SizedBox(height: _px(context, 8)),
           Container(
@@ -609,7 +555,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ),
         subtitle: Text(
-          enabled ? subtitle : 'Tidak tersedia saat offline',
+          enabled ? subtitle : 'Tidak tersedia',
           style: TextStyle(
             fontSize: subtitleFontSize,
             color: enabled ? const Color(0xFF4A5568) : Colors.grey,
@@ -632,6 +578,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       builder: (context) => AlertDialog(
         title: const Text('Konfirmasi Logout'),
         content: const Text('Apakah Anda yakin ingin keluar dari aplikasi?'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -644,6 +591,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
               showMessageToast(
                 context,
                 message: 'Anda telah keluar dari aplikasi',
+                type: ToastType.success,
               );
               Navigator.pushReplacementNamed(context, '/welcome');
             },
@@ -663,14 +611,25 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Bantuan'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: [Text('🌐 Website: www.shollover.com')],
+          children: [
+            Text('🌐 Website: www.shollover.com'),
+            SizedBox(height: 8),
+            Text('📧 Email: support@shollover.com'),
+            SizedBox(height: 8),
+            Text('📱 WhatsApp: +62 xxx xxxx xxxx'),
+          ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E88E5),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('Tutup'),
           ),
         ],
@@ -683,12 +642,16 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Tentang Aplikasi'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         content: const Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Shollover'),
-            SizedBox(height: 8),
+            Text(
+              'Shollover',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 16),
             Text('📱 Versi: 1.0.0'),
             SizedBox(height: 8),
             Text('🔨 Build: 100'),
@@ -697,12 +660,17 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             SizedBox(height: 16),
             Text(
               'Aplikasi untuk membantu keluarga Muslim dalam menjalankan ibadah dan monitoring aktivitas keagamaan.',
+              style: TextStyle(fontSize: 13),
             ),
           ],
         ),
         actions: [
           ElevatedButton(
             onPressed: () => Navigator.pop(context),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF1E88E5),
+              foregroundColor: Colors.white,
+            ),
             child: const Text('OK'),
           ),
         ],

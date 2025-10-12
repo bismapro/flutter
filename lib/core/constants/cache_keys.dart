@@ -10,11 +10,10 @@ class CacheKeys {
   static String komentarPostingan(String artikelId) =>
       'komentar_postingan_$artikelId';
 
-  static const String sedekahStats = 'sedekah_stats';
-  static const String detailCampaign = 'detail_campaign';
+  // Sedekah
+  static const String sedekah = 'sedekah';
 
-  static const String userProfile = 'user_profile';
-  static const String userRiwayatDonasi = 'user_riwayat_donasi';
-
-  // Tambahkan grup kunci lain di sini...
+  // Home
+  static const String homeJadwalSholat = 'home_jadwal_sholat';
+  static const String homeLatestArticle = 'home_latest_article';
 }

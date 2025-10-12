@@ -6,6 +6,7 @@ import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/models/sholat/sholat.dart';
 import 'package:test_flutter/features/home/home_provider.dart';
+import 'package:test_flutter/features/home/home_state.dart';
 import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
 import 'package:test_flutter/features/monitoring/pages/monitoring_page.dart';
 import 'package:test_flutter/features/quran/pages/quran_page.dart';
@@ -104,12 +105,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   @override
   Widget build(BuildContext context) {
     final homeState = ref.watch(homeProvider);
-    final status = homeState['status'] as HomeState;
-    final sholat = homeState['jadwalSholat'] as Sholat?;
-    final articles = homeState['articles'] as List<KomunitasArtikel>;
-    final error = homeState['error'] as String?;
-    final locationError = homeState['locationError'] as String?;
-    final isOffline = homeState['isOffline'] as bool;
+    final status = homeState.status;
+    final sholat = homeState.jadwalSholat;
+    final articles = homeState.articles;
+    final error = homeState.error;
+    final locationError = homeState.locationError;
+    final isOffline = homeState.isOffline;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -178,13 +179,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                 color: Colors.grey.withValues(alpha: 0.3),
                                 borderRadius: BorderRadius.circular(16),
                               ),
-                              child:
-                                  status == HomeState.loadingLocation ||
-                                      status == HomeState.refreshingLocation
+                              child: status == HomeStatus.refreshing
                                   ? SizedBox(
                                       width: _icon(context, 20),
                                       height: _icon(context, 20),
-                                      child: CircularProgressIndicator(
+                                      child: const CircularProgressIndicator(
                                         strokeWidth: 2,
                                         valueColor:
                                             AlwaysStoppedAnimation<Color>(
@@ -318,15 +317,13 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   Widget _buildPrayerTimeDisplay(
     BuildContext context,
     Sholat? sholat,
-    HomeState status,
+    HomeStatus status,
     String? locationError,
   ) {
-    if (status == HomeState.loadingLocation ||
-        status == HomeState.loadingJadwalSholat ||
-        status == HomeState.loadingAll) {
+    if (status == HomeStatus.loading) {
       return Column(
         children: [
-          SizedBox(
+          const SizedBox(
             width: 40,
             height: 40,
             child: CircularProgressIndicator(
@@ -344,7 +341,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     }
 
     if (locationError != null ||
-        (sholat == null && status == HomeState.error)) {
+        (sholat == null && status == HomeStatus.error)) {
       return Column(
         children: [
           Icon(
@@ -353,10 +350,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             size: _icon(context, 40),
           ),
           SizedBox(height: _px(context, 12)),
-          Text(
-            locationError ?? 'Failed to load prayer schedule',
-            style: TextStyle(color: Colors.white70, fontSize: _t(context, 14)),
-            textAlign: TextAlign.center,
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: _hpad(context)),
+            child: Text(
+              locationError ?? 'Failed to load prayer schedule',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: _t(context, 14),
+              ),
+              textAlign: TextAlign.center,
+            ),
           ),
           SizedBox(height: _px(context, 8)),
           TextButton(
@@ -402,18 +405,15 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       );
     }
 
-    return SizedBox.shrink();
+    return const SizedBox.shrink();
   }
 
   Widget _buildPrayerTimesRow(
     BuildContext context,
     Sholat? sholat,
-    HomeState status,
+    HomeStatus status,
   ) {
-    if (status == HomeState.loadingLocation ||
-        status == HomeState.loadingJadwalSholat ||
-        status == HomeState.loadingAll ||
-        sholat == null) {
+    if (status == HomeStatus.loading || sholat == null) {
       return SizedBox(
         height: _px(context, 100),
         child: Center(
@@ -425,6 +425,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       );
     }
 
+    // Determine active prayer
+    final notifier = ref.read(homeProvider.notifier);
+    final currentPrayerName = notifier.getCurrentPrayerName();
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: _hpad(context)),
       child: _ResponsivePrayerRow(
@@ -435,35 +439,35 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             'Fajr',
             sholat.wajib.shubuh,
             Icons.nightlight_round,
-            true, // You can implement logic to determine active prayer
+            currentPrayerName == 'Fajr',
           ),
           _buildPrayerTimeWidget(
             context,
             'Dzuhr',
             sholat.wajib.dzuhur,
             Icons.wb_sunny_rounded,
-            false,
+            currentPrayerName == 'Dzuhr',
           ),
           _buildPrayerTimeWidget(
             context,
             'Asr',
             sholat.wajib.ashar,
             Icons.wb_twilight_rounded,
-            false,
+            currentPrayerName == 'Asr',
           ),
           _buildPrayerTimeWidget(
             context,
             'Maghrib',
             sholat.wajib.maghrib,
             Icons.wb_sunny_outlined,
-            false,
+            currentPrayerName == 'Maghrib',
           ),
           _buildPrayerTimeWidget(
             context,
             'Isha',
             sholat.wajib.isya,
             Icons.dark_mode_rounded,
-            false,
+            currentPrayerName == 'Isha',
           ),
         ],
       ),
@@ -502,8 +506,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   Widget _buildBottomSheetContent(
     BuildContext context,
     ScrollController scrollController,
-    List<KomunitasArtikel> articles,
-    HomeState status,
+    List<KomunitasPostingan> articles,
+    HomeStatus status,
     String? error,
   ) {
     return ListView(
@@ -649,9 +653,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
               Icons.article_rounded,
               AppTheme.primaryBlue,
             ),
-            if (status == HomeState.loadingLatestArticle ||
-                status == HomeState.refreshingLatestArticle)
-              SizedBox(
+            if (status == HomeStatus.refreshing)
+              const SizedBox(
                 width: 20,
                 height: 20,
                 child: CircularProgressIndicator(
@@ -686,12 +689,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 
   Widget _buildArticlesSection(
     BuildContext context,
-    List<KomunitasArtikel> articles,
-    HomeState status,
+    List<KomunitasPostingan> articles,
+    HomeStatus status,
     String? error,
   ) {
-    if (status == HomeState.loadingLatestArticle ||
-        status == HomeState.loadingAll) {
+    if (status == HomeStatus.loading) {
       return _buildArticlesLoadingState(context);
     }
 
@@ -710,12 +712,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
         return _buildEnhancedArticleCard(
           title: article.judul,
           summary: article.excerpt,
-          imageUrl: article.gambar.isNotEmpty
-              ? "$storageUrl/${article.gambar[0]}"
+          imageUrl: article.daftarGambar.isNotEmpty
+              ? "$storageUrl/${article.daftarGambar[0]}"
               : 'https://picsum.photos/120/100?random=${article.id}',
           date: _formatDate(article.createdAt),
           context: context,
-          category: article.kategori,
+          category: article.kategori.nama,
         );
       }).toList(),
     );
@@ -813,13 +815,13 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           SizedBox(height: _px(context, 16)),
           ElevatedButton(
             onPressed: () {
-              ref.read(homeProvider.notifier).loadLatestArticles();
+              ref.read(homeProvider.notifier).refreshLatestArticles();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
               foregroundColor: Colors.white,
             ),
-            child: Text('Retry'),
+            child: const Text('Retry'),
           ),
         ],
       ),
@@ -1195,7 +1197,7 @@ class _ResponsivePrayerRow extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: children.length,
-          separatorBuilder: (_, _) => const SizedBox(width: 10),
+          separatorBuilder: (_, __) => const SizedBox(width: 10),
           itemBuilder: (_, i) => children[i],
         ),
       );

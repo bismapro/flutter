@@ -28,14 +28,19 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
   final TextEditingController _judulCtrl = TextEditingController();
   final TextEditingController _kontenCtrl = TextEditingController();
 
-  /// kategoriId yang dipilih (WAJIB sesuai backend). Silakan isi mapping sesuai master kategori API-mu.
-  /// Contoh dari payload: 1 = Ibadah
+  /// kategoriId yang dipilih (WAJIB sesuai backend)
   int _selectedKategoriId = 1;
-
-  /// (opsional) nama kategori untuk label UI saja
   String _selectedKategoriNama = 'Ibadah';
 
-  List<XFile> _selectedImages = [];
+  /// Cover image (WAJIB)
+  XFile? _coverImage;
+
+  /// Daftar gambar tambahan (opsional)
+  List<XFile> _additionalImages = [];
+
+  /// Anonymous mode
+  bool _isAnonymous = false;
+
   final Map<String, Uint8List> _imageBytesCache = {};
 
   late final AnimationController _anim;
@@ -44,13 +49,14 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
 
   bool _submitting = false;
 
-  /// Daftar kategori dummy (id->nama). Ganti ini dengan data dari API kalau sudah ada endpoint kategori.
+  /// Daftar kategori
   final List<Map<String, dynamic>> _kategoriList = const [
     {'id': 1, 'nama': 'Ibadah'},
-    {'id': 2, 'nama': 'Diskusi'},
-    {'id': 3, 'nama': 'Pertanyaan'},
+    {'id': 2, 'nama': 'Doa'},
+    {'id': 3, 'nama': 'Event'},
     {'id': 4, 'nama': 'Sharing'},
-    {'id': 5, 'nama': 'Event'},
+    {'id': 5, 'nama': 'Pertanyaan'},
+    {'id': 6, 'nama': 'Diskusi'},
   ];
 
   @override
@@ -81,12 +87,16 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
     switch (nama.toLowerCase()) {
       case 'ibadah':
         return const Color(0xFF3B82F6);
+      case 'doa':
+        return const Color(0xFF8B5CF6);
       case 'event':
         return const Color(0xFFF97316);
       case 'sharing':
         return const Color(0xFF10B981);
       case 'pertanyaan':
-        return const Color(0xFF8B5CF6);
+        return const Color(0xFFEF4444);
+      case 'diskusi':
+        return Colors.purple.shade400;
       default:
         return AppTheme.primaryBlue;
     }
@@ -96,19 +106,53 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
     switch (nama.toLowerCase()) {
       case 'ibadah':
         return Icons.auto_awesome_rounded;
+      case 'doa':
+        return Icons.spa_rounded;
       case 'event':
         return Icons.event_rounded;
       case 'sharing':
         return Icons.share_rounded;
       case 'pertanyaan':
         return Icons.help_outline_rounded;
+      case 'diskusi':
+        return Icons.forum_rounded;
       default:
         return Icons.forum_rounded;
     }
   }
 
-  // ===== Gambar =====
-  Future<void> _pickImages() async {
+  // ===== Gambar Cover =====
+  Future<void> _pickCoverImage() async {
+    try {
+      final picker = ImagePicker();
+      final image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        imageQuality: 85,
+      );
+      if (image != null) {
+        setState(() => _coverImage = image);
+        logger.info('[TambahPostingan] picked cover image');
+      }
+    } catch (e) {
+      logger.warning('[TambahPostingan] pick cover image error: $e');
+      if (mounted) {
+        showMessageToast(
+          context,
+          message: 'Gagal memilih gambar cover: $e',
+          type: ToastType.error,
+        );
+      }
+    }
+  }
+
+  void _removeCoverImage() {
+    setState(() => _coverImage = null);
+  }
+
+  // ===== Gambar Tambahan =====
+  Future<void> _pickAdditionalImages() async {
     try {
       final picker = ImagePicker();
       final images = await picker.pickMultiImage(
@@ -117,11 +161,13 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
         imageQuality: 85,
       );
       if (images.isNotEmpty) {
-        setState(() => _selectedImages.addAll(images));
-        logger.info('[TambahPostingan] picked ${images.length} images');
+        setState(() => _additionalImages.addAll(images));
+        logger.info(
+          '[TambahPostingan] picked ${images.length} additional images',
+        );
       }
     } catch (e) {
-      logger.warning('[TambahPostingan] pick image error: $e');
+      logger.warning('[TambahPostingan] pick additional images error: $e');
       if (mounted) {
         showMessageToast(
           context,
@@ -132,19 +178,23 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
     }
   }
 
-  void _removeImage(int index) {
-    setState(() => _selectedImages.removeAt(index));
+  void _removeAdditionalImage(int index) {
+    setState(() => _additionalImages.removeAt(index));
   }
 
   // ===== Submit =====
   Future<void> _submit() async {
+    if (!_formKey.currentState!.validate()) {
+      return;
+    }
+
     final judul = _judulCtrl.text.trim();
     final konten = _kontenCtrl.text.trim();
 
-    if (judul.isEmpty || konten.isEmpty) {
+    if (_coverImage == null) {
       showMessageToast(
         context,
-        message: 'Judul dan konten tidak boleh kosong.',
+        message: 'Gambar cover wajib diisi.',
         type: ToastType.error,
       );
       return;
@@ -152,31 +202,38 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
 
     setState(() => _submitting = true);
     try {
-      /// Pastikan Notifier punya method ini:
-      /// Future<void> createPostingan({
-      ///   required int kategoriId,
-      ///   required String judul,
-      ///   required String konten,
-      ///   required List<XFile> gambar, // gambar pertama = cover
-      /// })
+      logger.fine(
+        '[TambahPostingan] Creating postingan with kategoriId: $_selectedKategoriId, anonymous: $_isAnonymous',
+      );
+
+      // Menggunakan provider untuk create postingan
       await ref
           .read(komunitasProvider.notifier)
           .createPostingan(
-            // kategoriId: _selectedKategoriId,
-            // judul: judul,
-            // konten: konten,
-            // gambar: _selectedImages,
+            kategoriId: _selectedKategoriId.toString(),
+            judul: judul,
+            cover: _coverImage!,
+            konten: konten,
+            daftarGambar: _additionalImages.isNotEmpty
+                ? _additionalImages
+                : null,
+            isAnonymous: _isAnonymous,
           );
 
-      // Refresh list saat kembali (biar aman, list page sudah refresh onPop juga)
-      // ignore: use_build_context_synchronously
-      showMessageToast(
-        context,
-        message: 'Postingan berhasil dibuat!',
-        type: ToastType.success,
-      );
-      // ignore: use_build_context_synchronously
-      Navigator.pop(context, {'created': true});
+      // Check if success
+      final state = ref.read(komunitasProvider);
+      if (state.status == KomunitasStatus.success) {
+        if (mounted) {
+          showMessageToast(
+            context,
+            message: 'Postingan berhasil dibuat!',
+            type: ToastType.success,
+          );
+
+          // Return with result
+          Navigator.pop(context, {'created': true});
+        }
+      }
     } catch (e, st) {
       logger.severe('[TambahPostingan] submit error: $e', e, st);
       if (mounted) {
@@ -184,6 +241,7 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
           context,
           message: 'Gagal membuat postingan: $e',
           type: ToastType.error,
+          duration: const Duration(seconds: 4),
         );
       }
     } finally {
@@ -192,7 +250,46 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
   }
 
   void _handleBack() {
-    if (!_submitting && Navigator.canPop(context)) {
+    if (_submitting) return;
+
+    // Check if there's unsaved data
+    final hasData =
+        _judulCtrl.text.trim().isNotEmpty ||
+        _kontenCtrl.text.trim().isNotEmpty ||
+        _coverImage != null ||
+        _additionalImages.isNotEmpty;
+
+    if (hasData) {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: const Text('Batalkan Postingan?'),
+          content: const Text(
+            'Data yang sudah diisi akan hilang. Apakah Anda yakin ingin keluar?',
+          ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Tidak'),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context); // Close dialog
+                Navigator.pop(context); // Close page
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade400,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Ya, Keluar'),
+            ),
+          ],
+        ),
+      );
+    } else {
       Navigator.pop(context);
     }
   }
@@ -219,11 +316,9 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
     final inputSize = ResponsiveHelper.adaptiveTextSize(context, 15);
     final hintSize = ResponsiveHelper.adaptiveTextSize(context, 14);
 
-    // Bisa dipakai jika mau men-disable saat provider lagi loading list
+    // Watch provider state for loading indicator
     final provState = ref.watch(komunitasProvider);
-    final listLoading =
-        provState.status == KomunitasStatus.loading &&
-        provState.postingan.isEmpty;
+    final isProviderLoading = provState.status == KomunitasStatus.loading;
 
     final catColor = _getCategoryColor(_selectedKategoriNama);
     final catIcon = _getCategoryIcon(_selectedKategoriNama);
@@ -247,7 +342,17 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
               // AppBar
               Container(
                 padding: EdgeInsets.all(pad.left.clamp(12, 20)),
-                color: Colors.white,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                      spreadRadius: -5,
+                    ),
+                  ],
+                ),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(maxWidth: _maxWidth(context)),
@@ -303,6 +408,20 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                             ],
                           ),
                         ),
+                        if (_submitting || isProviderLoading)
+                          Container(
+                            margin: const EdgeInsets.only(left: 8),
+                            child: SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppTheme.primaryBlue,
+                                ),
+                              ),
+                            ),
+                          ),
                       ],
                     ),
                   ),
@@ -333,6 +452,76 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Anonymous Toggle
+                                _CardBlock(
+                                  borderColor: Colors.grey.withValues(
+                                    alpha: .15,
+                                  ),
+                                  shadowColor: Colors.grey.withValues(
+                                    alpha: .08,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      _IconBadge(
+                                        color: _isAnonymous
+                                            ? Colors.grey.shade600
+                                            : AppTheme.primaryBlue,
+                                        icon: _isAnonymous
+                                            ? Icons.visibility_off_rounded
+                                            : Icons.person_rounded,
+                                        size: ResponsiveHelper.adaptiveTextSize(
+                                          context,
+                                          22,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'Mode Posting',
+                                              style: TextStyle(
+                                                fontSize: labelSize,
+                                                fontWeight: FontWeight.bold,
+                                                color: AppTheme.onSurface,
+                                                letterSpacing: -.3,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              _isAnonymous
+                                                  ? 'Postingan akan ditampilkan sebagai Anonim'
+                                                  : 'Postingan akan menggunakan nama Anda',
+                                              style: TextStyle(
+                                                fontSize:
+                                                    ResponsiveHelper.adaptiveTextSize(
+                                                      context,
+                                                      13,
+                                                    ),
+                                                color:
+                                                    AppTheme.onSurfaceVariant,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Switch(
+                                        value: _isAnonymous,
+                                        onChanged: _submitting
+                                            ? null
+                                            : (val) => setState(
+                                                () => _isAnonymous = val,
+                                              ),
+                                        activeColor: AppTheme.accentGreen,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 16),
+
                                 // Kategori
                                 _CardBlock(
                                   borderColor: catColor.withValues(alpha: .12),
@@ -419,8 +608,7 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                                 ),
                                               );
                                             }).toList(),
-                                            onChanged:
-                                                (_submitting || listLoading)
+                                            onChanged: _submitting
                                                 ? null
                                                 : (val) {
                                                     if (val == null) return;
@@ -514,6 +702,15 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                               width: 2,
                                             ),
                                           ),
+                                          errorBorder: OutlineInputBorder(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            borderSide: BorderSide(
+                                              color: Colors.red.shade400,
+                                              width: 1,
+                                            ),
+                                          ),
                                           contentPadding: const EdgeInsets.all(
                                             16,
                                           ),
@@ -524,6 +721,259 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
+                                    ],
+                                  ),
+                                ),
+
+                                const SizedBox(height: 16),
+
+                                // Cover Image (WAJIB)
+                                _CardBlock(
+                                  borderColor: Colors.orange.withValues(
+                                    alpha: .12,
+                                  ),
+                                  shadowColor: Colors.orange.withValues(
+                                    alpha: .08,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Row(
+                                        children: [
+                                          _IconBadge(
+                                            color: Colors.orange.shade600,
+                                            icon: Icons.image_rounded,
+                                            size:
+                                                ResponsiveHelper.adaptiveTextSize(
+                                                  context,
+                                                  22,
+                                                ),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Row(
+                                                  children: [
+                                                    Text(
+                                                      'Gambar Cover',
+                                                      style: TextStyle(
+                                                        fontSize: labelSize,
+                                                        fontWeight:
+                                                            FontWeight.bold,
+                                                        color:
+                                                            AppTheme.onSurface,
+                                                        letterSpacing: -.3,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 6),
+                                                    Container(
+                                                      padding:
+                                                          const EdgeInsets.symmetric(
+                                                            horizontal: 6,
+                                                            vertical: 2,
+                                                          ),
+                                                      decoration: BoxDecoration(
+                                                        color:
+                                                            Colors.red.shade100,
+                                                        borderRadius:
+                                                            BorderRadius.circular(
+                                                              4,
+                                                            ),
+                                                      ),
+                                                      child: Text(
+                                                        'WAJIB',
+                                                        style: TextStyle(
+                                                          fontSize: 10,
+                                                          fontWeight:
+                                                              FontWeight.bold,
+                                                          color: Colors
+                                                              .red
+                                                              .shade700,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  'Gambar utama untuk postingan',
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        ResponsiveHelper.adaptiveTextSize(
+                                                          context,
+                                                          12,
+                                                        ),
+                                                    color: AppTheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                          if (_coverImage == null)
+                                            TextButton.icon(
+                                              onPressed: _submitting
+                                                  ? null
+                                                  : _pickCoverImage,
+                                              icon: const Icon(
+                                                Icons.add_photo_alternate,
+                                                size: 18,
+                                              ),
+                                              label: const Text('Pilih'),
+                                              style: TextButton.styleFrom(
+                                                foregroundColor:
+                                                    Colors.orange.shade700,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                      if (_coverImage != null) ...[
+                                        const SizedBox(height: 12),
+                                        Container(
+                                          height: 200,
+                                          decoration: BoxDecoration(
+                                            borderRadius: BorderRadius.circular(
+                                              12,
+                                            ),
+                                            border: Border.all(
+                                              color: Colors.orange.withValues(
+                                                alpha: .2,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Stack(
+                                            children: [
+                                              ClipRRect(
+                                                borderRadius:
+                                                    BorderRadius.circular(12),
+                                                child: SizedBox(
+                                                  width: double.infinity,
+                                                  height: double.infinity,
+                                                  child: _thumb(
+                                                    _coverImage!,
+                                                    size: 200,
+                                                  ),
+                                                ),
+                                              ),
+                                              // Badge COVER
+                                              Positioned(
+                                                bottom: 8,
+                                                left: 8,
+                                                child: Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                        horizontal: 12,
+                                                        vertical: 6,
+                                                      ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        Colors.orange.shade600,
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          8,
+                                                        ),
+                                                    boxShadow: [
+                                                      BoxShadow(
+                                                        color: Colors.black
+                                                            .withValues(
+                                                              alpha: 0.3,
+                                                            ),
+                                                        blurRadius: 4,
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  child: const Text(
+                                                    'COVER',
+                                                    style: TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                              // Change/Remove buttons
+                                              Positioned(
+                                                top: 8,
+                                                right: 8,
+                                                child: Row(
+                                                  children: [
+                                                    GestureDetector(
+                                                      onTap: _submitting
+                                                          ? null
+                                                          : _pickCoverImage,
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets.all(
+                                                              8,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color: AppTheme
+                                                              .primaryBlue,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors
+                                                                  .black
+                                                                  .withValues(
+                                                                    alpha: 0.3,
+                                                                  ),
+                                                              blurRadius: 4,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.edit,
+                                                          color: Colors.white,
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    GestureDetector(
+                                                      onTap: _submitting
+                                                          ? null
+                                                          : _removeCoverImage,
+                                                      child: Container(
+                                                        padding:
+                                                            const EdgeInsets.all(
+                                                              8,
+                                                            ),
+                                                        decoration: BoxDecoration(
+                                                          color: Colors.red,
+                                                          shape:
+                                                              BoxShape.circle,
+                                                          boxShadow: [
+                                                            BoxShadow(
+                                                              color: Colors
+                                                                  .black
+                                                                  .withValues(
+                                                                    alpha: 0.3,
+                                                                  ),
+                                                              blurRadius: 4,
+                                                            ),
+                                                          ],
+                                                        ),
+                                                        child: const Icon(
+                                                          Icons.close,
+                                                          color: Colors.white,
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
@@ -615,12 +1065,12 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
 
                                 const SizedBox(height: 16),
 
-                                // Gambar
+                                // Additional Images (opsional)
                                 _CardBlock(
-                                  borderColor: Colors.orange.withValues(
-                                    alpha: .1,
+                                  borderColor: Colors.purple.withValues(
+                                    alpha: .12,
                                   ),
-                                  shadowColor: Colors.orange.withValues(
+                                  shadowColor: Colors.purple.withValues(
                                     alpha: .08,
                                   ),
                                   child: Column(
@@ -630,8 +1080,8 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                       Row(
                                         children: [
                                           _IconBadge(
-                                            color: Colors.orange.shade600,
-                                            icon: Icons.image_rounded,
+                                            color: Colors.purple.shade600,
+                                            icon: Icons.photo_library_rounded,
                                             size:
                                                 ResponsiveHelper.adaptiveTextSize(
                                                   context,
@@ -639,39 +1089,59 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                                 ),
                                           ),
                                           const SizedBox(width: 12),
-                                          Text(
-                                            'Gambar (opsional)',
-                                            style: TextStyle(
-                                              fontSize: labelSize,
-                                              fontWeight: FontWeight.bold,
-                                              color: AppTheme.onSurface,
-                                              letterSpacing: -.3,
+                                          Expanded(
+                                            child: Column(
+                                              crossAxisAlignment:
+                                                  CrossAxisAlignment.start,
+                                              children: [
+                                                Text(
+                                                  'Gambar Tambahan',
+                                                  style: TextStyle(
+                                                    fontSize: labelSize,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: AppTheme.onSurface,
+                                                    letterSpacing: -.3,
+                                                  ),
+                                                ),
+                                                const SizedBox(height: 2),
+                                                Text(
+                                                  'Opsional - Tambahkan lebih banyak foto',
+                                                  style: TextStyle(
+                                                    fontSize:
+                                                        ResponsiveHelper.adaptiveTextSize(
+                                                          context,
+                                                          12,
+                                                        ),
+                                                    color: AppTheme
+                                                        .onSurfaceVariant,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ),
-                                          const Spacer(),
                                           TextButton.icon(
                                             onPressed: _submitting
                                                 ? null
-                                                : _pickImages,
+                                                : _pickAdditionalImages,
                                             icon: const Icon(
                                               Icons.add_photo_alternate,
                                               size: 18,
                                             ),
-                                            label: const Text('Pilih Gambar'),
+                                            label: const Text('Pilih'),
                                             style: TextButton.styleFrom(
                                               foregroundColor:
-                                                  Colors.orange.shade700,
+                                                  Colors.purple.shade700,
                                             ),
                                           ),
                                         ],
                                       ),
-                                      if (_selectedImages.isNotEmpty) ...[
+                                      if (_additionalImages.isNotEmpty) ...[
                                         const SizedBox(height: 12),
                                         SizedBox(
                                           height: 120,
                                           child: ListView.builder(
                                             scrollDirection: Axis.horizontal,
-                                            itemCount: _selectedImages.length,
+                                            itemCount: _additionalImages.length,
                                             itemBuilder: (context, i) {
                                               return Container(
                                                 margin: const EdgeInsets.only(
@@ -682,7 +1152,7 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                                   borderRadius:
                                                       BorderRadius.circular(12),
                                                   border: Border.all(
-                                                    color: Colors.orange
+                                                    color: Colors.purple
                                                         .withValues(alpha: .2),
                                                   ),
                                                 ),
@@ -694,27 +1164,41 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                                             12,
                                                           ),
                                                       child: _thumb(
-                                                        _selectedImages[i],
+                                                        _additionalImages[i],
                                                       ),
                                                     ),
+                                                    // Remove button
                                                     Positioned(
                                                       top: 4,
                                                       right: 4,
                                                       child: GestureDetector(
-                                                        onTap: () =>
-                                                            _removeImage(i),
+                                                        onTap: _submitting
+                                                            ? null
+                                                            : () =>
+                                                                  _removeAdditionalImage(
+                                                                    i,
+                                                                  ),
                                                         child: Container(
                                                           padding:
                                                               const EdgeInsets.all(
                                                                 4,
                                                               ),
-                                                          decoration:
-                                                              const BoxDecoration(
-                                                                color:
-                                                                    Colors.red,
-                                                                shape: BoxShape
-                                                                    .circle,
+                                                          decoration: BoxDecoration(
+                                                            color: Colors.red,
+                                                            shape:
+                                                                BoxShape.circle,
+                                                            boxShadow: [
+                                                              BoxShadow(
+                                                                color: Colors
+                                                                    .black
+                                                                    .withValues(
+                                                                      alpha:
+                                                                          0.3,
+                                                                    ),
+                                                                blurRadius: 4,
                                                               ),
+                                                            ],
+                                                          ),
                                                           child: const Icon(
                                                             Icons.close,
                                                             color: Colors.white,
@@ -730,28 +1214,13 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                           ),
                                         ),
                                       ],
-                                      if (_selectedImages.isNotEmpty) ...[
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          'Catatan: gambar pertama akan dijadikan cover.',
-                                          style: TextStyle(
-                                            fontSize:
-                                                ResponsiveHelper.adaptiveTextSize(
-                                                  context,
-                                                  12,
-                                                ),
-                                            color: AppTheme.onSurfaceVariant,
-                                            fontStyle: FontStyle.italic,
-                                          ),
-                                        ),
-                                      ],
                                     ],
                                   ),
                                 ),
 
                                 const SizedBox(height: 22),
 
-                                // Submit
+                                // Submit Button
                                 SizedBox(
                                   width: double.infinity,
                                   child: Container(
@@ -773,16 +1242,7 @@ class _TambahPostinganPageState extends ConsumerState<TambahPostinganPage>
                                       ],
                                     ),
                                     child: ElevatedButton(
-                                      onPressed: (_submitting || listLoading)
-                                          ? null
-                                          : () {
-                                              if (_formKey.currentState
-                                                      ?.validate() !=
-                                                  true) {
-                                                return;
-                                              }
-                                              _submit();
-                                            },
+                                      onPressed: _submitting ? null : _submit,
                                       style: ElevatedButton.styleFrom(
                                         backgroundColor: Colors.transparent,
                                         shadowColor: Colors.transparent,

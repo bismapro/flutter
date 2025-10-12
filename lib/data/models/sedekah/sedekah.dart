@@ -79,6 +79,10 @@ class StatistikSedekah {
     required this.riwayat,
   });
 
+  factory StatistikSedekah.empty() {
+    return StatistikSedekah(totalHariIni: 0, totalBulanIni: 0, riwayat: []);
+  }
+
   factory StatistikSedekah.fromJson(Map<String, dynamic> m) {
     int toInt(dynamic v) {
       if (v == null) return 0;
