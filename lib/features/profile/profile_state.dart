@@ -1,14 +1,10 @@
-// File: features/profile/profile_state.dart
-
-import 'package:test_flutter/data/models/user/user.dart'; // Impor model User
-
 /// Enum untuk semua kemungkinan status UI profil.
 enum ProfileStatus { initial, loading, loaded, error, success }
 
 /// Class yang membungkus semua data yang dibutuhkan oleh UI Profil.
 class ProfileState {
   final ProfileStatus status;
-  final User? profile;
+  final Map<String, dynamic>? profile;
   final String? message;
 
   const ProfileState({required this.status, this.profile, this.message});
@@ -25,7 +21,7 @@ class ProfileState {
   /// Helper method untuk membuat salinan state dengan perubahan.
   ProfileState copyWith({
     ProfileStatus? status,
-    User? profile,
+    Map<String, dynamic>? profile,
     String? message,
     bool? clearMessage,
   }) {

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/storage_helper.dart';
-import 'package:test_flutter/data/models/user/user.dart';
 import 'package:test_flutter/features/profile/profile_service.dart';
 import 'package:test_flutter/features/profile/profile_state.dart';
 
@@ -14,14 +14,10 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       // StorageHelper.getUser() sekarang kita asumsikan mengembalikan User
       final user = await StorageHelper.getUser();
       if (user != null) {
-        final parseUser = User.fromJson(user);
-        state = state.copyWith(
-          status: ProfileStatus.loaded,
-          profile: parseUser,
-        );
-      } else {
-        throw Exception('Tidak ada data pengguna di storage');
+        state = state.copyWith(status: ProfileStatus.loaded, profile: user);
       }
+
+      logger.fine('User loaded from storage: $user');
     } catch (e) {
       state = state.copyWith(
         status: ProfileStatus.error,
@@ -39,7 +35,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     state = state.copyWith(status: ProfileStatus.loading);
     try {
       final response = await ProfileService.updateProfile(name, email, phone);
-      final updatedUser = User.fromJson(response.data);
+      final updatedUser = response['data'];
 
       // Simpan user yang sudah diperbarui ke local storage
       await StorageHelper.saveUser(updatedUser as Map<String, dynamic>);
@@ -47,7 +43,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
       state = state.copyWith(
         status: ProfileStatus.success,
         profile: updatedUser,
-        message: response.message,
+        message: response['message'],
       );
     } catch (e) {
       state = state.copyWith(
@@ -73,7 +69,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
 
       state = state.copyWith(
         status: ProfileStatus.success,
-        message: response.message,
+        message: response['message'],
       );
     } catch (e) {
       state = state.copyWith(

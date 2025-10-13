@@ -1,9 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
-import 'package:test_flutter/data/models/reponse_format.dart';
 
 class ProfileService {
-  static Future<ResponseFormat> updateProfile(
+  static Future<Map<String, dynamic>> updateProfile(
     String name,
     String email,
     String? phone,
@@ -14,18 +13,21 @@ class ProfileService {
         data: {'name': name, 'email': email, if (phone != null) 'phone': phone},
       );
 
-      final responseData = ResponseFormat.fromJson(
-        response.data as Map<String, dynamic>,
-      );
+      final responseData = response.data as Map<String, dynamic>;
+      final data = responseData['data'] as Map<String, dynamic>;
 
-      return responseData;
+      return {
+        'status': responseData['status'],
+        'message': responseData['message'],
+        'data': data,
+      };
     } on DioException catch (e) {
       final error = ApiClient.parseDioError(e);
       throw Exception(error);
     }
   }
 
-  static Future<ResponseFormat> updatePassword(
+  static Future<Map<String, dynamic>> updatePassword(
     String currentPassword,
     String newPassword,
     String confirmPassword,
@@ -40,11 +42,14 @@ class ProfileService {
         },
       );
 
-      final responseData = ResponseFormat.fromJson(
-        response.data as Map<String, dynamic>,
-      );
+      final responseData = response.data as Map<String, dynamic>;
+      final data = responseData['data'] as Map<String, dynamic>;
 
-      return responseData;
+      return {
+        'status': responseData['status'],
+        'message': responseData['message'],
+        'data': data,
+      };
     } on DioException catch (e) {
       final error = ApiClient.parseDioError(e);
       throw Exception(error);

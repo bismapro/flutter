@@ -45,29 +45,40 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(profileProvider.notifier).loadUser();
+      // Check auth status first
+      final authState = ref.read(authProvider);
+      if (authState['status'] == AuthState.authenticated) {
+        ref.read(profileProvider.notifier).loadUser();
+      }
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Watch auth state
+    final authState = ref.watch(authProvider);
+    final isAuthenticated = authState['status'] == AuthState.authenticated;
+
     // Watch profile state
     final profileState = ref.watch(profileProvider);
     final user = profileState.profile;
     final status = profileState.status;
     final message = profileState.message;
 
+    // Create guest user if not authenticated
+    final displayUser = isAuthenticated
+        ? user
+        : {
+            'user': {
+              'name': 'Guest User',
+              'email': 'guest@shollover.com',
+              'phone': null,
+            },
+          };
+
     // Listen to state changes for showing messages
     ref.listen<ProfileState>(profileProvider, (previous, next) {
-      if (next.status == ProfileStatus.success && next.message != null) {
-        showMessageToast(
-          context,
-          message: next.message!,
-          type: ToastType.success,
-        );
-        ref.read(profileProvider.notifier).clearMessage();
-        ref.read(profileProvider.notifier).resetStatus();
-      } else if (next.status == ProfileStatus.error && next.message != null) {
+      if (next.status == ProfileStatus.error && next.message != null) {
         showMessageToast(
           context,
           message: next.message!,
@@ -113,8 +124,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                   ),
                                 ),
                               ),
-                              // Refresh button
-                              if (status != ProfileStatus.loading)
+                              // Refresh button (only for authenticated users)
+                              if (isAuthenticated &&
+                                  status != ProfileStatus.loading)
                                 Container(
                                   decoration: BoxDecoration(
                                     color: const Color(
@@ -155,25 +167,117 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           ),
                           child: Column(
                             children: [
-                              if (status == ProfileStatus.loading)
+                              // Show loading only if authenticated and loading
+                              if (isAuthenticated &&
+                                  status == ProfileStatus.loading)
                                 _buildLoadingProfile(context)
-                              else if (status == ProfileStatus.error)
+                              // Show error only if authenticated and error
+                              else if (isAuthenticated &&
+                                  status == ProfileStatus.error)
                                 _buildErrorProfile(context, message)
+                              // Show profile (real or guest)
                               else
-                                _buildProfileContent(context, user),
+                                _buildProfileContent(
+                                  context,
+                                  displayUser,
+                                  isGuest: !isAuthenticated,
+                                ),
                             ],
                           ),
                         ),
 
                         SizedBox(height: _px(context, 28)),
 
-                        // Menu Items
+                        // Show login prompt for guest users
+                        if (!isAuthenticated) ...[
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.all(_px(context, 20)),
+                            decoration: BoxDecoration(
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF1E88E5), Color(0xFF26A69A)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(
+                                    0xFF1E88E5,
+                                  ).withValues(alpha: 0.3),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Icon(
+                                  Icons.lock_outline_rounded,
+                                  size: _px(context, 48),
+                                  color: Colors.white,
+                                ),
+                                SizedBox(height: _px(context, 12)),
+                                Text(
+                                  'Masuk untuk Mengakses Fitur',
+                                  style: TextStyle(
+                                    fontSize: _ts(context, 18),
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: _px(context, 8)),
+                                Text(
+                                  'Login untuk mengelola profil, keluarga, dan mengakses fitur lengkap',
+                                  style: TextStyle(
+                                    fontSize: _ts(context, 14),
+                                    color: Colors.white.withValues(alpha: 0.9),
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                                SizedBox(height: _px(context, 16)),
+                                ElevatedButton(
+                                  onPressed: () {
+                                    Navigator.pushReplacementNamed(
+                                      context,
+                                      '/welcome',
+                                    );
+                                  },
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Colors.white,
+                                    foregroundColor: const Color(0xFF1E88E5),
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: _px(context, 32),
+                                      vertical: _px(context, 14),
+                                    ),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Masuk Sekarang',
+                                    style: TextStyle(
+                                      fontSize: _ts(context, 16),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: _px(context, 28)),
+                        ],
+
+                        // Menu Items (disabled for guest)
                         _buildMenuItem(
                           context: context,
                           icon: Icons.person_outline,
                           title: 'Edit Profile',
-                          subtitle: 'Ubah informasi profil Anda',
-                          enabled: user != null,
+                          subtitle: isAuthenticated
+                              ? 'Ubah informasi profil Anda'
+                              : 'Login untuk mengedit profil',
+                          enabled: isAuthenticated && displayUser != null,
                           onTap: () async {
                             final result = await Navigator.push(
                               context,
@@ -191,8 +295,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           context: context,
                           icon: Icons.security,
                           title: 'Ubah Password',
-                          subtitle: 'Ubah password untuk keamanan akun',
-                          enabled: user != null,
+                          subtitle: isAuthenticated
+                              ? 'Ubah password untuk keamanan akun'
+                              : 'Login untuk mengubah password',
+                          enabled: isAuthenticated && displayUser != null,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -204,8 +310,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           context: context,
                           icon: Icons.family_restroom,
                           title: 'Kelola Keluarga',
-                          subtitle: 'Tambah atau edit anggota keluarga',
-                          enabled: user != null,
+                          subtitle: isAuthenticated
+                              ? 'Tambah atau edit anggota keluarga'
+                              : 'Login untuk mengelola keluarga',
+                          enabled: isAuthenticated && displayUser != null,
                           onTap: () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -232,41 +340,42 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
 
                         SizedBox(height: _px(context, 16)),
 
-                        // Logout
-                        Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(
-                            vertical: _px(context, 16),
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.red[50],
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: Colors.red[200]!),
-                          ),
-                          child: InkWell(
-                            onTap: () => _showLogoutDialog(context),
-                            borderRadius: BorderRadius.circular(12),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.logout,
-                                  color: Colors.red,
-                                  size: _px(context, 22),
-                                ),
-                                SizedBox(width: _px(context, 10)),
-                                Text(
-                                  'Keluar',
-                                  style: TextStyle(
-                                    fontSize: _ts(context, 16),
-                                    fontWeight: FontWeight.w600,
+                        // Logout (only for authenticated users)
+                        if (isAuthenticated)
+                          Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                              vertical: _px(context, 16),
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.red[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.red[200]!),
+                            ),
+                            child: InkWell(
+                              onTap: () => _showLogoutDialog(context),
+                              borderRadius: BorderRadius.circular(12),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.logout,
                                     color: Colors.red,
+                                    size: _px(context, 22),
                                   ),
-                                ),
-                              ],
+                                  SizedBox(width: _px(context, 10)),
+                                  Text(
+                                    'Keluar',
+                                    style: TextStyle(
+                                      fontSize: _ts(context, 16),
+                                      fontWeight: FontWeight.w600,
+                                      color: Colors.red,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
-                        ),
 
                         SizedBox(
                           height: ResponsiveHelper.getResponsivePadding(
@@ -392,11 +501,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     );
   }
 
-  Widget _buildProfileContent(BuildContext context, user) {
+  Widget _buildProfileContent(
+    BuildContext context,
+    user, {
+    bool isGuest = false,
+  }) {
     // Handle case when user is null
-    final name = user?.name ?? '-';
-    final email = user?.email ?? '-';
-    final phone = user?.phone;
+    final name = user != null
+        ? (user['user']['name'] ?? user['name'] ?? '-')
+        : '-';
+    final email = user != null
+        ? (user['user']['email'] ?? user['email'] ?? '-')
+        : '-';
+    final phone = user != null
+        ? (user['user']['phone'] ?? user['phone'] ?? '-')
+        : '-';
     final isDataAvailable = user != null;
 
     return Column(
@@ -408,7 +527,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             gradient: LinearGradient(
-              colors: isDataAvailable
+              colors: isGuest
+                  ? [Colors.grey.shade400, Colors.grey.shade500]
+                  : isDataAvailable
                   ? [const Color(0xFF1E88E5), const Color(0xFF26A69A)]
                   : [Colors.grey.shade400, Colors.grey.shade500],
               begin: Alignment.topLeft,
@@ -416,7 +537,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
             ),
           ),
           child: Icon(
-            isDataAvailable ? Icons.person : Icons.person_off,
+            isGuest
+                ? Icons.person_off_outlined
+                : isDataAvailable
+                ? Icons.person
+                : Icons.person_off,
             size: _px(context, 44),
             color: Colors.white,
           ),
@@ -429,9 +554,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           style: TextStyle(
             fontSize: _ts(context, 22),
             fontWeight: FontWeight.bold,
-            color: isDataAvailable
-                ? const Color(0xFF2D3748)
-                : Colors.grey.shade600,
+            color: isGuest || !isDataAvailable
+                ? Colors.grey.shade600
+                : const Color(0xFF2D3748),
           ),
         ),
         SizedBox(height: _px(context, 6)),
@@ -441,14 +566,14 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           email,
           style: TextStyle(
             fontSize: _ts(context, 14),
-            color: isDataAvailable
-                ? const Color(0xFF4A5568)
-                : Colors.grey.shade500,
+            color: isGuest || !isDataAvailable
+                ? Colors.grey.shade500
+                : const Color(0xFF4A5568),
           ),
         ),
 
-        // Phone (if available)
-        if (phone != null && phone.isNotEmpty) ...[
+        // Phone (if available and not guest)
+        if (!isGuest && phone != null && phone.isNotEmpty) ...[
           SizedBox(height: _px(context, 4)),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -470,8 +595,43 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
           ),
         ],
 
-        // Unavailable indicator
-        if (!isDataAvailable) ...[
+        // Guest indicator
+        if (isGuest) ...[
+          SizedBox(height: _px(context, 8)),
+          Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: _px(context, 12),
+              vertical: _px(context, 4),
+            ),
+            decoration: BoxDecoration(
+              color: Colors.grey.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.grey.withValues(alpha: 0.3)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.info_outline_rounded,
+                  size: _px(context, 14),
+                  color: Colors.grey.shade600,
+                ),
+                SizedBox(width: _px(context, 6)),
+                Text(
+                  'Mode Guest',
+                  style: TextStyle(
+                    fontSize: _ts(context, 12),
+                    color: Colors.grey.shade700,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Unavailable indicator (only for authenticated users with no data)
+        if (!isGuest && !isDataAvailable) ...[
           SizedBox(height: _px(context, 8)),
           Container(
             padding: EdgeInsets.symmetric(

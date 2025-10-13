@@ -30,9 +30,11 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
       final profile = profileState.profile;
 
       if (profile != null) {
-        _nameController.text = profile.name ?? '';
-        _emailController.text = profile.email ?? '';
-        _phoneController.text = profile.phone ?? '';
+        _nameController.text = profile['user']['name'] ?? profile['name'] ?? '';
+        _emailController.text =
+            profile['user']['email'] ?? profile['email'] ?? '';
+        _phoneController.text =
+            profile['user']['phone'] ?? profile['phone'] ?? '';
       }
     });
   }
