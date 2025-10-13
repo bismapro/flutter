@@ -79,7 +79,7 @@ class KomunitasService {
 
   // Create Postingan
   static Future<Map<String, dynamic>> createPostingan({
-    required String kategoriId,
+    required int kategoriId,
     required String judul,
     required XFile cover,
     required String konten,
@@ -102,6 +102,8 @@ class KomunitasService {
         filename: cover.name,
       );
 
+      final isAnonymousParse = isAnonymous == true ? 1 : 0;
+
       // 🔹 Kirim sebagai FormData
       FormData formData = FormData.fromMap({
         'kategori_id': kategoriId,
@@ -109,7 +111,7 @@ class KomunitasService {
         'cover': coverImage,
         'konten': konten,
         'daftar_gambar[]': multipartImages,
-        if (isAnonymous != null) 'is_anonymous': isAnonymous,
+        'is_anonymous': isAnonymousParse,
       });
 
       final response = await ApiClient.dio.post(
@@ -119,7 +121,7 @@ class KomunitasService {
       );
 
       final responseData = response.data as Map<String, dynamic>;
-      final postingan = KomunitasPostingan.fromJson(responseData['data']);
+      final postingan = responseData['data'] as Map<String, dynamic>;
 
       return {
         'status': responseData['status'],
@@ -133,7 +135,7 @@ class KomunitasService {
   }
 
   // Delete Postingan
-  static Future<Map<String, dynamic>> deletePostingan(String id) async {
+  static Future<Map<String, dynamic>> deletePostingan(int id) async {
     try {
       final response = await ApiClient.dio.delete('/komunitas/postingan/$id');
 
@@ -195,7 +197,7 @@ class KomunitasService {
 
   // Report Postingan
   static Future<Map<String, dynamic>> reportPostingan({
-    required String postinganId,
+    required int postinganId,
     required String alasan,
   }) async {
     try {

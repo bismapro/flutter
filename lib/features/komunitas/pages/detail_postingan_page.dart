@@ -6,6 +6,7 @@ import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
 
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
@@ -25,8 +26,10 @@ class DetailPostinganPage extends ConsumerStatefulWidget {
 class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
   final TextEditingController _commentController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _commentFocusNode = FocusNode();
 
   bool _isAnonymous = false;
+  bool _isRefreshing = false;
 
   // ===== Responsive helpers =====
   double _maxWidth(BuildContext context) {
@@ -53,6 +56,22 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
   void initState() {
     super.initState();
     _loadDetail();
+
+    // Listen to keyboard visibility
+    _commentFocusNode.addListener(() {
+      if (_commentFocusNode.hasFocus) {
+        // Scroll to bottom when keyboard appears
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (_scrollController.hasClients) {
+            _scrollController.animateTo(
+              _scrollController.position.maxScrollExtent,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeOut,
+            );
+          }
+        });
+      }
+    });
   }
 
   Future<void> _loadDetail() async {
@@ -60,6 +79,19 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
       final id = widget.post['id'].toString();
       ref.read(komunitasProvider.notifier).fetchPostinganById(id);
     });
+  }
+
+  Future<void> _handleRefresh() async {
+    setState(() => _isRefreshing = true);
+    try {
+      await _loadDetail();
+      // Wait a bit to ensure data is loaded
+      await Future.delayed(const Duration(milliseconds: 500));
+    } finally {
+      if (mounted) {
+        setState(() => _isRefreshing = false);
+      }
+    }
   }
 
   String _formatDate(DateTime date) {
@@ -79,6 +111,9 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final komunitasState = ref.read(komunitasProvider);
     final postingan = komunitasState.postingan;
     if (postingan == null) return;
+
+    // Unfocus keyboard
+    _commentFocusNode.unfocus();
 
     try {
       logger.fine('Adding comment to postingan ${postingan.id}');
@@ -109,34 +144,22 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
           }
         });
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: const Text('Komentar berhasil ditambahkan'),
-              backgroundColor: AppTheme.accentGreen,
-              behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              margin: const EdgeInsets.all(16),
-            ),
-          );
-        }
+        // if (mounted) {
+        //   showMessageToast(
+        //     context,
+        //     message: 'Komentar berhasil ditambahkan!',
+        //     type: ToastType.success,
+        //   );
+        // }
       }
     } catch (e, st) {
       logger.warning('Error adding comment: $e', e, st);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Gagal menambahkan komentar: $e'),
-            backgroundColor: Colors.red.shade400,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            margin: const EdgeInsets.all(16),
-          ),
+        showMessageToast(
+          context,
+          message: 'Komentar gagal ditambahkan!',
+          type: ToastType.error,
         );
       }
     }
@@ -322,8 +345,16 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                 ),
               ),
 
-              // Content
-              Expanded(child: _buildContent(isLoggedIn, komunitasState)),
+              // Content with RefreshIndicator
+              Expanded(
+                child: RefreshIndicator(
+                  onRefresh: _handleRefresh,
+                  color: AppTheme.primaryBlue,
+                  backgroundColor: Colors.white,
+                  displacement: 40,
+                  child: _buildContent(isLoggedIn, komunitasState),
+                ),
+              ),
             ],
           ),
         ),
@@ -338,7 +369,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
 
   Widget _buildContent(bool isLoggedIn, KomunitasState state) {
     // Loading state
-    if (state.status == KomunitasStatus.loading) {
+    if (state.status == KomunitasStatus.loading && !_isRefreshing) {
       return _buildLoadingState();
     }
 
@@ -361,7 +392,9 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
       child: SingleChildScrollView(
         controller: _scrollController,
         padding: _pagePadding(context, extraBottom: extraBottom.toDouble()),
-        physics: const BouncingScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -421,94 +454,104 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final subSize = ResponsiveHelper.adaptiveTextSize(context, 14);
     final iconSz = ResponsiveHelper.adaptiveTextSize(context, 48);
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: _maxWidth(context)),
-        child: Container(
-          margin: const EdgeInsets.all(20),
-          padding: EdgeInsets.all(_gap(context) + 4),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.red.shade200),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.red.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, 4),
-                spreadRadius: -5,
-              ),
-            ],
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: _maxWidth(context),
+            minHeight: MediaQuery.of(context).size.height * 0.6,
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: EdgeInsets.all(
-                  ResponsiveHelper.isSmallScreen(context) ? 12 : 16,
+          child: Container(
+            margin: const EdgeInsets.all(20),
+            padding: EdgeInsets.all(_gap(context) + 4),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.red.shade200),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.red.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                  spreadRadius: -5,
                 ),
-                decoration: BoxDecoration(
-                  color: Colors.red.shade50,
-                  shape: BoxShape.circle,
-                ),
-                child: Icon(
-                  Icons.error_outline_rounded,
-                  size: iconSz,
-                  color: Colors.red.shade400,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Gagal Memuat Data',
-                style: TextStyle(
-                  fontSize: titleSize,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                message ?? 'Terjadi kesalahan. Coba lagi nanti.',
-                style: TextStyle(color: Colors.red.shade600, fontSize: subSize),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-              Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.grey.shade600,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.arrow_back_rounded, size: 20),
-                      label: const Text('Kembali'),
-                    ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  padding: EdgeInsets.all(
+                    ResponsiveHelper.isSmallScreen(context) ? 12 : 16,
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: _loadDetail,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryBlue,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      icon: const Icon(Icons.refresh_rounded, size: 20),
-                      label: const Text('Coba Lagi'),
-                    ),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    shape: BoxShape.circle,
                   ),
-                ],
-              ),
-            ],
+                  child: Icon(
+                    Icons.error_outline_rounded,
+                    size: iconSz,
+                    color: Colors.red.shade400,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Gagal Memuat Data',
+                  style: TextStyle(
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  message ?? 'Terjadi kesalahan. Coba lagi nanti.',
+                  style: TextStyle(
+                    color: Colors.red.shade600,
+                    fontSize: subSize,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => Navigator.pop(context),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade600,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(Icons.arrow_back_rounded, size: 20),
+                        label: const Text('Kembali'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: _loadDetail,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppTheme.primaryBlue,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(Icons.refresh_rounded, size: 20),
+                        label: const Text('Coba Lagi'),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -525,7 +568,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final chipSize = ResponsiveHelper.adaptiveTextSize(context, 13);
     final iconSz = ResponsiveHelper.adaptiveTextSize(context, 20);
 
-    final coverUrl = '${dotenv.env['STORAGE_URL']}/${post.cover}';
+    // final coverUrl = '${dotenv.env['STORAGE_URL']}/${post.cover}';
     final gallery = post.daftarGambar;
     final liked = post.liked ?? false;
 
@@ -645,30 +688,6 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
 
           const SizedBox(height: 16),
 
-          // Cover image (jika ada)
-          // if (coverUrl.isNotEmpty) ...[
-          //   ClipRRect(
-          //     borderRadius: BorderRadius.circular(16),
-          //     child: AspectRatio(
-          //       aspectRatio: 16 / 9,
-          //       child: Image.network(
-          //         coverUrl,
-          //         fit: BoxFit.cover,
-          //         errorBuilder: (_, __, ___) => Container(
-          //           alignment: Alignment.center,
-          //           color: categoryColor.withValues(alpha: 0.08),
-          //           child: Icon(
-          //             Icons.broken_image_rounded,
-          //             color: categoryColor.withValues(alpha: 0.4),
-          //             size: 40,
-          //           ),
-          //         ),
-          //       ),
-          //     ),
-          //   ),
-          //   const SizedBox(height: 14),
-          // ],
-
           // Judul
           Text(
             post.judul,
@@ -700,7 +719,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: gallery.length,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
+                separatorBuilder: (_, _) => const SizedBox(width: 10),
                 itemBuilder: (context, i) {
                   final url = '${dotenv.env['STORAGE_URL']}/${gallery[i]}';
                   return GestureDetector(
@@ -718,7 +737,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                         child: Image.network(
                           url,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
+                          errorBuilder: (_, _, _) => Container(
                             color: categoryColor.withValues(alpha: 0.08),
                             alignment: Alignment.center,
                             child: Icon(
@@ -1107,7 +1126,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final currentUserName = authState['user']?['name'] ?? 'User';
 
     final padH = ResponsiveHelper.isSmallScreen(context) ? 14.0 : 16.0;
-    final padV = ResponsiveHelper.isSmallScreen(context) ? 12.0 : 16.0;
+    final padV = ResponsiveHelper.isSmallScreen(context) ? 10.0 : 12.0;
     final sendIconSize = ResponsiveHelper.adaptiveTextSize(context, 22);
     final nameSize = ResponsiveHelper.adaptiveTextSize(context, 14);
     final toggleSize = ResponsiveHelper.adaptiveTextSize(context, 12);
@@ -1117,7 +1136,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
         left: padH,
         right: padH,
         top: padV,
-        bottom: MediaQuery.of(context).viewInsets.bottom + padV,
+        bottom: padV,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -1138,6 +1157,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
         ],
       ),
       child: SafeArea(
+        top: false,
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: _maxWidth(context)),
           child: Column(
@@ -1199,10 +1219,11 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 14),
+              const SizedBox(height: 12),
 
               // Comment Input
               Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: Container(
@@ -1215,6 +1236,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                       ),
                       child: TextField(
                         controller: _commentController,
+                        focusNode: _commentFocusNode,
                         enabled: !isSubmitting,
                         decoration: InputDecoration(
                           hintText: _isAnonymous
@@ -1241,7 +1263,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Container(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -1260,8 +1282,8 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                       onPressed: isSubmitting ? null : _addComment,
                       icon: isSubmitting
                           ? SizedBox(
-                              width: sendIconSize,
-                              height: sendIconSize,
+                              width: sendIconSize - 2,
+                              height: sendIconSize - 2,
                               child: const CircularProgressIndicator(
                                 strokeWidth: 2,
                                 valueColor: AlwaysStoppedAnimation<Color>(
@@ -1271,10 +1293,8 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                             )
                           : const Icon(Icons.send_rounded, color: Colors.white),
                       iconSize: sendIconSize,
-                      style: IconButton.styleFrom(
-                        padding: EdgeInsets.all(
-                          ResponsiveHelper.isSmallScreen(context) ? 10 : 12,
-                        ),
+                      padding: EdgeInsets.all(
+                        ResponsiveHelper.isSmallScreen(context) ? 10 : 12,
                       ),
                     ),
                   ),
@@ -1290,6 +1310,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
   @override
   void dispose() {
     _commentController.dispose();
+    _commentFocusNode.dispose();
     _scrollController.dispose();
     super.dispose();
   }
@@ -1365,7 +1386,7 @@ class _ImageViewerPageState extends State<_ImageViewerPage> {
                           ),
                         );
                       },
-                      errorBuilder: (_, __, ___) => const Center(
+                      errorBuilder: (_, _, _) => const Center(
                         child: Icon(
                           Icons.broken_image_rounded,
                           color: Colors.white54,
@@ -1472,7 +1493,7 @@ class _ImageViewerPageState extends State<_ImageViewerPage> {
                     child: ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: widget.images.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      separatorBuilder: (_, _) => const SizedBox(width: 8),
                       itemBuilder: (context, index) {
                         final isSelected = index == _currentIndex;
                         return GestureDetector(
@@ -1499,7 +1520,7 @@ class _ImageViewerPageState extends State<_ImageViewerPage> {
                               child: Image.network(
                                 widget.images[index],
                                 fit: BoxFit.cover,
-                                errorBuilder: (_, __, ___) => Container(
+                                errorBuilder: (_, _, _) => Container(
                                   color: Colors.grey.shade800,
                                   child: const Icon(
                                     Icons.broken_image_rounded,

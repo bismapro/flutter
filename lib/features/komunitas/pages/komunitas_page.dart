@@ -7,6 +7,7 @@ import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/komunitas/komunitas_provider.dart';
@@ -38,11 +39,41 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     super.initState();
     _init();
     _setupScrollListener();
+    _setupStateListener();
   }
 
   void _init() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(komunitasProvider.notifier).init();
+      ref.read(authProvider.notifier).checkAuthStatus();
+    });
+  }
+
+  void _setupStateListener() {
+    ref.listenManual<KomunitasState>(komunitasProvider, (previous, next) {
+      if (!mounted) return;
+
+      // Handle success state
+      if (next.status == KomunitasStatus.success &&
+          next.message != null &&
+          next.message!.isNotEmpty) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: ToastType.success,
+        );
+      }
+
+      // Handle error state
+      if (next.status == KomunitasStatus.error &&
+          next.message != null &&
+          next.message!.isNotEmpty) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: ToastType.error,
+        );
+      }
     });
   }
 
@@ -155,12 +186,12 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
           .toList();
 
       return {
-        'id': (item.id).toString(),
+        'id': (item.id),
         'judul': item.judul,
         'excerpt': item.excerpt,
-        'authorId': (item.userId).toString(),
+        'authorId': (item.userId),
         'penulis': item.penulis,
-        'kategoriId': (item.kategoriId).toString(),
+        'kategoriId': (item.kategoriId),
         'kategoriNama': item.kategori.nama,
         'kategoriIcon': iconPath.isNotEmpty && storage.isNotEmpty
             ? '$storage/$iconPath'
@@ -238,6 +269,343 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
       // Refresh list jika ada perubahan dari detail page
       ref.read(komunitasProvider.notifier).fetchPostingan(isRefresh: true);
     }
+  }
+
+  // Show Report Modal
+  void _showReportModal(int postinganId) {
+    final TextEditingController reportController = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.flag_rounded,
+                color: Colors.red.shade600,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Laporkan Postingan',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Berikan alasan pelaporan Anda',
+              style: TextStyle(color: AppTheme.onSurfaceVariant, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: reportController,
+              maxLines: 4,
+              decoration: InputDecoration(
+                hintText: 'Masukkan alasan pelaporan...',
+                hintStyle: TextStyle(
+                  color: AppTheme.onSurfaceVariant.withValues(alpha: 0.6),
+                  fontSize: 14,
+                ),
+                filled: true,
+                fillColor: AppTheme.primaryBlue.withValues(alpha: 0.05),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: AppTheme.primaryBlue, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              reportController.dispose();
+            },
+            child: Text(
+              'Batal',
+              style: TextStyle(
+                color: AppTheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              final alasan = reportController.text.trim();
+
+              if (alasan.isEmpty) {
+                showMessageToast(
+                  context,
+                  message: 'Alasan pelaporan tidak boleh kosong',
+                  type: ToastType.error,
+                );
+                return;
+              }
+
+              // Close dialog and dispose controller
+              Navigator.pop(context);
+
+              // Wait for dialog to close, then submit
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                reportController.dispose();
+                _handleReportSubmit(postinganId, alasan);
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.flag_rounded, size: 18),
+            label: const Text('Laporkan'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Handle Report Submit
+  Future<void> _handleReportSubmit(int postinganId, String alasan) async {
+    try {
+      // Call report method
+      await ref
+          .read(komunitasProvider.notifier)
+          .reportPostingan(postinganId, alasan);
+
+      // Refresh list after successful report
+      if (mounted) {
+        await ref
+            .read(komunitasProvider.notifier)
+            .fetchPostingan(isRefresh: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showMessageToast(
+        context,
+        message: 'Gagal melaporkan postingan: $e',
+        type: ToastType.error,
+      );
+    }
+  }
+
+  // Show Delete Confirmation
+  void _showDeleteConfirmation(int postinganId) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.red.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.delete_outline_rounded,
+                color: Colors.red.shade600,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Text(
+                'Hapus Postingan',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Apakah Anda yakin ingin menghapus postingan ini? Tindakan ini tidak dapat dibatalkan.',
+          style: TextStyle(fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(
+              'Batal',
+              style: TextStyle(
+                color: AppTheme.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              // Close dialog first
+              Navigator.pop(context);
+
+              // Wait for dialog to close, then submit
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                _handleDeleteSubmit(postinganId);
+              });
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.delete_rounded, size: 18),
+            label: const Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Handle Delete Submit
+  Future<void> _handleDeleteSubmit(int postinganId) async {
+    try {
+      // Call delete method
+      await ref.read(komunitasProvider.notifier).deletePostingan(postinganId);
+
+      // Refresh list after successful delete
+      if (mounted) {
+        await ref
+            .read(komunitasProvider.notifier)
+            .fetchPostingan(isRefresh: true);
+      }
+    } catch (e) {
+      if (!mounted) return;
+      showMessageToast(
+        context,
+        message: 'Gagal menghapus postingan: $e',
+        type: ToastType.error,
+      );
+    }
+  }
+
+  // Show Post Options
+  void _showPostOptions(Map<String, dynamic> post) {
+    final authState = ref.watch(authProvider);
+    final currentUser = authState['user'];
+    final userId = currentUser['user']['id'] ?? currentUser['id'];
+    final isMyPost = userId != null && post['authorId'] == userId;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Handle bar
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 20),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // Report option
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(
+                    Icons.flag_rounded,
+                    color: Colors.red.shade600,
+                    size: 22,
+                  ),
+                ),
+                title: const Text(
+                  'Laporkan Postingan',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                ),
+                subtitle: Text(
+                  'Laporkan konten yang tidak pantas',
+                  style: TextStyle(
+                    color: AppTheme.onSurfaceVariant,
+                    fontSize: 13,
+                  ),
+                ),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showReportModal(post['id']);
+                },
+              ),
+
+              // Delete option (only for own posts)
+              if (isMyPost) ...[
+                Divider(
+                  height: 1,
+                  color: Colors.grey.shade200,
+                  indent: 16,
+                  endIndent: 16,
+                ),
+                ListTile(
+                  leading: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.red.shade50,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.delete_outline_rounded,
+                      color: Colors.red.shade600,
+                      size: 22,
+                    ),
+                  ),
+                  title: const Text(
+                    'Hapus Postingan',
+                    style: TextStyle(fontWeight: FontWeight.w600, fontSize: 15),
+                  ),
+                  subtitle: Text(
+                    'Hapus postingan Anda secara permanen',
+                    style: TextStyle(
+                      color: AppTheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    _showDeleteConfirmation(post['id']);
+                  },
+                ),
+              ],
+
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   // ===== Responsiveness helpers =====
@@ -503,7 +871,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                                                 width: 18,
                                                 height: 18,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (_, __, ___) =>
+                                                errorBuilder: (_, _, _) =>
                                                     Icon(
                                                       categoryIcon,
                                                       size: 18,
@@ -1108,6 +1476,18 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                       ],
                     ),
                   ),
+                  // More Options Button
+                  IconButton(
+                    onPressed: () => _showPostOptions(post),
+                    icon: Icon(
+                      Icons.more_vert_rounded,
+                      color: AppTheme.onSurfaceVariant,
+                      size: 22,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                    visualDensity: VisualDensity.compact,
+                  ),
                 ],
               ),
             ),
@@ -1137,7 +1517,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                             width: 16,
                             height: 16,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Icon(
+                            errorBuilder: (_, _, _) => Icon(
                               Icons.category_rounded,
                               size: 16,
                               color: categoryColor,

@@ -177,7 +177,7 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
 
   // Create Postingan
   Future<void> createPostingan({
-    required String kategoriId,
+    required int kategoriId,
     required String judul,
     required XFile cover,
     required String konten,
@@ -209,7 +209,7 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
   }
 
   // Delete Postingan
-  Future<void> deletePostingan(String postinganId) async {
+  Future<void> deletePostingan(int postinganId) async {
     state = state.copyWith(status: KomunitasStatus.loading);
     try {
       final response = await KomunitasService.deletePostingan(postinganId);
@@ -312,7 +312,7 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
   }
 
   // Report Postingan
-  Future<void> reportPostingan(String postinganId, String alasan) async {
+  Future<void> reportPostingan(int postinganId, String alasan) async {
     state = state.copyWith(status: KomunitasStatus.loading);
 
     try {

@@ -30,7 +30,7 @@ class CustomBottomAppBar extends StatelessWidget {
             ), // ← ganti jadi ikon rukuk
             _buildNavItem(FlutterIslamicIcons.quran2, 'Al-Quran', 2),
             _buildNavItem(FlutterIslamicIcons.family, 'Monitoring', 3),
-            _buildNavItem(Icons.forum_outlined, 'Community', 4),
+            _buildNavItem(Icons.forum_outlined, 'Komunitas', 4),
           ],
         ),
       ),

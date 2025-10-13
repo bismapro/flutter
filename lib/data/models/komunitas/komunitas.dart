@@ -60,7 +60,7 @@ class KomunitasPostingan {
       totalKomentar: parseInt(json['total_komentar']),
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
-      penulis: json['penulis'] as String? ?? 'Unknown',
+      penulis: json['penulis'] as String? ?? 'User',
       kategori: KategoriArtikel.fromJson(
         json['kategori'] as Map<String, dynamic>,
       ),
@@ -154,7 +154,7 @@ class Komentar {
       komentar: json['komentar'] as String? ?? '',
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
       updatedAt: DateTime.tryParse(json['updated_at'] ?? '') ?? DateTime.now(),
-      penulis: json['penulis'] as String? ?? 'Unknown',
+      penulis: json['penulis'] as String? ?? 'User',
       isAnonymous: json['is_anonymous'] as bool?,
     );
   }

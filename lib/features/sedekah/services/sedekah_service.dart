@@ -9,9 +9,7 @@ class SedekahService {
       final response = await ApiClient.dio.get('/sedekah/progres/statistik');
       final responseData = response.data as Map<String, dynamic>;
 
-      final statsData = StatistikSedekah.fromJson(
-        responseData['data'] as Map<String, dynamic>,
-      );
+      final statsData = responseData['data'] as Map<String, dynamic>;
 
       return {
         'status': responseData['status'],
@@ -43,9 +41,7 @@ class SedekahService {
       );
 
       final responseData = response.data as Map<String, dynamic>;
-      final sedekah = Sedekah.fromJson(
-        responseData['data'] as Map<String, dynamic>,
-      );
+      final sedekah = responseData['data'] as Map<String, dynamic>;
 
       return {
         'status': responseData['status'],
