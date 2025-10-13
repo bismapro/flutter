@@ -13,6 +13,11 @@ class CacheKeys {
   // Sedekah
   static const String sedekah = 'sedekah';
 
+  // Artikel
+  static const String artikelKategori = 'artikel_kategori';
+  static const String artikelList = 'artikel';
+  static String artikelDetail(int artikelId) => 'detail_artikel_$artikelId';
+
   // Home
   static const String homeJadwalSholat = 'home_jadwal_sholat';
   static const String homeLatestArticle = 'home_latest_article';

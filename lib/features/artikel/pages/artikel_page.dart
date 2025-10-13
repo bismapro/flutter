@@ -1,157 +1,133 @@
 import 'package:flutter/material.dart';
-import '../../../app/theme.dart';
-import '../../../app/router.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/app/router.dart';
+import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
+import 'package:test_flutter/data/models/artikel/artikel.dart';
+import 'package:test_flutter/features/artikel/artikel_provider.dart';
+import 'package:test_flutter/features/artikel/artikel_state.dart';
 
-class ArtikelPage extends StatefulWidget {
+class ArtikelPage extends ConsumerStatefulWidget {
   const ArtikelPage({super.key});
 
   @override
-  State<ArtikelPage> createState() => _ArtikelPageState();
+  ConsumerState<ArtikelPage> createState() => _ArtikelPageState();
 }
 
-class _ArtikelPageState extends State<ArtikelPage> {
+class _ArtikelPageState extends ConsumerState<ArtikelPage> {
   final TextEditingController _searchController = TextEditingController();
-  String _selectedCategory = 'Semua';
+  final ScrollController _scrollController = ScrollController();
+
   String _searchQuery = '';
+  int? _selectedCategoryId;
+  bool _isSearching = false;
 
-  final List<String> _categories = [
-    'Semua',
-    'Ibadah',
-    'Akhlak',
-    'Sejarah',
-    'Ramadhan',
-    'Doa',
-    'Al-Quran',
-  ];
-
-  final List<Map<String, dynamic>> _allArticles = [
-    {
-      'title': 'Keutamaan Membaca Al-Quran di Bulan Ramadhan',
-      'summary':
-          'Membaca Al-Quran di bulan Ramadhan memiliki pahala yang berlipat ganda. Simak penjelasan lengkapnya dalam artikel ini.',
-      'category': 'Haji',
-      'date': '2 hari yang lalu',
-      'readTime': '5 min',
-      'imageUrl': 'https://picsum.photos/300/200?random=1',
-    },
-    {
-      'title': 'Doa-Doa yang Dianjurkan Dibaca Setelah Sholat',
-      'summary':
-          'Setelah sholat, dianjurkan untuk membaca doa-doa tertentu untuk mendapatkan keberkahan dan perlindungan Allah SWT.',
-      'category': 'Doa',
-      'date': '3 hari yang lalu',
-      'readTime': '7 min',
-      'imageUrl': 'https://picsum.photos/300/200?random=2',
-    },
-    {
-      'title': 'Amalan-Amalan Sunnah di Malam Lailatul Qadr',
-      'summary':
-          'Lailatul Qadr adalah malam yang lebih baik dari seribu bulan. Berikut amalan yang dianjurkan dilakukan.',
-      'category': 'Ibadah',
-      'date': '5 hari yang lalu',
-      'readTime': '6 min',
-      'imageUrl': 'https://picsum.photos/300/200?random=3',
-    },
-    {
-      'title': 'Sejarah Turunnya Ayat Pertama Al-Quran',
-      'summary':
-          'Kisah turunnya wahyu pertama kepada Nabi Muhammad SAW di Gua Hira yang mengubah sejarah umat manusia.',
-      'category': 'Sejarah',
-      'date': '1 minggu yang lalu',
-      'readTime': '8 min',
-      'imageUrl': 'https://picsum.photos/300/200?random=4',
-    },
-    {
-      'title': 'Pentingnya Menjaga Akhlak dalam Kehidupan Sehari-hari',
-      'summary':
-          'Akhlak yang baik adalah cerminan keimanan seseorang. Pelajari cara menjaga akhlak dalam berinteraksi.',
-      'category': 'Akhlak',
-      'date': '1 minggu yang lalu',
-      'readTime': '4 min',
-      'imageUrl': 'https://picsum.photos/300/200?random=5',
-    },
-    {
-      'title': 'Makna dan Hikmah Surah Al-Fatihah',
-      'summary':
-          'Surah Al-Fatihah adalah induk dari Al-Quran. Pelajari makna dan hikmah yang terkandung di dalamnya.',
-      'category': 'Al-Quran',
-      'date': '2 minggu yang lalu',
-      'readTime': '10 min',
-      'imageUrl': 'https://picsum.photos/300/200?random=6',
-    },
-    {
-      'title': 'Adab Masuk dan Keluar Masjid',
-      'summary':
-          'Islam mengajarkan adab yang baik dalam setiap aspek kehidupan, termasuk ketika masuk dan keluar masjid.',
-      'category': 'Ibadah',
-      'date': '2 minggu yang lalu',
-      'readTime': '3 min',
-      'imageUrl': 'https://picsum.photos/300/200?random=7',
-    },
-    {
-      'title': 'Doa Berbuka Puasa dan Adabnya',
-      'summary':
-          'Ketika berbuka puasa, ada doa khusus yang dianjurkan untuk dibaca beserta adab-adab yang perlu diperhatikan.',
-      'category': 'Ramadhan',
-      'date': '3 minggu yang lalu',
-      'readTime': '5 min',
-      'imageUrl': 'https://picsum.photos/300/200?random=8',
-    },
-  ];
-
-  List<Map<String, dynamic>> get _filteredArticles {
-    return _allArticles.where((article) {
-      final matchesCategory =
-          _selectedCategory == 'Semua' ||
-          article['category'] == _selectedCategory;
-      final matchesSearch =
-          _searchQuery.isEmpty ||
-          article['title'].toLowerCase().contains(_searchQuery.toLowerCase()) ||
-          article['summary'].toLowerCase().contains(_searchQuery.toLowerCase());
-      return matchesCategory && matchesSearch;
-    }).toList();
+  // Responsive helpers
+  double _scale(BuildContext c) {
+    if (ResponsiveHelper.isSmallScreen(c)) return .9;
+    if (ResponsiveHelper.isMediumScreen(c)) return 1.0;
+    if (ResponsiveHelper.isLargeScreen(c)) return 1.1;
+    return 1.2;
   }
 
-  Color _getCategoryColor(String category) {
-    switch (category) {
-      case 'Ramadhan':
-        return AppTheme.accentGreen;
-      case 'Doa':
-        return AppTheme.primaryBlue;
-      case 'Ibadah':
-        return Colors.purple.shade400;
-      case 'Sejarah':
-        return Colors.orange.shade600;
-      case 'Akhlak':
-        return Colors.teal.shade500;
-      case 'Al-Quran':
-        return AppTheme.primaryBlue;
-      default:
-        return AppTheme.primaryBlue;
+  double _px(BuildContext c, double base) => base * _scale(c);
+  double _ts(BuildContext c, double base) =>
+      ResponsiveHelper.adaptiveTextSize(c, base);
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Initialize data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(artikelProvider.notifier).init();
+    });
+
+    // Setup scroll listener for pagination
+    _scrollController.addListener(_onScroll);
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >=
+        _scrollController.position.maxScrollExtent - 200) {
+      // Trigger load more when near bottom
+      _loadMore();
     }
   }
 
-  IconData _getCategoryIcon(String category) {
-    switch (category) {
-      case 'Ramadhan':
-        return Icons.nightlight_round;
-      case 'Doa':
-        return Icons.favorite_rounded;
-      case 'Ibadah':
-        return Icons.mosque_rounded;
-      case 'Sejarah':
-        return Icons.history_edu_rounded;
-      case 'Akhlak':
-        return Icons.people_rounded;
-      case 'Al-Quran':
-        return Icons.menu_book_rounded;
-      default:
-        return Icons.article_rounded;
+  Future<void> _loadMore() async {
+    final notifier = ref.read(artikelProvider.notifier);
+    if (notifier.canLoadMore) {
+      await notifier.fetchArtikel(
+        isLoadMore: true,
+        kategoriId: _selectedCategoryId,
+        keyword: _searchQuery,
+      );
     }
+  }
+
+  Future<void> _refreshData() async {
+    await ref
+        .read(artikelProvider.notifier)
+        .refresh(kategoriId: _selectedCategoryId, keyword: _searchQuery);
+  }
+
+  void _onCategorySelected(int? categoryId) {
+    setState(() {
+      _selectedCategoryId = categoryId;
+    });
+
+    // Fetch with new filter
+    ref
+        .read(artikelProvider.notifier)
+        .fetchArtikel(kategoriId: categoryId, keyword: _searchQuery);
+  }
+
+  void _onSearchSubmitted(String query) {
+    setState(() {
+      _searchQuery = query.trim();
+      _isSearching = false;
+    });
+
+    // Fetch with search query
+    ref
+        .read(artikelProvider.notifier)
+        .fetchArtikel(kategoriId: _selectedCategoryId, keyword: _searchQuery);
+  }
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {
+      _searchQuery = '';
+    });
+
+    // Fetch without search query
+    ref
+        .read(artikelProvider.notifier)
+        .fetchArtikel(kategoriId: _selectedCategoryId, keyword: '');
   }
 
   @override
   Widget build(BuildContext context) {
+    final artikelState = ref.watch(artikelProvider);
+    final categories = artikelState.kategori;
+    final artikels = artikelState.artikelList;
+    final status = artikelState.status;
+    // final message = artikelState.message;
+    final isOffline = artikelState.isOffline;
+
+    // Listen to state changes for showing messages
+    ref.listen<ArtikelState>(artikelProvider, (previous, next) {
+      if (next.message != null) {
+        showMessageToast(
+          context,
+          message: next.message!,
+          type: next.isOffline ? ToastType.warning : ToastType.info,
+        );
+      }
+    });
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -170,14 +146,14 @@ class _ArtikelPageState extends State<ArtikelPage> {
             children: [
               // Enhanced Header
               Container(
-                padding: const EdgeInsets.all(24.0),
+                padding: EdgeInsets.all(_px(context, 24)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: EdgeInsets.all(_px(context, 12)),
                           decoration: BoxDecoration(
                             gradient: LinearGradient(
                               colors: [
@@ -190,34 +166,91 @@ class _ArtikelPageState extends State<ArtikelPage> {
                           child: Icon(
                             Icons.article_rounded,
                             color: AppTheme.accentGreen,
-                            size: 28,
+                            size: _px(context, 28),
                           ),
                         ),
-                        const SizedBox(width: 16),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Artikel Islami',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.onSurface,
-                                letterSpacing: -0.5,
+                        SizedBox(width: _px(context, 16)),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Text(
+                                    'Artikel Islami',
+                                    style: TextStyle(
+                                      fontSize: _ts(context, 28),
+                                      fontWeight: FontWeight.bold,
+                                      color: AppTheme.onSurface,
+                                      letterSpacing: -0.5,
+                                    ),
+                                  ),
+                                  if (isOffline) ...[
+                                    SizedBox(width: _px(context, 8)),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.orange.shade100,
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.cloud_off,
+                                            size: 12,
+                                            color: Colors.orange.shade700,
+                                          ),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'Offline',
+                                            style: TextStyle(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.orange.shade700,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ],
                               ),
-                            ),
-                            Text(
-                              'Pelajari Islam lebih dalam',
-                              style: TextStyle(
-                                fontSize: 15,
-                                color: AppTheme.onSurfaceVariant,
+                              Text(
+                                'Pelajari Islam lebih dalam',
+                                style: TextStyle(
+                                  fontSize: _ts(context, 15),
+                                  color: AppTheme.onSurfaceVariant,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
+                        // Refresh button
+                        if (status != ArtikelStatus.loading &&
+                            status != ArtikelStatus.refreshing)
+                          Container(
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppTheme.accentGreen.withValues(alpha: 0.1),
+                                  AppTheme.primaryBlue.withValues(alpha: 0.1),
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: IconButton(
+                              onPressed: _refreshData,
+                              icon: const Icon(Icons.refresh_rounded),
+                              color: AppTheme.accentGreen,
+                            ),
+                          ),
                       ],
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: _px(context, 20)),
 
                     // Enhanced Search Bar
                     Container(
@@ -240,9 +273,10 @@ class _ArtikelPageState extends State<ArtikelPage> {
                         controller: _searchController,
                         onChanged: (value) {
                           setState(() {
-                            _searchQuery = value;
+                            _isSearching = value.isNotEmpty;
                           });
                         },
+                        onSubmitted: _onSearchSubmitted,
                         decoration: InputDecoration(
                           hintText: 'Cari artikel...',
                           hintStyle: TextStyle(
@@ -253,166 +287,192 @@ class _ArtikelPageState extends State<ArtikelPage> {
                           prefixIcon: Icon(
                             Icons.search_rounded,
                             color: AppTheme.accentGreen,
-                            size: 24,
+                            size: _px(context, 24),
                           ),
-                          suffixIcon: _searchQuery.isNotEmpty
-                              ? IconButton(
-                                  icon: Icon(
-                                    Icons.clear_rounded,
-                                    color: AppTheme.onSurfaceVariant,
-                                  ),
-                                  onPressed: () {
-                                    _searchController.clear();
-                                    setState(() {
-                                      _searchQuery = '';
-                                    });
-                                  },
+                          suffixIcon: _isSearching || _searchQuery.isNotEmpty
+                              ? Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (_isSearching)
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.search_rounded,
+                                          color: AppTheme.accentGreen,
+                                        ),
+                                        onPressed: () {
+                                          _onSearchSubmitted(
+                                            _searchController.text,
+                                          );
+                                        },
+                                        tooltip: 'Cari',
+                                      ),
+                                    if (_searchQuery.isNotEmpty)
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.clear_rounded,
+                                          color: AppTheme.onSurfaceVariant,
+                                        ),
+                                        onPressed: _clearSearch,
+                                        tooltip: 'Hapus',
+                                      ),
+                                  ],
                                 )
                               : null,
                           border: InputBorder.none,
-                          contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: _px(context, 20),
+                            vertical: _px(context, 16),
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    SizedBox(height: _px(context, 20)),
 
                     // Enhanced Category Filter
-                    SizedBox(
-                      height: 44,
-                      child: ListView.builder(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _categories.length,
-                        physics: const BouncingScrollPhysics(),
-                        itemBuilder: (context, index) {
-                          final category = _categories[index];
-                          final isSelected = category == _selectedCategory;
-
-                          return Padding(
-                            padding: EdgeInsets.only(
-                              right: index == _categories.length - 1 ? 0 : 10,
-                            ),
-                            child: GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _selectedCategory = category;
-                                });
-                              },
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 18,
-                                  vertical: 10,
+                    if (categories.isNotEmpty)
+                      SizedBox(
+                        height: _px(context, 44),
+                        child: ListView.builder(
+                          scrollDirection: Axis.horizontal,
+                          itemCount: categories.length + 1, // +1 for "Semua"
+                          physics: const BouncingScrollPhysics(),
+                          itemBuilder: (context, index) {
+                            // Add "Semua" as first item
+                            if (index == 0) {
+                              final isSelected = _selectedCategoryId == null;
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  right: _px(context, 10),
                                 ),
-                                decoration: BoxDecoration(
-                                  gradient: isSelected
-                                      ? LinearGradient(
-                                          colors: [
-                                            AppTheme.accentGreen,
-                                            AppTheme.accentGreen.withValues(
-                                              alpha: 0.8,
-                                            ),
-                                          ],
-                                        )
-                                      : null,
-                                  color: isSelected ? null : Colors.white,
-                                  borderRadius: BorderRadius.circular(22),
-                                  border: Border.all(
-                                    color: isSelected
-                                        ? AppTheme.accentGreen
-                                        : AppTheme.accentGreen.withValues(
-                                            alpha: 0.2,
-                                          ),
-                                    width: isSelected ? 0 : 1.5,
+                                child: GestureDetector(
+                                  onTap: () => _onCategorySelected(null),
+                                  child: Container(
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: _px(context, 18),
+                                      vertical: _px(context, 10),
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: isSelected
+                                          ? LinearGradient(
+                                              colors: [
+                                                AppTheme.accentGreen,
+                                                AppTheme.accentGreen.withValues(
+                                                  alpha: 0.8,
+                                                ),
+                                              ],
+                                            )
+                                          : null,
+                                      color: isSelected ? null : Colors.white,
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? AppTheme.accentGreen
+                                            : AppTheme.accentGreen.withValues(
+                                                alpha: 0.2,
+                                              ),
+                                        width: isSelected ? 0 : 1.5,
+                                      ),
+                                      boxShadow: isSelected
+                                          ? [
+                                              BoxShadow(
+                                                color: AppTheme.accentGreen
+                                                    .withValues(alpha: 0.3),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Text(
+                                      'Semua',
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? Colors.white
+                                            : AppTheme.onSurface,
+                                        fontWeight: isSelected
+                                            ? FontWeight.w600
+                                            : FontWeight.w500,
+                                        fontSize: _ts(context, 14),
+                                      ),
+                                    ),
                                   ),
-                                  boxShadow: isSelected
-                                      ? [
-                                          BoxShadow(
-                                            color: AppTheme.accentGreen
-                                                .withValues(alpha: 0.3),
-                                            blurRadius: 8,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ]
-                                      : null,
                                 ),
-                                child: Text(
-                                  category,
-                                  style: TextStyle(
-                                    color: isSelected
-                                        ? Colors.white
-                                        : AppTheme.onSurface,
-                                    fontWeight: isSelected
-                                        ? FontWeight.w600
-                                        : FontWeight.w500,
-                                    fontSize: 14,
+                              );
+                            }
+
+                            final category = categories[index - 1];
+                            final isSelected =
+                                category.id == _selectedCategoryId;
+
+                            return Padding(
+                              padding: EdgeInsets.only(
+                                right: index == categories.length
+                                    ? 0
+                                    : _px(context, 10),
+                              ),
+                              child: GestureDetector(
+                                onTap: () => _onCategorySelected(category.id),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: _px(context, 18),
+                                    vertical: _px(context, 10),
+                                  ),
+                                  decoration: BoxDecoration(
+                                    gradient: isSelected
+                                        ? LinearGradient(
+                                            colors: [
+                                              AppTheme.accentGreen,
+                                              AppTheme.accentGreen.withValues(
+                                                alpha: 0.8,
+                                              ),
+                                            ],
+                                          )
+                                        : null,
+                                    color: isSelected ? null : Colors.white,
+                                    borderRadius: BorderRadius.circular(22),
+                                    border: Border.all(
+                                      color: isSelected
+                                          ? AppTheme.accentGreen
+                                          : AppTheme.accentGreen.withValues(
+                                              alpha: 0.2,
+                                            ),
+                                      width: isSelected ? 0 : 1.5,
+                                    ),
+                                    boxShadow: isSelected
+                                        ? [
+                                            BoxShadow(
+                                              color: AppTheme.accentGreen
+                                                  .withValues(alpha: 0.3),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 2),
+                                            ),
+                                          ]
+                                        : null,
+                                  ),
+                                  child: Text(
+                                    category.nama,
+                                    style: TextStyle(
+                                      color: isSelected
+                                          ? Colors.white
+                                          : AppTheme.onSurface,
+                                      fontWeight: isSelected
+                                          ? FontWeight.w600
+                                          : FontWeight.w500,
+                                      fontSize: _ts(context, 14),
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       ),
-                    ),
                   ],
                 ),
               ),
 
               // Articles List
-              Expanded(
-                child: _filteredArticles.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(24),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppTheme.accentGreen.withValues(alpha: 0.1),
-                                    AppTheme.primaryBlue.withValues(alpha: 0.1),
-                                  ],
-                                ),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                Icons.article_outlined,
-                                size: 64,
-                                color: AppTheme.accentGreen,
-                              ),
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'Tidak ada artikel ditemukan',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: AppTheme.onSurface,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Coba ubah kata kunci atau kategori',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppTheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ListView.builder(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        itemCount: _filteredArticles.length,
-                        physics: const BouncingScrollPhysics(),
-                        itemBuilder: (context, index) {
-                          final article = _filteredArticles[index];
-                          return _buildEnhancedArticleCard(article);
-                        },
-                      ),
-              ),
+              Expanded(child: _buildContent(context, status, artikels)),
             ],
           ),
         ),
@@ -420,27 +480,264 @@ class _ArtikelPageState extends State<ArtikelPage> {
     );
   }
 
-  Widget _buildEnhancedArticleCard(Map<String, dynamic> article) {
-    final categoryColor = _getCategoryColor(article['category']);
-    final categoryIcon = _getCategoryIcon(article['category']);
+  Widget _buildContent(
+    BuildContext context,
+    ArtikelStatus status,
+    List<Artikel> artikels,
+  ) {
+    // Initial loading state
+    if (status == ArtikelStatus.loading && artikels.isEmpty) {
+      return _buildLoadingState(context);
+    }
 
+    // Error state (only if no cached data)
+    if (status == ArtikelStatus.error && artikels.isEmpty) {
+      return _buildErrorState(context);
+    }
+
+    // Empty state
+    if (artikels.isEmpty) {
+      return _buildEmptyState(context);
+    }
+
+    // Content with pull-to-refresh and pagination
+    return RefreshIndicator(
+      onRefresh: _refreshData,
+      color: AppTheme.accentGreen,
+      child: ListView.builder(
+        controller: _scrollController,
+        padding: EdgeInsets.symmetric(horizontal: _px(context, 20)),
+        itemCount: artikels.length + 1, // +1 for load more indicator
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        itemBuilder: (context, index) {
+          // Show articles
+          if (index < artikels.length) {
+            return _buildArtikelCard(context, artikels[index]);
+          }
+
+          // Show load more indicator at bottom
+          return _buildLoadMoreIndicator(context);
+        },
+      ),
+    );
+  }
+
+  Widget _buildLoadingState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          CircularProgressIndicator(
+            color: AppTheme.accentGreen,
+            strokeWidth: 3,
+          ),
+          SizedBox(height: _px(context, 16)),
+          Text(
+            'Memuat artikel...',
+            style: TextStyle(
+              fontSize: _ts(context, 16),
+              color: AppTheme.onSurfaceVariant,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildErrorState(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(_px(context, 24)),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: EdgeInsets.all(_px(context, 24)),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.red.withValues(alpha: 0.1),
+                    Colors.red.withValues(alpha: 0.05),
+                  ],
+                ),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.error_outline_rounded,
+                size: _px(context, 64),
+                color: Colors.red,
+              ),
+            ),
+            SizedBox(height: _px(context, 24)),
+            Text(
+              'Gagal Memuat Artikel',
+              style: TextStyle(
+                fontSize: _ts(context, 20),
+                color: AppTheme.onSurface,
+                fontWeight: FontWeight.bold,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: _px(context, 8)),
+            Text(
+              'Periksa koneksi internet Anda\ndan coba lagi',
+              style: TextStyle(
+                fontSize: _ts(context, 14),
+                color: AppTheme.onSurfaceVariant,
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: _px(context, 24)),
+            ElevatedButton.icon(
+              onPressed: _refreshData,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.accentGreen,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: _px(context, 24),
+                  vertical: _px(context, 14),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.refresh_rounded, size: 20),
+              label: Text(
+                'Coba Lagi',
+                style: TextStyle(
+                  fontSize: _ts(context, 16),
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyState(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: EdgeInsets.all(_px(context, 24)),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppTheme.accentGreen.withValues(alpha: 0.1),
+                  AppTheme.primaryBlue.withValues(alpha: 0.1),
+                ],
+              ),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              Icons.article_outlined,
+              size: _px(context, 64),
+              color: AppTheme.accentGreen,
+            ),
+          ),
+          SizedBox(height: _px(context, 24)),
+          Text(
+            'Tidak ada artikel ditemukan',
+            style: TextStyle(
+              fontSize: _ts(context, 18),
+              color: AppTheme.onSurface,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          SizedBox(height: _px(context, 8)),
+          Text(
+            _searchQuery.isNotEmpty
+                ? 'Coba kata kunci lain'
+                : 'Coba ubah kategori atau filter',
+            style: TextStyle(
+              fontSize: _ts(context, 14),
+              color: AppTheme.onSurfaceVariant,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLoadMoreIndicator(BuildContext context) {
+    final state = ref.watch(artikelProvider);
+
+    // Loading more
+    if (state.status == ArtikelStatus.loadingMore) {
+      return Container(
+        padding: EdgeInsets.symmetric(vertical: _px(context, 20)),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: _px(context, 20),
+              height: _px(context, 20),
+              child: CircularProgressIndicator(
+                color: AppTheme.accentGreen,
+                strokeWidth: 2.5,
+              ),
+            ),
+            SizedBox(width: _px(context, 12)),
+            Text(
+              'Memuat lebih banyak...',
+              style: TextStyle(
+                fontSize: _ts(context, 14),
+                color: AppTheme.onSurfaceVariant,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // No more data
+    if (state.currentPage >= state.lastPage) {
+      return Container(
+        padding: EdgeInsets.symmetric(vertical: _px(context, 20)),
+        alignment: Alignment.center,
+        child: Text(
+          'Semua artikel telah ditampilkan',
+          style: TextStyle(
+            fontSize: _ts(context, 14),
+            color: AppTheme.onSurfaceVariant,
+          ),
+        ),
+      );
+    }
+
+    // Can load more (but not loading)
+    return const SizedBox(height: 20);
+  }
+
+  Widget _buildArtikelCard(BuildContext context, Artikel artikel) {
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(
           context,
           AppRoutes.articleDetail,
-          arguments: article,
+          arguments: artikel,
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 20),
+        margin: EdgeInsets.only(bottom: _px(context, 20)),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: categoryColor.withValues(alpha: 0.1)),
+          border: Border.all(
+            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+          ),
           boxShadow: [
             BoxShadow(
-              color: categoryColor.withValues(alpha: 0.08),
+              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
               blurRadius: 20,
               offset: const Offset(0, 4),
               spreadRadius: -5,
@@ -459,31 +756,32 @@ class _ArtikelPageState extends State<ArtikelPage> {
                     topRight: Radius.circular(20),
                   ),
                   child: Image.network(
-                    article['imageUrl'],
+                    artikel.cover,
                     width: double.infinity,
-                    height: 200,
+                    height: _px(context, 200),
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) {
                       return Container(
                         width: double.infinity,
-                        height: 200,
+                        height: _px(context, 200),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
                             colors: [
-                              categoryColor.withValues(alpha: 0.2),
-                              categoryColor.withValues(alpha: 0.1),
+                              AppTheme.primaryBlue.withValues(alpha: 0.2),
+                              AppTheme.primaryBlue.withValues(alpha: 0.1),
                             ],
                           ),
                         ),
                         child: Icon(
                           Icons.image_rounded,
-                          size: 64,
-                          color: categoryColor.withValues(alpha: 0.4),
+                          size: _px(context, 64),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.4),
                         ),
                       );
                     },
                   ),
                 ),
+
                 // Gradient Overlay
                 Positioned.fill(
                   child: Container(
@@ -503,21 +801,22 @@ class _ArtikelPageState extends State<ArtikelPage> {
                     ),
                   ),
                 ),
-                // Category Badge on Image
+
+                // Category Badge
                 Positioned(
-                  top: 16,
-                  left: 16,
+                  top: _px(context, 16),
+                  left: _px(context, 16),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 6,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: _px(context, 12),
+                      vertical: _px(context, 6),
                     ),
                     decoration: BoxDecoration(
-                      color: categoryColor,
+                      color: AppTheme.primaryBlue,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: categoryColor.withValues(alpha: 0.4),
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -526,13 +825,17 @@ class _ArtikelPageState extends State<ArtikelPage> {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(categoryIcon, color: Colors.white, size: 16),
-                        const SizedBox(width: 6),
+                        Icon(
+                          Icons.article_rounded,
+                          color: Colors.white,
+                          size: _px(context, 16),
+                        ),
+                        SizedBox(width: _px(context, 6)),
                         Text(
-                          article['category'],
-                          style: const TextStyle(
+                          artikel.kategori.nama,
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 12,
+                            fontSize: _ts(context, 12),
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -540,20 +843,21 @@ class _ArtikelPageState extends State<ArtikelPage> {
                     ),
                   ),
                 ),
+
                 // Bookmark Icon
                 Positioned(
-                  top: 16,
-                  right: 16,
+                  top: _px(context, 16),
+                  right: _px(context, 16),
                   child: Container(
-                    padding: const EdgeInsets.all(8),
+                    padding: EdgeInsets.all(_px(context, 8)),
                     decoration: BoxDecoration(
                       color: Colors.white.withValues(alpha: 0.9),
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
                       Icons.bookmark_border_rounded,
-                      color: categoryColor,
-                      size: 20,
+                      color: AppTheme.primaryBlue,
+                      size: _px(context, 20),
                     ),
                   ),
                 ),
@@ -562,15 +866,15 @@ class _ArtikelPageState extends State<ArtikelPage> {
 
             // Article Content
             Padding(
-              padding: const EdgeInsets.all(18),
+              padding: EdgeInsets.all(_px(context, 18)),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // Title
                   Text(
-                    article['title'],
-                    style: const TextStyle(
-                      fontSize: 18,
+                    artikel.judul,
+                    style: TextStyle(
+                      fontSize: _ts(context, 18),
                       fontWeight: FontWeight.bold,
                       color: AppTheme.onSurface,
                       height: 1.3,
@@ -579,35 +883,35 @@ class _ArtikelPageState extends State<ArtikelPage> {
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: _px(context, 10)),
 
-                  // Summary
+                  // Summary/Excerpt
                   Text(
-                    article['summary'],
+                    artikel.excerpt,
                     style: TextStyle(
-                      fontSize: 14,
+                      fontSize: _ts(context, 14),
                       color: AppTheme.onSurface.withValues(alpha: 0.7),
                       height: 1.5,
                     ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: _px(context, 16)),
 
                   // Divider
                   Divider(
-                    color: categoryColor.withValues(alpha: 0.1),
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                     height: 1,
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: _px(context, 12)),
 
                   // Meta Info
                   Row(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
+                        padding: EdgeInsets.symmetric(
+                          horizontal: _px(context, 10),
+                          vertical: _px(context, 6),
                         ),
                         decoration: BoxDecoration(
                           color: AppTheme.primaryBlue.withValues(alpha: 0.1),
@@ -617,14 +921,14 @@ class _ArtikelPageState extends State<ArtikelPage> {
                           children: [
                             Icon(
                               Icons.access_time_rounded,
-                              size: 16,
+                              size: _px(context, 16),
                               color: AppTheme.primaryBlue,
                             ),
-                            const SizedBox(width: 4),
+                            SizedBox(width: _px(context, 4)),
                             Text(
-                              article['readTime'],
+                              _formatDate(artikel.createdAt),
                               style: TextStyle(
-                                fontSize: 13,
+                                fontSize: _ts(context, 13),
                                 color: AppTheme.primaryBlue,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -632,25 +936,11 @@ class _ArtikelPageState extends State<ArtikelPage> {
                           ],
                         ),
                       ),
-                      const SizedBox(width: 10),
-                      Icon(
-                        Icons.circle,
-                        size: 4,
-                        color: AppTheme.onSurfaceVariant.withValues(alpha: 0.5),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        article['date'],
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                      ),
                       const Spacer(),
                       Icon(
                         Icons.arrow_forward_ios_rounded,
-                        size: 16,
-                        color: categoryColor,
+                        size: _px(context, 16),
+                        color: AppTheme.primaryBlue,
                       ),
                     ],
                   ),
@@ -663,9 +953,29 @@ class _ArtikelPageState extends State<ArtikelPage> {
     );
   }
 
+  String _formatDate(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays == 0) {
+      return 'Hari ini';
+    } else if (difference.inDays == 1) {
+      return 'Kemarin';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays} hari lalu';
+    } else if (difference.inDays < 30) {
+      final weeks = (difference.inDays / 7).floor();
+      return '$weeks minggu lalu';
+    } else {
+      final months = (difference.inDays / 30).floor();
+      return '$months bulan lalu';
+    }
+  }
+
   @override
   void dispose() {
     _searchController.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 }

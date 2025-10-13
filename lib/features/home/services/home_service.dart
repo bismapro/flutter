@@ -2,7 +2,6 @@ import 'package:dio/dio.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
-import 'package:test_flutter/data/models/reponse_format.dart';
 import 'package:test_flutter/data/models/sholat/sholat.dart';
 
 class HomeService {
@@ -12,7 +11,7 @@ class HomeService {
 
       logger.fine('Get latest article response: ${response.data}');
 
-      final responseData = ResponseFormat.fromJson(response.data);
+      final responseData = response.data;
 
       if (!responseData.status) {
         throw Exception(responseData.message ?? 'Failed to load articles');
@@ -46,19 +45,19 @@ class HomeService {
 
       logger.fine('Get jadwal sholat response: ${response.data}');
 
-      final responseData = ResponseFormat.fromJson(response.data);
+      final responseData = response.data as Map<String, dynamic>;
 
-      if (!responseData.status) {
+      if (!responseData['status']) {
         throw Exception(
-          responseData.message ?? 'Failed to load prayer schedule',
+          responseData['message'] ?? 'Failed to load prayer schedule',
         );
       }
 
-      final sholat = Sholat.fromJson(responseData.data);
+      final sholat = Sholat.fromJson(responseData['data']);
 
       return {
-        'status': responseData.status,
-        'message': responseData.message,
+        'status': responseData['status'],
+        'message': responseData['message'],
         'data': sholat,
       };
     } on DioException catch (e) {
