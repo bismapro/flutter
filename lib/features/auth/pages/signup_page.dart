@@ -130,7 +130,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showMessageToast(
           context,
-          message: tr('signup.toast_success'),
+          message:
+              authState['message']?.toString() ?? tr('signup.toast_success'),
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );

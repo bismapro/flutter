@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:test_flutter/app/theme.dart';
@@ -55,11 +56,10 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
   }
 
   Future<void> _loadDetail() async {
-    final id = widget.post['id'].toString();
-    logger.fine('Loading postingan detail for ID: $id');
-
-    // Fetch detail postingan menggunakan provider (includes comments)
-    await ref.read(komunitasProvider.notifier).fetchPostinganById(id);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final id = widget.post['id'].toString();
+      ref.read(komunitasProvider.notifier).fetchPostinganById(id);
+    });
   }
 
   String _formatDate(DateTime date) {
@@ -80,9 +80,6 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final postingan = komunitasState.postingan;
     if (postingan == null) return;
 
-    // Check if already submitting
-    if (komunitasState.status == KomunitasStatus.loading) return;
-
     try {
       logger.fine('Adding comment to postingan ${postingan.id}');
 
@@ -100,11 +97,6 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
       if (newState.status == KomunitasStatus.success) {
         _commentController.clear();
         setState(() => _isAnonymous = false);
-
-        // Reload detail postingan untuk update comments
-        await ref
-            .read(komunitasProvider.notifier)
-            .fetchPostinganById(postingan.id.toString());
 
         // Scroll to bottom after comment added
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -155,9 +147,6 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final postingan = komunitasState.postingan;
     if (postingan == null) return;
 
-    // Check if already toggling
-    if (komunitasState.status == KomunitasStatus.loading) return;
-
     try {
       logger.fine('Toggling like for postingan ${postingan.id}');
 
@@ -165,11 +154,6 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
       await ref
           .read(komunitasProvider.notifier)
           .toggleLike(postingan.id.toString());
-
-      // Reload detail postingan untuk update status like
-      await ref
-          .read(komunitasProvider.notifier)
-          .fetchPostinganById(postingan.id.toString());
     } catch (e, st) {
       logger.warning('Error toggling like: $e', e, st);
 
@@ -228,6 +212,17 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     }
   }
 
+  // Add method to show image viewer
+  void _showImageViewer(List<String> images, int initialIndex) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            _ImageViewerPage(images: images, initialIndex: initialIndex),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
@@ -242,7 +237,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final appbarPad = ResponsiveHelper.isSmallScreen(context) ? 14.0 : 16.0;
 
     final totalComments = postingan?.komentars?.length ?? 0;
-    final isSubmitting = komunitasState.status == KomunitasStatus.loading;
+    final isSubmitting = false;
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -343,7 +338,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
 
   Widget _buildContent(bool isLoggedIn, KomunitasState state) {
     // Loading state
-    if (state.status == KomunitasStatus.loading && state.postingan == null) {
+    if (state.status == KomunitasStatus.loading) {
       return _buildLoadingState();
     }
 
@@ -361,21 +356,19 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
         ? (ResponsiveHelper.isSmallScreen(context) ? 100 : 120)
         : 20;
 
-    return Center(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxWidth: _maxWidth(context)),
-        child: SingleChildScrollView(
-          controller: _scrollController,
-          padding: _pagePadding(context, extraBottom: extraBottom.toDouble()),
-          physics: const BouncingScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildPostCard(state.postingan!),
-              SizedBox(height: _gap(context) + 4),
-              _buildCommentsSection(state.postingan!),
-            ],
-          ),
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: _maxWidth(context)),
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        padding: _pagePadding(context, extraBottom: extraBottom.toDouble()),
+        physics: const BouncingScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildPostCard(state.postingan!),
+            SizedBox(height: _gap(context) + 4),
+            _buildCommentsSection(state.postingan!),
+          ],
         ),
       ),
     );
@@ -532,12 +525,9 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     final chipSize = ResponsiveHelper.adaptiveTextSize(context, 13);
     final iconSz = ResponsiveHelper.adaptiveTextSize(context, 20);
 
-    final coverUrl = post.cover;
+    final coverUrl = '${dotenv.env['STORAGE_URL']}/${post.cover}';
     final gallery = post.daftarGambar;
     final liked = post.liked ?? false;
-
-    final komunitasState = ref.watch(komunitasProvider);
-    final isTogglingLike = komunitasState.status == KomunitasStatus.loading;
 
     return Container(
       padding: EdgeInsets.all(_gap(context) + 4),
@@ -656,28 +646,28 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
           const SizedBox(height: 16),
 
           // Cover image (jika ada)
-          if (coverUrl.isNotEmpty) ...[
-            ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: AspectRatio(
-                aspectRatio: 16 / 9,
-                child: Image.network(
-                  coverUrl,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
-                    alignment: Alignment.center,
-                    color: categoryColor.withValues(alpha: 0.08),
-                    child: Icon(
-                      Icons.broken_image_rounded,
-                      color: categoryColor.withValues(alpha: 0.4),
-                      size: 40,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 14),
-          ],
+          // if (coverUrl.isNotEmpty) ...[
+          //   ClipRRect(
+          //     borderRadius: BorderRadius.circular(16),
+          //     child: AspectRatio(
+          //       aspectRatio: 16 / 9,
+          //       child: Image.network(
+          //         coverUrl,
+          //         fit: BoxFit.cover,
+          //         errorBuilder: (_, __, ___) => Container(
+          //           alignment: Alignment.center,
+          //           color: categoryColor.withValues(alpha: 0.08),
+          //           child: Icon(
+          //             Icons.broken_image_rounded,
+          //             color: categoryColor.withValues(alpha: 0.4),
+          //             size: 40,
+          //           ),
+          //         ),
+          //       ),
+          //     ),
+          //   ),
+          //   const SizedBox(height: 14),
+          // ],
 
           // Judul
           Text(
@@ -712,20 +702,29 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                 itemCount: gallery.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 10),
                 itemBuilder: (context, i) {
-                  final url = gallery[i];
-                  return ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
-                    child: AspectRatio(
-                      aspectRatio: 1.4,
-                      child: Image.network(
-                        url,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: categoryColor.withValues(alpha: 0.08),
-                          alignment: Alignment.center,
-                          child: Icon(
-                            Icons.broken_image_rounded,
-                            color: categoryColor.withValues(alpha: 0.4),
+                  final url = '${dotenv.env['STORAGE_URL']}/${gallery[i]}';
+                  return GestureDetector(
+                    onTap: () {
+                      // Create full URLs list for viewer
+                      final imageUrls = gallery
+                          .map((img) => '${dotenv.env['STORAGE_URL']}/$img')
+                          .toList();
+                      _showImageViewer(imageUrls, i);
+                    },
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: AspectRatio(
+                        aspectRatio: 1.4,
+                        child: Image.network(
+                          url,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: categoryColor.withValues(alpha: 0.08),
+                            alignment: Alignment.center,
+                            child: Icon(
+                              Icons.broken_image_rounded,
+                              color: categoryColor.withValues(alpha: 0.4),
+                            ),
                           ),
                         ),
                       ),
@@ -744,7 +743,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
             runSpacing: 8,
             children: [
               GestureDetector(
-                onTap: isTogglingLike ? null : _toggleLike,
+                onTap: _toggleLike,
                 child: Container(
                   padding: EdgeInsets.symmetric(
                     horizontal: ResponsiveHelper.isSmallScreen(context)
@@ -766,23 +765,11 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (isTogglingLike)
-                        SizedBox(
-                          width: iconSz,
-                          height: iconSz,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppTheme.primaryBlue,
-                            ),
-                          ),
-                        )
-                      else
-                        Icon(
-                          liked ? Icons.favorite : Icons.favorite_border,
-                          color: liked ? Colors.red : AppTheme.onSurfaceVariant,
-                          size: iconSz,
-                        ),
+                      Icon(
+                        liked ? Icons.favorite : Icons.favorite_border,
+                        color: liked ? Colors.red : AppTheme.onSurfaceVariant,
+                        size: iconSz,
+                      ),
                       const SizedBox(width: 8),
                       Text(
                         '${post.totalLikes}',
@@ -1305,5 +1292,295 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
     _commentController.dispose();
     _scrollController.dispose();
     super.dispose();
+  }
+}
+
+// Add Image Viewer Widget at the bottom of the file
+class _ImageViewerPage extends StatefulWidget {
+  final List<String> images;
+  final int initialIndex;
+
+  const _ImageViewerPage({required this.images, required this.initialIndex});
+
+  @override
+  State<_ImageViewerPage> createState() => _ImageViewerPageState();
+}
+
+class _ImageViewerPageState extends State<_ImageViewerPage> {
+  late PageController _pageController;
+  late int _currentIndex;
+  bool _showControls = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+    _pageController = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  void _toggleControls() {
+    setState(() => _showControls = !_showControls);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: GestureDetector(
+        onTap: _toggleControls,
+        child: Stack(
+          children: [
+            // Image PageView
+            PageView.builder(
+              controller: _pageController,
+              itemCount: widget.images.length,
+              onPageChanged: (index) {
+                setState(() => _currentIndex = index);
+              },
+              itemBuilder: (context, index) {
+                return Center(
+                  child: InteractiveViewer(
+                    minScale: 0.5,
+                    maxScale: 4.0,
+                    child: Image.network(
+                      widget.images[index],
+                      fit: BoxFit.contain,
+                      loadingBuilder: (context, child, loadingProgress) {
+                        if (loadingProgress == null) return child;
+                        return Center(
+                          child: CircularProgressIndicator(
+                            value: loadingProgress.expectedTotalBytes != null
+                                ? loadingProgress.cumulativeBytesLoaded /
+                                      loadingProgress.expectedTotalBytes!
+                                : null,
+                            valueColor: const AlwaysStoppedAnimation<Color>(
+                              Colors.white,
+                            ),
+                          ),
+                        );
+                      },
+                      errorBuilder: (_, __, ___) => const Center(
+                        child: Icon(
+                          Icons.broken_image_rounded,
+                          color: Colors.white54,
+                          size: 80,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            // Top Controls (Close Button & Counter)
+            if (_showControls)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.only(
+                    top: MediaQuery.of(context).padding.top + 8,
+                    left: 16,
+                    right: 16,
+                    bottom: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.7),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Close Button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.5),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
+                      ),
+
+                      // Image Counter
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          '${_currentIndex + 1} / ${widget.images.length}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            // Bottom Thumbnails
+            if (_showControls && widget.images.length > 1)
+              Positioned(
+                bottom: 0,
+                left: 0,
+                right: 0,
+                child: Container(
+                  padding: EdgeInsets.only(
+                    left: 16,
+                    right: 16,
+                    bottom: MediaQuery.of(context).padding.bottom + 16,
+                    top: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black.withValues(alpha: 0.7),
+                        Colors.transparent,
+                      ],
+                    ),
+                  ),
+                  child: SizedBox(
+                    height: 70,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: widget.images.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 8),
+                      itemBuilder: (context, index) {
+                        final isSelected = index == _currentIndex;
+                        return GestureDetector(
+                          onTap: () {
+                            _pageController.animateToPage(
+                              index,
+                              duration: const Duration(milliseconds: 300),
+                              curve: Curves.easeInOut,
+                            );
+                          },
+                          child: Container(
+                            width: 70,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: isSelected
+                                    ? AppTheme.primaryBlue
+                                    : Colors.transparent,
+                                width: 3,
+                              ),
+                            ),
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.network(
+                                widget.images[index],
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Container(
+                                  color: Colors.grey.shade800,
+                                  child: const Icon(
+                                    Icons.broken_image_rounded,
+                                    color: Colors.white54,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+              ),
+
+            // Navigation Arrows (untuk screen besar)
+            if (_showControls &&
+                widget.images.length > 1 &&
+                MediaQuery.of(context).size.width > 600) ...[
+              // Left Arrow
+              if (_currentIndex > 0)
+                Positioned(
+                  left: 16,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.chevron_left_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+
+              // Right Arrow
+              if (_currentIndex < widget.images.length - 1)
+                Positioned(
+                  right: 16,
+                  top: 0,
+                  bottom: 0,
+                  child: Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                      ),
+                      child: IconButton(
+                        onPressed: () {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        icon: const Icon(
+                          Icons.chevron_right_rounded,
+                          color: Colors.white,
+                          size: 36,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ],
+        ),
+      ),
+    );
   }
 }

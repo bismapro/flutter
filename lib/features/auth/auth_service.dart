@@ -1,9 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
-import 'package:test_flutter/data/models/user/user.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 
 class AuthService {
-
   // Login
   static Future<Map<String, dynamic>> login(
     String email,
@@ -16,9 +15,7 @@ class AuthService {
       );
 
       final responseData = response.data as Map<String, dynamic>;
-      final authResponse = AuthResponse.fromJson(
-        responseData['data'] as Map<String, dynamic>,
-      );
+      final authResponse = responseData['data'] as Map<String, dynamic>;
 
       return {
         'status': responseData['status'],
@@ -26,12 +23,13 @@ class AuthService {
         'data': authResponse,
       };
     } on DioException catch (e) {
+      logger.fine('Dio error occurred: $e');
       final error = ApiClient.parseDioError(e);
       throw Exception(error);
     }
   }
 
-// Register
+  // Register
   static Future<Map<String, dynamic>> register(
     String name,
     String email,
@@ -70,7 +68,7 @@ class AuthService {
     }
   }
 
-// Refresh Token
+  // Refresh Token
   static Future<Map<String, dynamic>> refresh() async {
     try {
       final response = await ApiClient.dio.post('/refresh');

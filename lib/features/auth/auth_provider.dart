@@ -17,6 +17,18 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
   AuthStateNotifier()
     : super({'status': AuthState.initial, 'user': null, 'error': null});
 
+  // --- Helpers --------------------------------------------------------------
+
+  /// Normalize any token value coming from the backend to a String.
+  String? _normalizeToken(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is String) return raw;
+    // Many backends return ints or other primitive types
+    return raw.toString();
+  }
+
+  // --- Public API -----------------------------------------------------------
+
   // Check if user is already logged in
   Future<void> checkAuthStatus() async {
     state = {...state, 'status': AuthState.loading};
@@ -25,22 +37,22 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
     try {
       final data = await _getUserWithSingleRefresh();
       if (data != null) {
-        // Sukses ambil dari server
+        // Successfully fetched from server
         state = {
           'status': AuthState.authenticated,
           'user': data,
           'error': null,
         };
-        // Sync ke storage agar up to date
+        // Sync to storage to stay up to date
         await StorageHelper.saveUser(data);
         return;
       }
 
-      // Jika sampai sini berarti tidak dapat user dari server (401 sesudah refresh / null)
+      // Reached here => couldn't get user from server (401 after refresh / null)
       await _fallbackToStorageOrUnauth();
     } on DioException catch (e) {
       logger.warning('Network/Dio error: ${e.type} ${e.response?.statusCode}');
-      // Offline/timeouts atau error lain → fallback
+      // Offline/timeouts or other errors → fallback
       await _fallbackToStorageOrUnauth();
     } catch (e) {
       logger.warning('Unknown error: $e');
@@ -48,8 +60,8 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
     }
   }
 
-  /// Coba GET /current-user sekali; jika 401 → refresh token sekali → retry.
-  /// return: map user bila sukses, atau null bila gagal.
+  /// Try GET /current-user once; if 401 → refresh token once → retry.
+  /// return: user map on success, or null on failure.
   Future<Map<String, dynamic>?> _getUserWithSingleRefresh() async {
     try {
       final resp = await AuthService.getCurrentUser();
@@ -61,15 +73,15 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       if (code == 401) {
         logger.fine('Access token 401 → try refresh once');
         try {
-          final r = await AuthService.refresh(); // pastikan ada endpoint ini
-          final newAccess = r['token'] as String?;
+          final r = await AuthService.refresh(); // ensure this endpoint exists
+          final newAccess = _normalizeToken(r['token'] ?? r['access_token']);
 
           if (newAccess == null || newAccess.isEmpty) {
             logger.fine('Refresh failed: empty access token');
             return null;
           }
 
-          // Simpan token baru
+          // Save the new token
           await StorageHelper.saveToken(newAccess);
 
           // Retry get current user
@@ -78,14 +90,14 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
           return data2;
         } catch (e2) {
           logger.warning('Refresh attempt failed: $e2');
-          return null; // biar caller fallback ke storage
+          return null; // caller will fallback to storage
         }
       }
-      rethrow; // error selain 401: lempar ke caller (akan fallback)
+      rethrow; // errors other than 401: let caller fallback
     }
   }
 
-  /// Fallback ke storage (mode offline) atau set unauthenticated bila tidak ada data.
+  /// Fallback to storage (offline mode) or set unauthenticated when no data.
   Future<void> _fallbackToStorageOrUnauth({String? error}) async {
     logger.warning('Fallback to local storage...');
 
@@ -111,42 +123,39 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
   Future<void> login(String email, String password) async {
     try {
       state = {...state, 'status': AuthState.loading, 'error': null};
+
       // Call API
       final response = await AuthService.login(email, password);
-
       final data = response['data'];
+
       logger.fine('Login response: $data');
 
       if (data == null) {
         throw Exception('Invalid response from server');
       }
 
-      // Save token first
-      if (data['token'] != null &&
-          data['token'].toString().isNotEmpty) {
-        await StorageHelper.saveToken(data['token']);
-        logger.fine('Access Token saved: ${data['token']}');
-      } else if (data['token'] != null && data['token'].toString().isNotEmpty) {
-        await StorageHelper.saveToken(data['token']);
-        logger.fine('Token saved: ${data['token']}');
-      } else {
+      // Save token (accept either "token" or "access_token"; normalize to String)
+      final tokenStr = _normalizeToken(data['token'] ?? data['access_token']);
+      if (tokenStr == null || tokenStr.isEmpty) {
         throw Exception('No token received from server');
       }
+      await StorageHelper.saveToken(tokenStr);
+      logger.fine('Access Token saved: $tokenStr');
 
       // Save user data
       if (data['user'] != null) {
         final user = data['user'];
-
         await StorageHelper.saveUser({
-          "id": user['id'].toString(),
-          "name": user['name'].toString(),
-          "email": user['email'].toString(),
-          "role": user['role'].toString(),
-          "phone": user['no_hp'].toString(),
+          "id": user['id']?.toString() ?? '',
+          "name": user['name']?.toString() ?? '',
+          "email": user['email']?.toString() ?? '',
+          "role": user['role']?.toString() ?? '',
+          "phone": user['phone']?.toString() ?? '',
         });
 
         logger.fine(
-          'User data saved - ID: ${user['id']}, Name: ${user['name']}, Email: ${user['email']}, Role: ${user['role']}',
+          'User data saved - ID: ${user['id']}, Name: ${user['name']}, '
+          'Email: ${user['email']}, Role: ${user['role']}',
         );
       }
 
@@ -160,10 +169,11 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       logger.fine('Authentication state set to authenticated');
     } catch (e) {
       logger.fine('Login error: ${e.toString()}');
+
       // Extract error message from Exception
       String errorMessage;
       if (e is Exception) {
-        // Get clean error message without 'Exception: ' prefix
+        // remove 'Exception: ' prefix for cleaner UI
         errorMessage = e.toString().replaceFirst('Exception: ', '');
       } else {
         errorMessage = e.toString();
@@ -183,22 +193,20 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
   ) async {
     try {
       state = {...state, 'status': AuthState.loading, 'error': null};
+
       // Call API
       await AuthService.register(name, email, password, confirmationPassword);
 
-      // Update state to authenticated
+      // Update state to registered (let UI navigate to login)
       state = {'status': AuthState.isRegistered, 'user': null, 'error': null};
     } catch (e) {
-      // Extract error message from Exception
       String errorMessage;
       if (e is Exception) {
-        // Get clean error message without 'Exception: ' prefix
         errorMessage = e.toString().replaceFirst('Exception: ', '');
       } else {
         errorMessage = e.toString();
       }
 
-      // Update state with formatted error
       state = {'status': AuthState.error, 'user': null, 'error': errorMessage};
     }
   }
@@ -214,10 +222,10 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       if (response == true) {
         logger.fine('Logout successful on server');
 
-        // Hapus data user dari storage
+        // Clear local data once
         await StorageHelper.clearUserData();
 
-        // Update state ke unauthenticated
+        // Update state to unauthenticated
         state = {
           'status': AuthState.unauthenticated,
           'user': null,
@@ -226,8 +234,6 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       } else {
         throw Exception('Logout failed');
       }
-
-      await StorageHelper.clearUserData();
     } catch (e) {
       state = {
         'status': AuthState.error,

@@ -7,7 +7,7 @@ class StorageHelper {
 
   // Save user token
   static Future<void> saveToken(String token) async {
-    await _storage.write(key: 'auth_token', value: token);
+    await _storage.write(key: 'auth_token', value: token.toString());
   }
 
   // Get saved token

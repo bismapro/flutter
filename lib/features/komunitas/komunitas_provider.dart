@@ -56,6 +56,8 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
   Future<void> fetchPostingan({
     bool isLoadMore = false,
     bool isRefresh = false,
+    String? kategoriId,
+    String keyword = '',
   }) async {
     if (isLoadMore && !canLoadMore) return;
 
@@ -75,7 +77,11 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
 
     try {
       // 2. SELALU coba ambil dari Jaringan (API)
-      final resp = await KomunitasService.getAllPostingan(page: pageToLoad);
+      final resp = await KomunitasService.getAllPostingan(
+        page: pageToLoad,
+        keyword: keyword,
+        kategoriId: kategoriId,
+      );
       final paginatedData = PaginatedResponse<KomunitasPostingan>.fromJson(
         resp,
         (json) => KomunitasPostingan.fromJson(json),
@@ -151,13 +157,17 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
 
     try {
       final resp = await KomunitasService.getPostinganById(id);
-      final postingan = resp['data'] as KomunitasPostingan;
+      final postinganMap = resp['data'] as Map<String, dynamic>;
+      final postingan = KomunitasPostingan.fromJson(postinganMap);
 
       state = state.copyWith(
         status: KomunitasStatus.loaded,
         postingan: postingan,
       );
+
+      logger.fine('state postingan: ${state.postingan}');
     } catch (e) {
+      logger.warning('Error fetching postingan by id: $e');
       state = state.copyWith(
         status: KomunitasStatus.error,
         message: e.toString(),
@@ -186,12 +196,15 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
         isAnonymous: isAnonymous,
       );
 
-      state.copyWith(
+      state = state.copyWith(
         status: KomunitasStatus.success,
         message: response['message'],
       );
     } catch (e) {
-      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+      state = state.copyWith(
+        status: KomunitasStatus.error,
+        message: e.toString(),
+      );
     }
   }
 
@@ -201,7 +214,7 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
     try {
       final response = await KomunitasService.deletePostingan(postinganId);
 
-      state.copyWith(
+      state = state.copyWith(
         status: KomunitasStatus.success,
         message: response['message'],
         postinganList: state.postinganList
@@ -209,22 +222,51 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
             .toList(),
       );
     } catch (e) {
-      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+      state = state.copyWith(
+        status: KomunitasStatus.error,
+        message: e.toString(),
+      );
     }
   }
 
   // Toggle Like
   Future<void> toggleLike(String postinganId) async {
-    state = state.copyWith(status: KomunitasStatus.loading);
+    // Don't set loading state for toggle like to avoid UI blocking
     try {
       final response = await KomunitasService.toggleLike(postinganId);
 
-      state.copyWith(
-        status: KomunitasStatus.success,
+      // Update postingan list if exists
+      final updatedList = state.postinganList.map((post) {
+        if (post.id.toString() == postinganId) {
+          final isLiked = post.liked ?? false;
+          return post.copyWith(
+            liked: !isLiked,
+            totalLikes: isLiked ? post.totalLikes - 1 : post.totalLikes + 1,
+          );
+        }
+        return post;
+      }).toList();
+
+      // Update current postingan if viewing detail
+      KomunitasPostingan? updatedPostingan;
+      if (state.postingan?.id.toString() == postinganId) {
+        final isLiked = state.postingan!.liked ?? false;
+        updatedPostingan = state.postingan!.copyWith(
+          liked: !isLiked,
+          totalLikes: isLiked
+              ? state.postingan!.totalLikes - 1
+              : state.postingan!.totalLikes + 1,
+        );
+      }
+
+      state = state.copyWith(
+        postinganList: updatedList,
+        postingan: updatedPostingan,
         message: response['message'],
       );
     } catch (e) {
-      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+      logger.warning('Error toggling like: $e');
+      // Don't update state on error to avoid disrupting UI
     }
   }
 
@@ -234,7 +276,7 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
     required String komentar,
     required bool isAnonymous,
   }) async {
-    state = state.copyWith(status: KomunitasStatus.loading);
+    // Don't set loading for the whole state
     try {
       final response = await KomunitasService.addComment(
         postinganId: postinganId,
@@ -242,18 +284,30 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
         isAnonymous: isAnonymous,
       );
 
-      state.copyWith(
-        status: KomunitasStatus.success,
-        message: response['message'],
-        postingan: state.postingan?.copyWith(
-          komentars: [
-            ...?state.postingan?.komentars,
-            response['data'] as Komentar,
-          ],
-        ),
-      );
+      final newComment = response['data'] as Komentar;
+
+      // Update postingan with new comment
+      if (state.postingan?.id.toString() == postinganId) {
+        state = state.copyWith(
+          status: KomunitasStatus.success,
+          message: response['message'],
+          postingan: state.postingan?.copyWith(
+            komentars: [...?state.postingan?.komentars, newComment],
+            totalKomentar: (state.postingan?.totalKomentar ?? 0) + 1,
+          ),
+        );
+      } else {
+        state = state.copyWith(
+          status: KomunitasStatus.success,
+          message: response['message'],
+        );
+      }
     } catch (e) {
-      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+      logger.warning('Error adding comment: $e');
+      state = state.copyWith(
+        status: KomunitasStatus.error,
+        message: e.toString(),
+      );
     }
   }
 
@@ -267,18 +321,25 @@ class KomunitasPostinganNotifier extends StateNotifier<KomunitasState> {
         alasan: alasan,
       );
 
-      state.copyWith(
+      state = state.copyWith(
         status: KomunitasStatus.success,
         message: response['message'],
       );
     } catch (e) {
-      state.copyWith(status: KomunitasStatus.error, message: e.toString());
+      state = state.copyWith(
+        status: KomunitasStatus.error,
+        message: e.toString(),
+      );
     }
   }
 
   /// Fungsi publik untuk melakukan refresh data.
-  Future<void> refresh() async {
-    await fetchPostingan(isRefresh: true);
+  Future<void> refresh({String? kategoriId, String keyword = ''}) async {
+    await fetchPostingan(
+      isRefresh: true,
+      kategoriId: kategoriId,
+      keyword: keyword,
+    );
   }
 
   /// Getter untuk memeriksa apakah bisa 'load more'.

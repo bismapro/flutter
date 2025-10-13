@@ -1,4 +1,3 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/services/location_service.dart';

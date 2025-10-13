@@ -46,18 +46,11 @@ class KomunitasService {
 
       final responseData = response.data as Map<String, dynamic>;
       final postinganData = responseData['data'] as Map<String, dynamic>;
-      final postinganList =
-          (postinganData as List<dynamic>?)
-              ?.map(
-                (e) => KomunitasPostingan.fromJson(e as Map<String, dynamic>),
-              )
-              .toList() ??
-          [];
 
       return {
         'status': responseData['status'],
         'message': responseData['message'],
-        'data': postinganList,
+        'data': postinganData,
       };
     } on DioException catch (e) {
       final error = ApiClient.parseDioError(e);
@@ -71,7 +64,7 @@ class KomunitasService {
       final response = await ApiClient.dio.get('/komunitas/postingan/$id');
 
       final responseData = response.data as Map<String, dynamic>;
-      final postingan = KomunitasPostingan.fromJson(responseData['data']);
+      final postingan = responseData['data'] as Map<String, dynamic>;
 
       return {
         'status': responseData['status'],

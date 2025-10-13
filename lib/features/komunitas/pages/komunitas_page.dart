@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
@@ -26,7 +27,11 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
   final ScrollController _scrollController = ScrollController();
 
   String _selectedCategory = 'Semua';
+  String _selectedCategoryId = '0';
   String _searchQuery = '';
+
+  // Add debounce timer for search
+  Timer? _debounce;
 
   @override
   void initState() {
@@ -57,22 +62,74 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     if (notifier.canLoadMore &&
         state.status != KomunitasStatus.loadingMore &&
         state.status != KomunitasStatus.refreshing) {
-      ref.read(komunitasProvider.notifier).fetchPostingan(isLoadMore: true);
+      ref
+          .read(komunitasProvider.notifier)
+          .fetchPostingan(
+            isLoadMore: true,
+            kategoriId: _selectedCategoryId == '0' ? null : _selectedCategoryId,
+            keyword: _searchQuery,
+          );
     }
   }
 
   Future<void> _handleRefresh() async {
     logger.fine('Pull to refresh triggered');
-    await ref.read(komunitasProvider.notifier).refresh();
+    await ref
+        .read(komunitasProvider.notifier)
+        .refresh(
+          kategoriId: _selectedCategoryId == '0' ? null : _selectedCategoryId,
+          keyword: _searchQuery,
+        );
   }
 
+  // Handle search with debounce
+  void _onSearchChanged(String query) {
+    setState(() => _searchQuery = query);
+
+    // Cancel previous timer
+    if (_debounce?.isActive ?? false) _debounce!.cancel();
+
+    // Start new timer
+    _debounce = Timer(const Duration(milliseconds: 500), () {
+      // Fetch from API after user stops typing for 500ms
+      ref
+          .read(komunitasProvider.notifier)
+          .fetchPostingan(
+            isRefresh: true,
+            kategoriId: _selectedCategoryId == '0' ? null : _selectedCategoryId,
+            keyword: query,
+          );
+    });
+  }
+
+  // Handle category change
+  Future<void> _onCategoryChanged(
+    String kategoriId,
+    String kategoriNama,
+  ) async {
+    setState(() {
+      _selectedCategory = kategoriNama;
+      _selectedCategoryId = kategoriId;
+    });
+
+    // Fetch postingan with selected category
+    await ref
+        .read(komunitasProvider.notifier)
+        .fetchPostingan(
+          isRefresh: true,
+          kategoriId: kategoriId == '0' ? null : kategoriId,
+          keyword: _searchQuery,
+        );
+  }
+
+  // Update this method to return list of kategori maps
   List<Map<String, dynamic>> get _kategoriList {
     final kategori = ref.watch(komunitasProvider).kategori;
     return [
       {'id': '0', 'nama': 'Semua', 'icon': null},
       ...kategori.map(
         (e) => {
-          'id': (e.id).toString(),
+          'id': e.id.toString(),
           'nama': e.nama,
           'icon': e.icon.isNotEmpty
               ? '${dotenv.env['STORAGE_URL'] ?? ''}/${e.icon}'
@@ -82,59 +139,41 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     ];
   }
 
-  List<Map<String, dynamic>> get _filteredPosts {
+  // Remove client-side filtering, use API data directly
+  List<Map<String, dynamic>> get _postList {
     final List<KomunitasPostingan> postingan = ref
-        .read(komunitasProvider)
+        .watch(komunitasProvider)
         .postinganList;
 
-    return postingan
-        .where((item) {
-          final judul = (item.judul).toLowerCase();
-          final excerpt = (item.excerpt).toLowerCase();
-          final kategoriNama = (item.kategori.nama).toLowerCase();
+    return postingan.map((item) {
+      final storage = dotenv.env['STORAGE_URL'] ?? '';
+      final coverPath = item.cover;
+      final iconPath = item.kategori.icon;
+      final galeriList = (item.daftarGambar)
+          .where((e) => (e).isNotEmpty)
+          .map((e) => '$storage/$e')
+          .toList();
 
-          final matchesCategory =
-              _selectedCategory == 'Semua' ||
-              (item.kategori.nama) == _selectedCategory;
-
-          final matchesSearch =
-              _searchQuery.isEmpty ||
-              judul.contains(_searchQuery.toLowerCase()) ||
-              excerpt.contains(_searchQuery.toLowerCase()) ||
-              kategoriNama.contains(_searchQuery.toLowerCase());
-
-          return matchesCategory && matchesSearch;
-        })
-        .map((item) {
-          final storage = dotenv.env['STORAGE_URL'] ?? '';
-          final coverPath = item.cover;
-          final iconPath = item.kategori.icon;
-          final galeriList = (item.daftarGambar)
-              .where((e) => (e).isNotEmpty)
-              .map((e) => '$storage/$e')
-              .toList();
-
-          return {
-            'id': (item.id).toString(),
-            'judul': item.judul,
-            'excerpt': item.excerpt,
-            'authorId': (item.userId).toString(),
-            'penulis': item.penulis,
-            'kategoriId': (item.kategoriId).toString(),
-            'kategoriNama': item.kategori.nama,
-            'kategoriIcon': iconPath.isNotEmpty && storage.isNotEmpty
-                ? '$storage/$iconPath'
-                : null,
-            'date': FormatHelper.getFormattedDate(item.createdAt),
-            'coverUrl': coverPath.isNotEmpty && storage.isNotEmpty
-                ? '$storage/$coverPath'
-                : null,
-            'galeri': galeriList,
-            'totalLikes': item.totalLikes,
-            'totalKomentar': item.totalKomentar,
-          };
-        })
-        .toList();
+      return {
+        'id': (item.id).toString(),
+        'judul': item.judul,
+        'excerpt': item.excerpt,
+        'authorId': (item.userId).toString(),
+        'penulis': item.penulis,
+        'kategoriId': (item.kategoriId).toString(),
+        'kategoriNama': item.kategori.nama,
+        'kategoriIcon': iconPath.isNotEmpty && storage.isNotEmpty
+            ? '$storage/$iconPath'
+            : null,
+        'date': FormatHelper.getFormattedDate(item.createdAt),
+        'coverUrl': coverPath.isNotEmpty && storage.isNotEmpty
+            ? '$storage/$coverPath'
+            : null,
+        'galeri': galeriList,
+        'totalLikes': item.totalLikes,
+        'totalKomentar': item.totalKomentar,
+      };
+    }).toList();
   }
 
   Color _getCategoryColor(String? nama) {
@@ -142,16 +181,38 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
     switch (category) {
       case 'ibadah':
         return const Color(0xFF3B82F6);
+      case 'doa':
+        return const Color(0xFF8B5CF6);
       case 'event':
         return const Color(0xFFF97316);
       case 'sharing':
         return const Color(0xFF10B981);
       case 'pertanyaan':
-        return const Color(0xFF8B5CF6);
+        return const Color(0xFFEF4444);
       case 'diskusi':
         return Colors.purple.shade400;
       default:
         return AppTheme.primaryBlue;
+    }
+  }
+
+  IconData _getCategoryIcon(String? nama) {
+    final category = (nama ?? 'Umum').toLowerCase();
+    switch (category) {
+      case 'ibadah':
+        return Icons.auto_awesome_rounded;
+      case 'doa':
+        return Icons.spa_rounded;
+      case 'event':
+        return Icons.event_rounded;
+      case 'sharing':
+        return Icons.share_rounded;
+      case 'pertanyaan':
+        return Icons.help_outline_rounded;
+      case 'diskusi':
+        return Icons.forum_rounded;
+      default:
+        return Icons.category_rounded;
     }
   }
 
@@ -229,7 +290,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
         child: SafeArea(
           child: Column(
             children: [
-              // Header + Search
+              // Header + Search + Category Filter
               Padding(
                 padding: EdgeInsets.all(pagePad.horizontal / 2),
                 child: Center(
@@ -238,6 +299,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
+                        // Header
                         Row(
                           children: [
                             Container(
@@ -265,7 +327,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Community',
+                                  'Komunitas',
                                   style: TextStyle(
                                     fontSize: titleSize,
                                     fontWeight: FontWeight.bold,
@@ -274,7 +336,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                                   ),
                                 ),
                                 Text(
-                                  'Share and discuss with others',
+                                  'Bagikan dan diskusikan dengan orang lain',
                                   style: TextStyle(
                                     fontSize: subtitleSize,
                                     color: AppTheme.onSurfaceVariant,
@@ -285,6 +347,8 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                           ],
                         ),
                         const SizedBox(height: 16),
+
+                        // Search Bar
                         Container(
                           decoration: BoxDecoration(
                             color: Colors.white,
@@ -307,8 +371,8 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                           ),
                           child: TextField(
                             controller: _searchController,
-                            onChanged: (value) =>
-                                setState(() => _searchQuery = value),
+                            onChanged:
+                                _onSearchChanged, // Use debounced handler
                             style: TextStyle(
                               fontSize: ResponsiveHelper.adaptiveTextSize(
                                 context,
@@ -316,7 +380,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                               ),
                             ),
                             decoration: InputDecoration(
-                              hintText: 'Search discussions...',
+                              hintText: 'Cari postingan',
                               hintStyle: TextStyle(
                                 color: AppTheme.onSurfaceVariant.withValues(
                                   alpha: 0.6,
@@ -338,7 +402,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                                       ),
                                       onPressed: () {
                                         _searchController.clear();
-                                        setState(() => _searchQuery = '');
+                                        _onSearchChanged(''); // Clear and fetch
                                       },
                                     )
                                   : null,
@@ -348,6 +412,145 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                                 vertical: 14,
                               ),
                             ),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Category Filter
+                        SizedBox(
+                          height: 44,
+                          child: ListView.builder(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _kategoriList.length,
+                            physics: const BouncingScrollPhysics(),
+                            itemBuilder: (context, index) {
+                              final kategori = _kategoriList[index];
+                              final kategoriId = kategori['id'] as String;
+                              final kategoriNama = kategori['nama'] as String;
+                              final kategoriIcon = kategori['icon'] as String?;
+                              final isSelected =
+                                  kategoriNama == _selectedCategory;
+                              final categoryColor = _getCategoryColor(
+                                kategoriNama,
+                              );
+                              final categoryIcon = _getCategoryIcon(
+                                kategoriNama,
+                              );
+
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  right: index == _kategoriList.length - 1
+                                      ? 0
+                                      : 10,
+                                ),
+                                child: GestureDetector(
+                                  onTap: () => _onCategoryChanged(
+                                    kategoriId,
+                                    kategoriNama,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 10,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      gradient: isSelected
+                                          ? LinearGradient(
+                                              colors: [
+                                                categoryColor,
+                                                categoryColor.withValues(
+                                                  alpha: 0.8,
+                                                ),
+                                              ],
+                                            )
+                                          : null,
+                                      color: isSelected ? null : Colors.white,
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? categoryColor
+                                            : categoryColor.withValues(
+                                                alpha: 0.2,
+                                              ),
+                                        width: isSelected ? 0 : 1.5,
+                                      ),
+                                      boxShadow: isSelected
+                                          ? [
+                                              BoxShadow(
+                                                color: categoryColor.withValues(
+                                                  alpha: 0.3,
+                                                ),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ]
+                                          : null,
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Category Icon
+                                        if (kategoriIcon != null)
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 8,
+                                            ),
+                                            child: ClipRRect(
+                                              borderRadius:
+                                                  BorderRadius.circular(4),
+                                              child: Image.network(
+                                                kategoriIcon,
+                                                width: 18,
+                                                height: 18,
+                                                fit: BoxFit.cover,
+                                                errorBuilder: (_, __, ___) =>
+                                                    Icon(
+                                                      categoryIcon,
+                                                      size: 18,
+                                                      color: isSelected
+                                                          ? Colors.white
+                                                          : categoryColor,
+                                                    ),
+                                              ),
+                                            ),
+                                          )
+                                        else
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                              right: 8,
+                                            ),
+                                            child: Icon(
+                                              categoryIcon,
+                                              size: 18,
+                                              color: isSelected
+                                                  ? Colors.white
+                                                  : categoryColor,
+                                            ),
+                                          ),
+
+                                        // Category Name
+                                        Text(
+                                          kategoriNama,
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? Colors.white
+                                                : AppTheme.onSurface,
+                                            fontWeight: isSelected
+                                                ? FontWeight.w600
+                                                : FontWeight.w500,
+                                            fontSize:
+                                                ResponsiveHelper.adaptiveTextSize(
+                                                  context,
+                                                  14,
+                                                ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -394,11 +597,11 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
       return _buildLoadingState();
     }
 
-    if (status == KomunitasStatus.error && _filteredPosts.isEmpty) {
+    if (status == KomunitasStatus.error && _postList.isEmpty) {
       return _buildErrorState(komunitasState.message);
     }
 
-    if (_filteredPosts.isEmpty && status != KomunitasStatus.loading) {
+    if (_postList.isEmpty && status != KomunitasStatus.loading) {
       return RefreshIndicator(
         onRefresh: _handleRefresh,
         color: AppTheme.primaryBlue,
@@ -444,17 +647,17 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                             : 0.85,
                       ),
                       itemCount:
-                          _filteredPosts.length +
+                          _postList.length +
                           ((currentPage < lastPage &&
                                   !isOffline &&
                                   status != KomunitasStatus.loadingMore)
                               ? 1
                               : 0),
                       itemBuilder: (context, index) {
-                        if (index >= _filteredPosts.length) {
+                        if (index >= _postList.length) {
                           return _buildLoadMoreIndicator();
                         }
-                        final post = _filteredPosts[index];
+                        final post = _postList[index];
                         return _buildEnhancedPostCard(
                           post,
                           imageHeight: _cardImageHeight(context),
@@ -468,17 +671,17 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                         parent: BouncingScrollPhysics(),
                       ),
                       itemCount:
-                          _filteredPosts.length +
+                          _postList.length +
                           ((currentPage < lastPage &&
                                   !isOffline &&
                                   status != KomunitasStatus.loadingMore)
                               ? 1
                               : 0),
                       itemBuilder: (context, index) {
-                        if (index >= _filteredPosts.length) {
+                        if (index >= _postList.length) {
                           return _buildLoadMoreIndicator();
                         }
-                        final post = _filteredPosts[index];
+                        final post = _postList[index];
                         return _buildEnhancedPostCard(
                           post,
                           imageHeight: _cardImageHeight(context),
@@ -554,7 +757,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Load article...',
+                  'Memuat postingan...',
                   style: TextStyle(
                     color: AppTheme.onSurface,
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
@@ -563,7 +766,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Please wait a moment...',
+                  'Silakan tunggu sebentar...',
                   style: TextStyle(
                     color: AppTheme.onSurfaceVariant,
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
@@ -612,7 +815,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             ),
             const SizedBox(height: 20),
             Text(
-              'Failed to Load Data',
+              'Gagal Memuat Data',
               style: TextStyle(
                 fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
                 fontWeight: FontWeight.bold,
@@ -621,7 +824,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             ),
             const SizedBox(height: 8),
             Text(
-              errorMessage ?? 'An error occurred while loading the article',
+              errorMessage ?? 'Terjadi kesalahan saat memuat postingan',
               style: TextStyle(
                 color: Colors.red.shade600,
                 fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
@@ -704,7 +907,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
             ),
             const SizedBox(height: 8),
             Text(
-              'Loading more...',
+              'Memuat lebih banyak...',
               style: TextStyle(
                 color: AppTheme.onSurfaceVariant,
                 fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
@@ -1133,6 +1336,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
   void dispose() {
     _searchController.dispose();
     _scrollController.dispose();
+    _debounce?.cancel(); // Cancel timer on dispose
     super.dispose();
   }
 }

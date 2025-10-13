@@ -94,7 +94,7 @@ class AuthInterceptor extends Interceptor {
         options: Options(extra: {'skipAuth': true}),
       );
       // sesuaikan key access token sesuai respons backend
-      return (res.data?['access_token'] as String?) ?? '';
+      return (res.data?['token'] as String?) ?? '';
     } catch (_) {
       return null;
     }

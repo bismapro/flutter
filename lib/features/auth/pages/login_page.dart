@@ -106,7 +106,9 @@ class _LoginPageState extends ConsumerState<LoginPage>
       WidgetsBinding.instance.addPostFrameCallback((_) {
         showMessageToast(
           context,
-          message: tr('login.toast_success'),
+          message:
+              authState['message']?.toString() ??
+              tr('login.login_success_message'),
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );
