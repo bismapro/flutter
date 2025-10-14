@@ -7,6 +7,7 @@ import 'dart:math' as math;
 import 'dart:async';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/data/services/location/location_service.dart';
 
 class CompassPage extends StatefulWidget {
   const CompassPage({super.key});
@@ -28,73 +29,13 @@ class _CompassPageState extends State<CompassPage> {
   StreamSubscription<Position>? _locationSubscription;
 
   String _cityName = '';
-  // ignore: unused_field
-  String _kabName = '';
   String _countryName = '';
-  // ignore: unused_field
-  String _countryCode = '';
   Timer? _reverseGeocodeDebouncer;
   String _location = '';
 
   // Koordinat Ka'bah (Makkah, Saudi Arabia)
   static const double _kaabaLatitude = 21.4224779;
   static const double _kaabaLongitude = 39.8251832;
-
-  Future<void> _reverseGeocodeCurrentPosition() async {
-    if (_currentPosition == null) return;
-
-    try {
-      // Debounce agar tidak spam kalau stream lokasi sering update
-      _reverseGeocodeDebouncer?.cancel();
-      _reverseGeocodeDebouncer = Timer(
-        const Duration(milliseconds: 600),
-        () async {
-          final placemarks = await placemarkFromCoordinates(
-            _currentPosition!.latitude,
-            _currentPosition!.longitude,
-          );
-
-          if (placemarks.isNotEmpty && mounted) {
-            final p = placemarks.first;
-
-            // Urutan fallback: locality (kota) → subAdministrativeArea (kab) → administrativeArea (prov)
-            final city = (p.locality?.trim().isNotEmpty == true)
-                ? p.locality!.trim()
-                : (p.subAdministrativeArea?.trim().isNotEmpty == true)
-                ? p.subAdministrativeArea!.trim()
-                : (p.administrativeArea?.trim().isNotEmpty == true)
-                ? p.administrativeArea!.trim()
-                : 'Lokasi Tidak Diketahui';
-
-            setState(() {
-              _cityName = city;
-              _kabName = (p.subAdministrativeArea ?? '').toUpperCase();
-              _countryName = (p.country ?? '').toUpperCase();
-              _countryCode = (p.isoCountryCode ?? '').toUpperCase();
-              _location = '$_cityName, $_countryName';
-            });
-          }
-        },
-      );
-    } catch (e) {
-      // Kalau reverse geocode gagal, jangan crash—cukup tampilkan fallback
-      if (mounted) {
-        setState(() {
-          _cityName = 'Lokasi Tidak Diketahui';
-          _kabName = '—';
-          _countryName = _isInIndonesia() ? 'INDONESIA' : '—';
-          _location = _cityName;
-        });
-      }
-    }
-  }
-
-  bool _isInIndonesia() {
-    if (_currentPosition == null) return false;
-    final lat = _currentPosition!.latitude;
-    final lng = _currentPosition!.longitude;
-    return (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141);
-  }
 
   @override
   void initState() {
@@ -150,13 +91,18 @@ class _CompassPageState extends State<CompassPage> {
       _currentPosition = null;
       _qiblaDirection = 0.0;
       _status = 'Memulai kompas Kiblat...';
+      _location = '';
+      _cityName = '';
+      _countryName = '';
     });
 
     _locationSubscription?.cancel();
     _compassSubscription?.cancel();
 
     try {
-      await _checkLocationPermissions();
+      // Load lokasi dari LocationService
+      await _loadLocationFromService();
+      
       if (_hasPermission) {
         await _getCurrentLocation();
       }
@@ -167,6 +113,51 @@ class _CompassPageState extends State<CompassPage> {
         _isLoading = false;
         _hasPermission = false;
       });
+    }
+  }
+
+  /// Load lokasi dari LocationService
+  Future<void> _loadLocationFromService() async {
+    setState(() => _status = 'Mengambil lokasi dari cache...');
+    
+    try {
+      // Coba ambil dari cache dulu
+      final cachedLocation = await LocationService.getLocation();
+      
+      if (cachedLocation != null) {
+        setState(() {
+          _location = cachedLocation['name'] as String;
+          _cityName = (cachedLocation['name'] as String).split(',').first.trim();
+          _countryName = (cachedLocation['name'] as String).split(',').last.trim().toUpperCase();
+          
+          // Set position dari cache
+          _currentPosition = Position(
+            latitude: cachedLocation['lat'] as double,
+            longitude: cachedLocation['long'] as double,
+            timestamp: DateTime.now(),
+            accuracy: 0,
+            altitude: 0,
+            heading: 0,
+            speed: 0,
+            speedAccuracy: 0,
+            altitudeAccuracy: 0,
+            headingAccuracy: 0,
+          );
+          
+          _hasPermission = true;
+        });
+        
+        // Calculate qibla dari cached location
+        _calculateQiblaDirection();
+      }
+      
+      // Kemudian request lokasi terbaru
+      setState(() => _status = 'Memperbarui lokasi...');
+      await _checkLocationPermissions();
+      
+    } catch (e) {
+      logger.warning('Error loading location from service: $e');
+      await _checkLocationPermissions();
     }
   }
 
@@ -217,20 +208,29 @@ class _CompassPageState extends State<CompassPage> {
 
   Future<void> _getCurrentLocation() async {
     try {
-      Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          distanceFilter: 1,
-          timeLimit: Duration(seconds: 30),
-        ),
-      );
-
+      // Gunakan LocationService untuk mendapatkan lokasi
+      final locationData = await LocationService.getCurrentLocation();
+      
       setState(() {
-        _currentPosition = position;
+        _location = locationData['name'] as String;
+        _cityName = (locationData['name'] as String).split(',').first.trim();
+        _countryName = (locationData['name'] as String).split(',').last.trim().toUpperCase();
+        
+        _currentPosition = Position(
+          latitude: locationData['lat'] as double,
+          longitude: locationData['long'] as double,
+          timestamp: DateTime.now(),
+          accuracy: 0,
+          altitude: 0,
+          heading: 0,
+          speed: 0,
+          speedAccuracy: 0,
+          altitudeAccuracy: 0,
+          headingAccuracy: 0,
+        );
+        
         _status = 'Menghitung arah Kiblat...';
       });
-
-      await _reverseGeocodeCurrentPosition();
 
       _calculateQiblaDirection();
       _startLocationUpdates();
@@ -256,12 +256,66 @@ class _CompassPageState extends State<CompassPage> {
           if (mounted) {
             setState(() => _currentPosition = position);
 
+            // Update reverse geocode jika posisi berubah signifikan
             await _reverseGeocodeCurrentPosition();
 
             _calculateQiblaDirection();
           }
         }, onError: (error) => logger.fine('Location update error: $error'));
   }
+
+  Future<void> _reverseGeocodeCurrentPosition() async {
+    if (_currentPosition == null) return;
+
+    try {
+      // Debounce agar tidak spam kalau stream lokasi sering update
+      _reverseGeocodeDebouncer?.cancel();
+      _reverseGeocodeDebouncer = Timer(
+        const Duration(milliseconds: 600),
+        () async {
+          final placemarks = await placemarkFromCoordinates(
+            _currentPosition!.latitude,
+            _currentPosition!.longitude,
+          );
+
+          if (placemarks.isNotEmpty && mounted) {
+            final p = placemarks.first;
+
+            // Urutan fallback: locality (kota) → subAdministrativeArea (kab) → administrativeArea (prov)
+            final city = (p.locality?.trim().isNotEmpty == true)
+                ? p.locality!.trim()
+                : (p.subAdministrativeArea?.trim().isNotEmpty == true)
+                ? p.subAdministrativeArea!.trim()
+                : (p.administrativeArea?.trim().isNotEmpty == true)
+                ? p.administrativeArea!.trim()
+                : 'Lokasi Tidak Diketahui';
+
+            setState(() {
+              _cityName = city;
+              _countryName = (p.country ?? '').toUpperCase();
+              _location = '$_cityName, $_countryName';
+            });
+          }
+        },
+      );
+    } catch (e) {
+      // Kalau reverse geocode gagal, jangan crash—cukup tampilkan fallback
+      if (mounted) {
+        setState(() {
+          _cityName = 'Lokasi Tidak Diketahui';
+          // _countryName = _isInIndonesia() ? 'INDONESIA' : '—';
+          _location = _cityName;
+        });
+      }
+    }
+  }
+
+  // bool _isInIndonesia() {
+  //   if (_currentPosition == null) return false;
+  //   final lat = _currentPosition!.latitude;
+  //   final lng = _currentPosition!.longitude;
+  //   return (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141);
+  // }
 
   void _calculateQiblaDirection() {
     if (_currentPosition == null) return;
@@ -314,34 +368,12 @@ class _CompassPageState extends State<CompassPage> {
     return earthRadius * c;
   }
 
-  // String _getCityFromCoordinates() {
-  //   if (_currentPosition == null) return 'Lokasi Tidak Diketahui';
-  //   final lat = _currentPosition!.latitude;
-  //   final lng = _currentPosition!.longitude;
-
-  //   if (lat >= -6.35 && lat <= -5.95 && lng >= 106.5 && lng <= 107.2)
-  //     return 'Jakarta';
-  //   if (lat >= -7.05 && lat <= -6.75 && lng >= 110.25 && lng <= 110.55)
-  //     return 'Semarang';
-  //   if (lat >= -7.95 && lat <= -7.65 && lng >= 110.25 && lng <= 110.55)
-  //     return 'Yogyakarta';
-  //   if (lat >= -7.45 && lat <= -7.15 && lng >= 112.5 && lng <= 112.9)
-  //     return 'Surabaya';
-  //   if (lat >= -6.95 && lat <= -6.85 && lng >= 107.5 && lng <= 107.7)
-  //     return 'Bandung';
-  //   if (lat >= -8.75 && lat <= -8.55 && lng >= 115.1 && lng <= 115.3)
-  //     return 'Denpasar';
-  //   if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) return 'Indonesia';
-  //   return 'Lokasi di luar Indonesia';
-  // }
-
   double _degreeToRadian(double degree) => degree * (math.pi / 180);
   double _radianToDegree(double radian) => radian * (180 / math.pi);
 
   // ======= Responsiveness helpers =======
   double _compassSize(BuildContext context) {
     final w = ResponsiveHelper.getScreenWidth(context);
-    // Ambil 70% lebar untuk mobile, 50% untuk tablet, 40% untuk desktop — dengan batas min/max
     double factor;
     if (ResponsiveHelper.isSmallScreen(context)) {
       factor = 0.7;
@@ -366,7 +398,7 @@ class _CompassPageState extends State<CompassPage> {
     final subtitleSize = ResponsiveHelper.adaptiveTextSize(context, 15);
     final useTwoColumns =
         MediaQuery.of(context).size.width >=
-        ResponsiveHelper.largeScreenSize; // >=900
+        ResponsiveHelper.largeScreenSize;
 
     return Scaffold(
       body: Container(
@@ -466,7 +498,6 @@ class _CompassPageState extends State<CompassPage> {
                       ? Row(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Kolom kiri: kompas besar
                             Expanded(
                               flex: 6,
                               child: Padding(
@@ -477,7 +508,6 @@ class _CompassPageState extends State<CompassPage> {
                                 child: _buildBody(compact: false),
                               ),
                             ),
-                            // Kolom kanan: info
                             Expanded(
                               flex: 5,
                               child: Padding(
@@ -613,7 +643,6 @@ class _CompassPageState extends State<CompassPage> {
       );
     }
 
-    // Konten normal
     return SingleChildScrollView(
       padding: EdgeInsets.symmetric(
         horizontal: ResponsiveHelper.isSmallScreen(context) ? 12 : 24,
@@ -634,7 +663,6 @@ class _CompassPageState extends State<CompassPage> {
     );
   }
 
-  // Panel kanan saat 2 kolom (info saja)
   Widget _buildSideInfo() {
     return SingleChildScrollView(
       child: Column(
@@ -700,7 +728,7 @@ class _CompassPageState extends State<CompassPage> {
           Text(
             _countryName.isNotEmpty
                 ? _countryName
-                : (_isInIndonesia() ? 'INDONESIA' : 'NEGARA TIDAK DIKETAHUI'),
+                : '—',
             style: TextStyle(
               fontSize: ResponsiveHelper.adaptiveTextSize(context, 13),
               fontWeight: FontWeight.w600,
@@ -1155,7 +1183,7 @@ class _CompassPageState extends State<CompassPage> {
   }
 }
 
-// ===== Painters (tetap, tidak perlu diubah untuk responsif) =====
+// ===== Painters =====
 class CompassFacePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

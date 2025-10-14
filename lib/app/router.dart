@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:test_flutter/features/alarm/pages/alarm_settings_page.dart';
 import 'package:test_flutter/features/artikel/pages/artikel_detail_page.dart';
 import 'package:test_flutter/features/artikel/pages/artikel_page.dart';
 import 'package:test_flutter/features/auth/pages/login_page.dart';
@@ -77,8 +76,6 @@ class AppRoutes {
           builder: (_) =>
               ArtikelDetailPage(artikelId: settings.arguments as dynamic),
         );
-      case alarmSettings:
-        return MaterialPageRoute(builder: (_) => const AlarmSettingsPage());
       case profile:
         return MaterialPageRoute(builder: (_) => const ProfilePage());
       default:

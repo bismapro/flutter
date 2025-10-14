@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
@@ -865,29 +866,7 @@ class _SholatPageState extends ConsumerState<SholatPage>
     return days[selectedDate.weekday - 1];
   }
 
-  String get hijriDate {
-    try {
-      final hijri = HijriCalendar.fromDate(selectedDate);
-      const hijriMonths = [
-        'Muharram',
-        'Safar',
-        'Rabiul Awal',
-        'Rabiul Akhir',
-        'Jumadil Awal',
-        'Jumadil Akhir',
-        'Rajab',
-        "Sya'ban",
-        'Ramadan',
-        'Syawal',
-        "Dzulqa'dah",
-        'Dzulhijjah',
-      ];
-      return '${hijri.hDay} ${hijriMonths[hijri.hMonth - 1]} ${hijri.hYear} H';
-    } catch (e) {
-      print('Error converting to Hijri date: $e');
-      return 'Tanggal Hijriah';
-    }
-  }
+  String get hijriDate => FormatHelper.getHijriDate(selectedDate);
 
   @override
   Widget build(BuildContext context) {

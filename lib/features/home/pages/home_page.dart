@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_islamic_icons/flutter_islamic_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hijri/hijri_calendar.dart';
+import 'package:hijri_date_time/hijri_date_time.dart';
+import 'package:intl/intl.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/models/sholat/sholat.dart';
+import 'package:test_flutter/data/services/location/location_service.dart';
 import 'package:test_flutter/features/home/home_provider.dart';
 import 'package:test_flutter/features/home/home_state.dart';
 import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
@@ -93,13 +98,106 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     );
   }
 
+  String _locationName = 'Loading...';
+  String _gregorianDate = '';
+  String _hijriDate = '';
+  String _localTime = '';
+  String now = DateTime.now().toString();
+
   @override
   void initState() {
     super.initState();
     // Load all data when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(homeProvider.notifier).loadAllData();
+      _loadLocationData();
     });
+  }
+
+  Future<void> _loadLocationData() async {
+    try {
+      final locationData = await LocationService.getLocation();
+
+      if (locationData != null) {
+        setState(() {
+          _locationName = locationData['name'] as String;
+          _localTime = locationData['time'] as String;
+
+          // Parse tanggal
+          final dateStr = locationData['date'] as String;
+          final dateParts = dateStr.split('-');
+          final year = int.parse(dateParts[0]);
+          final month = int.parse(dateParts[1]);
+          final day = int.parse(dateParts[2]);
+          final date = DateTime(year, month, day);
+
+          // Format tanggal Gregorian
+          _gregorianDate = _formatGregorianDate(date);
+
+          // Convert ke Hijriah
+          _hijriDate = _formatHijriDate(date);
+        });
+      }
+    } catch (e) {
+      logger.warning('Error loading location data: $e');
+      // Fallback ke default
+      setState(() {
+        _locationName = 'Jakarta, Indonesia';
+        _gregorianDate = _formatGregorianDate(DateTime.now());
+        _hijriDate = _formatHijriDate(DateTime.now());
+        _localTime =
+            '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
+      });
+    }
+  }
+
+  String _formatGregorianDate(DateTime date) {
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    return '${date.day} ${months[date.month - 1]} ${date.year}';
+  }
+
+  String _formatHijriDate(DateTime date) {
+    try {
+      // Konversi dari Gregorian ke Hijriah
+      final hijriDate = HijriDateTime.fromGregorian(date);
+
+      // Daftar nama bulan Hijriah
+      const hijriMonths = [
+        'Muharram',
+        'Safar',
+        'Rabiul Awal',
+        'Rabiul Akhir',
+        'Jumadil Awal',
+        'Jumadil Akhir',
+        'Rajab',
+        'Syaban',
+        'Ramadhan',
+        'Syawal',
+        'Zulkaidah',
+        'Zulhijjah',
+      ];
+
+      // Ambil nama bulan dari list (index bulan - 1)
+      final monthName = hijriMonths[hijriDate.month - 1];
+
+      // Format hasil akhir seperti "9 Muharram 1446 H"
+      return '${hijriDate.day} $monthName ${hijriDate.year} H';
+    } catch (e) {
+      return 'Tanggal Hijriah';
+    }
   }
 
   @override
@@ -132,7 +230,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             bottom: false,
             child: Column(
               children: [
-                // Header
+                // Header - UPDATE THIS SECTION
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: _hpad(context),
@@ -145,21 +243,61 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // Tanggal Hijriah
                             Text(
-                              '9 Ramadhan 1444 H',
+                              _hijriDate.isNotEmpty ? _hijriDate : 'Loading...',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: _t(context, 16),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            SizedBox(height: _px(context, 6)),
+                            SizedBox(height: _px(context, 4)),
+                            // Tanggal Gregorian
                             Text(
-                              'Jakarta, Indonesia',
+                              _gregorianDate.isNotEmpty
+                                  ? _gregorianDate
+                                  : 'Loading...',
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: _t(context, 14),
+                                fontSize: _t(context, 13),
                               ),
+                            ),
+                            SizedBox(height: _px(context, 6)),
+                            // Lokasi dan waktu lokal
+                            Row(
+                              children: [
+                                Icon(
+                                  Icons.location_on,
+                                  color: Colors.white70,
+                                  size: _icon(context, 14),
+                                ),
+                                SizedBox(width: _px(context, 4)),
+                                Flexible(
+                                  child: Text(
+                                    _locationName,
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: _t(context, 13),
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                SizedBox(width: _px(context, 8)),
+                                Icon(
+                                  Icons.access_time,
+                                  color: Colors.white70,
+                                  size: _icon(context, 14),
+                                ),
+                                SizedBox(width: _px(context, 4)),
+                                Text(
+                                  _localTime,
+                                  style: TextStyle(
+                                    color: Colors.white70,
+                                    fontSize: _t(context, 13),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
@@ -168,15 +306,18 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                         children: [
                           // Refresh location button
                           GestureDetector(
-                            onTap: () {
-                              ref
+                            onTap: () async {
+                              // Refresh location data
+                              await ref
                                   .read(homeProvider.notifier)
                                   .refreshLocationAndJadwalSholat();
+                              // Reload location display
+                              await _loadLocationData();
                             },
                             child: Container(
                               padding: EdgeInsets.all(_px(context, 8)),
                               decoration: BoxDecoration(
-                                color: Colors.grey.withValues(alpha: 0.3),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               child: status == HomeStatus.refreshing
@@ -205,7 +346,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                             child: Container(
                               padding: EdgeInsets.all(_px(context, 8)),
                               decoration: BoxDecoration(
-                                color: Colors.grey.withValues(alpha: 0.5),
+                                color: Colors.white.withValues(alpha: 0.2),
                                 borderRadius: BorderRadius.circular(20),
                               ),
                               child: Icon(
@@ -1090,7 +1231,7 @@ class AllFeaturesSheet extends StatelessWidget {
       ),
       _FeatureData(
         FlutterIslamicIcons.family,
-        'Monitoring Keluarga',
+        'Monitoring',
         AppTheme.accentGreen,
         '/monitoring',
       ),
@@ -1102,7 +1243,7 @@ class AllFeaturesSheet extends StatelessWidget {
       ),
       _FeatureData(
         Icons.alarm_rounded,
-        'Alarm',
+        'Syahadat',
         AppTheme.accentGreen,
         '/alarm-settings',
       ),
@@ -1197,7 +1338,7 @@ class _ResponsivePrayerRow extends StatelessWidget {
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: children.length,
-          separatorBuilder: (_, __) => const SizedBox(width: 10),
+          separatorBuilder: (_, _) => const SizedBox(width: 10),
           itemBuilder: (_, i) => children[i],
         ),
       );

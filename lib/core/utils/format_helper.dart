@@ -1,4 +1,5 @@
 import 'package:hijri/hijri_calendar.dart';
+import 'package:hijri_date_time/hijri_date_time.dart';
 import 'package:intl/intl.dart';
 
 class FormatHelper {
@@ -49,7 +50,10 @@ class FormatHelper {
   /// Contoh: "14 Rabiul Awal 1447 H"
   static String getHijriDate(DateTime date) {
     try {
-      final hijri = HijriCalendar.fromDate(date);
+      // Konversi dari Gregorian ke Hijriah
+      final hijriDate = HijriDateTime.fromGregorian(date);
+
+      // Daftar nama bulan Hijriah
       const hijriMonths = [
         'Muharram',
         'Safar',
@@ -58,16 +62,20 @@ class FormatHelper {
         'Jumadil Awal',
         'Jumadil Akhir',
         'Rajab',
-        "Sya'ban",
-        'Ramadan',
+        'Syaban',
+        'Ramadhan',
         'Syawal',
-        "Dzulqa'dah",
-        'Dzulhijjah',
+        'Zulkaidah',
+        'Zulhijjah',
       ];
-      return '${hijri.hDay} ${hijriMonths[hijri.hMonth - 1]} ${hijri.hYear} H';
+
+      // Ambil nama bulan dari list (index bulan - 1)
+      final monthName = hijriMonths[hijriDate.month - 1];
+
+      // Format hasil akhir seperti "9 Muharram 1446 H"
+      return '${hijriDate.day} $monthName ${hijriDate.year} H';
     } catch (e) {
-      print('Error saat konversi Hijriah: $e');
-      return 'Tanggal Hijriah tidak valid';
+      return 'Tanggal Hijriah';
     }
   }
 }
