@@ -19,7 +19,7 @@ class ArtikelDetailPage extends ConsumerStatefulWidget {
 }
 
 class _ArtikelDetailPageState extends ConsumerState<ArtikelDetailPage> {
-  bool _isBookmarked = false;
+  // bool _isBookmarked = false;
   int _currentImageIndex = 0;
   final PageController _imagePageController = PageController();
 
@@ -75,7 +75,7 @@ class _ArtikelDetailPageState extends ConsumerState<ArtikelDetailPage> {
           message: 'Terjadi kesalahan saat membuka video.',
         );
       }
-    } on PlatformException catch (e) {
+    } on PlatformException {
       showMessageToast(
         context,
         message: 'Terjadi kesalahan saat membuka video.',
@@ -1024,72 +1024,72 @@ class _ArtikelDetailPageState extends ConsumerState<ArtikelDetailPage> {
     );
   }
 
-  Widget _buildRelatedSection(Color contentColor) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.primaryBlue.withValues(alpha: 0.15),
-                    AppTheme.accentGreen.withValues(alpha: 0.15),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                Icons.auto_stories_rounded,
-                color: AppTheme.primaryBlue,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              'Artikel Terkait',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AppTheme.onSurface,
-                letterSpacing: -0.3,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Center(
-          child: Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: contentColor.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Column(
-              children: [
-                Icon(
-                  Icons.article_outlined,
-                  size: 48,
-                  color: contentColor.withValues(alpha: 0.5),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Artikel terkait akan ditampilkan di sini',
-                  style: TextStyle(
-                    color: AppTheme.onSurfaceVariant,
-                    fontSize: 14,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
+  // Widget _buildRelatedSection(Color contentColor) {
+  //   return Column(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       Row(
+  //         children: [
+  //           Container(
+  //             padding: const EdgeInsets.all(10),
+  //             decoration: BoxDecoration(
+  //               gradient: LinearGradient(
+  //                 colors: [
+  //                   AppTheme.primaryBlue.withValues(alpha: 0.15),
+  //                   AppTheme.accentGreen.withValues(alpha: 0.15),
+  //                 ],
+  //               ),
+  //               borderRadius: BorderRadius.circular(10),
+  //             ),
+  //             child: Icon(
+  //               Icons.auto_stories_rounded,
+  //               color: AppTheme.primaryBlue,
+  //               size: 24,
+  //             ),
+  //           ),
+  //           const SizedBox(width: 12),
+  //           const Text(
+  //             'Artikel Terkait',
+  //             style: TextStyle(
+  //               fontSize: 20,
+  //               fontWeight: FontWeight.bold,
+  //               color: AppTheme.onSurface,
+  //               letterSpacing: -0.3,
+  //             ),
+  //           ),
+  //         ],
+  //       ),
+  //       const SizedBox(height: 16),
+  //       Center(
+  //         child: Container(
+  //           padding: const EdgeInsets.all(20),
+  //           decoration: BoxDecoration(
+  //             color: contentColor.withValues(alpha: 0.05),
+  //             borderRadius: BorderRadius.circular(12),
+  //           ),
+  //           child: Column(
+  //             children: [
+  //               Icon(
+  //                 Icons.article_outlined,
+  //                 size: 48,
+  //                 color: contentColor.withValues(alpha: 0.5),
+  //               ),
+  //               const SizedBox(height: 8),
+  //               Text(
+  //                 'Artikel terkait akan ditampilkan di sini',
+  //                 style: TextStyle(
+  //                   color: AppTheme.onSurfaceVariant,
+  //                   fontSize: 14,
+  //                 ),
+  //                 textAlign: TextAlign.center,
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //       ),
+  //     ],
+  //   );
+  // }
 
   @override
   void dispose() {

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:test_flutter/core/utils/logger.dart';
-import 'package:test_flutter/data/services/location_service.dart';
+import 'package:test_flutter/data/services/location/location_service.dart';
 import 'package:test_flutter/features/home/home_state.dart';
 import 'package:test_flutter/features/home/services/home_cache_service.dart';
 import 'package:test_flutter/features/home/services/home_service.dart';
@@ -89,28 +89,20 @@ class HomeNotifier extends StateNotifier<HomeState> {
   Future<void> _loadLocationAndJadwalSholatInternal() async {
     try {
       final position = await LocationService.getCurrentLocation();
-      if (position == null) {
-        state = state.copyWith(
-          status: HomeStatus.error,
-          locationError:
-              'Failed to get location. Please enable location services.',
-        );
-        return;
-      }
 
       // Store location
       state = state.copyWith(
         lastLocation: {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
+          'latitude': position['latitude'],
+          'longitude': position['longitude'],
         },
         clearLocationError: true,
       );
 
       // Load jadwal sholat
       await _loadJadwalSholatInternal(
-        latitude: position.latitude,
-        longitude: position.longitude,
+        latitude: position['latitude'],
+        longitude: position['longitude'],
       );
     } catch (e) {
       logger.warning('Error loading location: $e');
@@ -257,28 +249,20 @@ class HomeNotifier extends StateNotifier<HomeState> {
       state = state.copyWith(status: HomeStatus.refreshing);
 
       final position = await LocationService.getCurrentLocation();
-      if (position == null) {
-        state = state.copyWith(
-          status: HomeStatus.error,
-          locationError:
-              'Failed to get location. Please enable location services.',
-        );
-        return;
-      }
 
       // Update location
       state = state.copyWith(
         lastLocation: {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
+          'latitude': position['latitude'],
+          'longitude': position['longitude'],
         },
         clearLocationError: true,
       );
 
       // Refresh jadwal sholat with new location
       await _loadJadwalSholatInternal(
-        latitude: position.latitude,
-        longitude: position.longitude,
+        latitude: position['latitude'],
+        longitude: position['longitude'],
       );
 
       state = state.copyWith(status: HomeStatus.loaded);

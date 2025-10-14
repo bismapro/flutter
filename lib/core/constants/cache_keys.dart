@@ -18,7 +18,10 @@ class CacheKeys {
   static const String artikelList = 'artikel';
   static String artikelDetail(int artikelId) => 'detail_artikel_$artikelId';
 
+  // Sholat
+  static const String jadwalSholat = 'jadwal_sholat';
+
   // Home
-  static const String homeJadwalSholat = 'home_jadwal_sholat';
   static const String homeLatestArticle = 'home_latest_article';
+  static const String userLocation = 'user_location';
 }

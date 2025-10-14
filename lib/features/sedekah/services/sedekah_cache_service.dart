@@ -1,6 +1,6 @@
 import 'package:test_flutter/core/constants/cache_keys.dart';
 import 'package:test_flutter/data/models/sedekah/sedekah.dart';
-import 'package:test_flutter/data/services/cache_service.dart';
+import 'package:test_flutter/data/services/cache/cache_service.dart';
 
 class SedekahCacheService {
   static const Duration _cacheDuration = Duration(hours: 24);

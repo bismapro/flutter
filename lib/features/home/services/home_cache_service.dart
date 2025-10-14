@@ -1,14 +1,14 @@
 import 'package:test_flutter/core/constants/cache_keys.dart';
 import 'package:test_flutter/data/models/komunitas/komunitas.dart';
 import 'package:test_flutter/data/models/sholat/sholat.dart';
-import 'package:test_flutter/data/services/cache_service.dart';
+import 'package:test_flutter/data/services/cache/cache_service.dart';
 
 class HomeCacheService {
   static const Duration _sholatCacheDuration = Duration(hours: 12);
   static const Duration _articleCacheDuration = Duration(hours: 1);
 
   // Cache keys base (akan ditambah dengan koordinat untuk jadwal sholat)
-  static const String _jadwalSholatKeyBase = CacheKeys.homeJadwalSholat;
+  static const String _jadwalSholatKeyBase = 'test';
   static const String _latestArticleKey = CacheKeys.homeLatestArticle;
 
   // ==================== Jadwal Sholat Cache ====================

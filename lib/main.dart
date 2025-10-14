@@ -6,7 +6,8 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
 import 'package:test_flutter/core/utils/logger.dart';
-import 'package:test_flutter/data/services/cache_service.dart';
+import 'package:test_flutter/data/services/cache/cache_service.dart';
+import 'package:test_flutter/data/services/location/location_service.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'app/app.dart';
 import 'data/services/alarm_service.dart';
@@ -58,8 +59,12 @@ Future<void> main() async {
     logger.fine('Error initializing audio service: $e');
   }
 
-  await _requestLocationPermission();
-
+  // GET LOCATION
+  final location = await LocationService.getCurrentLocation();
+  logger.fine(
+    '📍 Lokasi: ${location['name']} '
+    '(${location['lat']}, ${location['long']})',
+  );
   // Jalankan app dengan EasyLocalization membungkus ProviderScope + MyApp
   runApp(
     EasyLocalization(
@@ -73,11 +78,4 @@ Future<void> main() async {
       child: ProviderScope(child: const MyApp()),
     ),
   );
-}
-
-Future<void> _requestLocationPermission() async {
-  var status = await Permission.location.status;
-  if (!status.isGranted) {
-    await Permission.location.request();
-  }
 }

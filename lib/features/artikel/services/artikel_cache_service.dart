@@ -2,7 +2,7 @@ import 'package:test_flutter/core/constants/cache_keys.dart';
 import 'package:test_flutter/data/models/artikel/artikel.dart';
 import 'package:test_flutter/data/models/artikel/kategori_artikel.dart';
 import 'package:test_flutter/data/models/cache/cache.dart';
-import 'package:test_flutter/data/services/cache_service.dart';
+import 'package:test_flutter/data/services/cache/cache_service.dart';
 
 class ArtikelCacheService {
   static const Duration _cacheDuration = Duration(hours: 24);

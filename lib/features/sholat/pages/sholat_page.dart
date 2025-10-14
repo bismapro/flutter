@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:hijri/hijri_calendar.dart';
 import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
 
 class SholatPage extends StatefulWidget {
   const SholatPage({super.key});
@@ -11,14 +14,16 @@ class SholatPage extends StatefulWidget {
 
 class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
   late TabController _tabController;
+  late AnimationController _headerAnimationController;
+  late Animation<Color?> _headerColorAnimation;
   DateTime selectedDate = DateTime.now();
 
-  // ---------- Responsive utils (berbasis ResponsiveHelper) ----------
+  // ---------- Responsive utils ----------
   double _scale(BuildContext c) {
     if (ResponsiveHelper.isSmallScreen(c)) return .9;
     if (ResponsiveHelper.isMediumScreen(c)) return 1.0;
     if (ResponsiveHelper.isLargeScreen(c)) return 1.1;
-    return 1.2; // extra large
+    return 1.2;
   }
 
   double _px(BuildContext c, double base) => base * _scale(c);
@@ -32,7 +37,7 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
   double _maxWidth(BuildContext c) {
     if (ResponsiveHelper.isExtraLargeScreen(c)) return 980;
     if (ResponsiveHelper.isLargeScreen(c)) return 860;
-    return double.infinity; // phone
+    return double.infinity;
   }
 
   // ---------- Data ----------
@@ -42,35 +47,45 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
       'completed': false,
       'alarmActive': false,
       'icon': Icons.wb_sunny_outlined,
-      'color': Colors.orange,
+      'tepatWaktu': false,
+      'berjamaah': false,
+      'tempat': '',
     },
     'Dzuhur': {
       'time': '11:37',
       'completed': false,
       'alarmActive': true,
       'icon': Icons.wb_sunny,
-      'color': Colors.amber,
+      'tepatWaktu': false,
+      'berjamaah': false,
+      'tempat': '',
     },
     'Ashar': {
       'time': '14:44',
       'completed': false,
       'alarmActive': false,
       'icon': Icons.wb_cloudy,
-      'color': Colors.blue,
+      'tepatWaktu': false,
+      'berjamaah': false,
+      'tempat': '',
     },
     'Maghrib': {
       'time': '17:41',
       'completed': false,
       'alarmActive': false,
       'icon': Icons.wb_twilight,
-      'color': Colors.deepOrange,
+      'tepatWaktu': false,
+      'berjamaah': false,
+      'tempat': '',
     },
     'Isya': {
       'time': '18:50',
       'completed': false,
       'alarmActive': false,
       'icon': Icons.nights_stay,
-      'color': Colors.indigo,
+      'tepatWaktu': false,
+      'berjamaah': false,
+      'tempat': '',
     },
   };
 
@@ -78,12 +93,12 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     'Tahajud': {
       'time': '03:00 - 05:00',
       'completed': false,
-      'icon': Icons.bedtime,
+      'icon': Icons.bedtime_outlined,
     },
     'Dhuha': {
       'time': '07:00 - 11:00',
       'completed': false,
-      'icon': Icons.wb_sunny,
+      'icon': Icons.wb_sunny_outlined,
     },
     'Qabliyah Subuh': {
       'time': '05:00 - 05:30',
@@ -93,37 +108,37 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     'Qabliyah Dzuhur': {
       'time': '12:00 - 12:15',
       'completed': false,
-      'icon': Icons.wb_sunny,
+      'icon': Icons.wb_sunny_outlined,
     },
     'Ba\'diyah Dzuhur': {
       'time': '12:45 - 15:30',
       'completed': false,
-      'icon': Icons.wb_sunny,
+      'icon': Icons.wb_sunny_outlined,
     },
     'Qabliyah Ashar': {
       'time': '15:00 - 15:30',
       'completed': false,
-      'icon': Icons.wb_cloudy,
+      'icon': Icons.wb_cloudy_outlined,
     },
     'Ba\'diyah Maghrib': {
       'time': '18:45 - 19:30',
       'completed': false,
-      'icon': Icons.wb_twilight,
+      'icon': Icons.wb_twilight_outlined,
     },
     'Qabliyah Isya': {
       'time': '19:30 - 19:45',
       'completed': false,
-      'icon': Icons.nights_stay,
+      'icon': Icons.nights_stay_outlined,
     },
     'Ba\'diyah Isya': {
       'time': '20:15 - 23:00',
       'completed': false,
-      'icon': Icons.nights_stay,
+      'icon': Icons.nights_stay_outlined,
     },
     'Witir': {
       'time': '20:00 - 05:00',
       'completed': false,
-      'icon': Icons.nights_stay,
+      'icon': Icons.nights_stay_outlined,
     },
   };
 
@@ -131,16 +146,61 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+
+    // Animation controller untuk transisi warna header
+    _headerAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    // Color tween animation
+    _updateHeaderColorAnimation();
+
+    _tabController.addListener(() {
+      // Update animasi saat tab berubah
+      if (_tabController.indexIsChanging) {
+        _updateHeaderColorAnimation();
+        if (_tabController.index == 0) {
+          _headerAnimationController.reverse();
+        } else {
+          _headerAnimationController.forward();
+        }
+      }
+      setState(() {}); // Rebuild untuk update progress
+    });
+  }
+
+  void _updateHeaderColorAnimation() {
+    _headerColorAnimation =
+        ColorTween(
+          begin: AppTheme.primaryBlue,
+          end: AppTheme.accentGreen,
+        ).animate(
+          CurvedAnimation(
+            parent: _headerAnimationController,
+            curve: Curves.easeInOut,
+          ),
+        );
   }
 
   @override
   void dispose() {
     _tabController.dispose();
+    _headerAnimationController.dispose();
     super.dispose();
   }
 
   int get completedWajibCount =>
       _sholatWajibData.values.where((d) => d['completed'] == true).length;
+
+  int get completedSunnahCount =>
+      _sholatSunnahData.values.where((d) => d['completed'] == true).length;
+
+  int get totalWajib => _sholatWajibData.length;
+
+  int get totalSunnah => _sholatSunnahData.length;
+
+  bool get isWajibTab => _tabController.index == 0;
 
   String get formattedDate {
     const months = [
@@ -173,7 +233,34 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     return days[selectedDate.weekday - 1];
   }
 
-  String get hijriDate => '8 Rabiul Akhir 1447'; // placeholder
+  String get hijriDate {
+    try {
+      // Gunakan package hijri untuk konversi akurat
+      final hijri = HijriCalendar.fromDate(selectedDate);
+
+      logger.fine('Hijri Date: ${hijri.toString()}');
+
+      const hijriMonths = [
+        'Muharram',
+        'Safar',
+        'Rabiul Awal',
+        'Rabiul Akhir',
+        'Jumadil Awal',
+        'Jumadil Akhir',
+        'Rajab',
+        "Sya'ban",
+        'Ramadan',
+        'Syawal',
+        "Dzulqa'dah",
+        'Dzulhijjah',
+      ];
+
+      return '${hijri.hDay} ${hijriMonths[hijri.hMonth - 1]} ${hijri.hYear} H';
+    } catch (e) {
+      return 'Tanggal Hijriah';
+    }
+  }
+
   bool get isToday {
     final now = DateTime.now();
     return selectedDate.year == now.year &&
@@ -181,336 +268,261 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
         selectedDate.day == now.day;
   }
 
-  // ---------- UI ----------
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppTheme.primaryBlue,
-              AppTheme.primaryBlue.withValues(alpha: 0.9),
-              AppTheme.accentGreen.withValues(alpha: 0.8),
-            ],
-            stops: const [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(maxWidth: _maxWidth(context)),
-              child: Column(
-                children: [
-                  _buildHeader(context),
-                  _buildLocationAndStatus(context),
-                  _buildCurrentPrayerTime(context),
-                  Expanded(child: _buildPrayerTimesList(context)),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHeader(BuildContext context) {
-    return Padding(
-      padding: _hpad(
-        context,
-      ).add(EdgeInsets.symmetric(vertical: _px(context, 12))),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          _circleBtn(
-            context,
-            icon: Icons.chevron_left_rounded,
-            onTap: () => setState(
-              () =>
-                  selectedDate = selectedDate.subtract(const Duration(days: 1)),
-            ),
-          ),
-          Expanded(
+      backgroundColor: AppTheme.backgroundWhite,
+      body: SafeArea(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: _maxWidth(context)),
             child: Column(
               children: [
-                Text(
-                  isToday ? 'Hari ini' : dayName,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: _ts(context, 18),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                Text(
-                  formattedDate,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.9),
-                    fontSize: _ts(context, 14),
-                  ),
-                ),
-                Text(
-                  hijriDate,
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.7),
-                    fontSize: _ts(context, 13),
-                  ),
-                ),
+                _buildCompactHeader(context),
+                Expanded(child: _buildPrayerTimesList(context)),
               ],
             ),
           ),
-          _circleBtn(
-            context,
-            icon: Icons.chevron_right_rounded,
-            onTap: () => setState(
-              () => selectedDate = selectedDate.add(const Duration(days: 1)),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  Widget _circleBtn(
+  Widget _buildCompactHeader(BuildContext context) {
+    final small = ResponsiveHelper.isSmallScreen(context);
+    final currentCompleted = isWajibTab
+        ? completedWajibCount
+        : completedSunnahCount;
+    final currentTotal = isWajibTab ? totalWajib : totalSunnah;
+
+    return AnimatedBuilder(
+      animation: _headerAnimationController,
+      builder: (context, child) {
+        final progressColor =
+            _headerColorAnimation.value ?? AppTheme.primaryBlue;
+
+        return Container(
+          margin: _hpad(context).add(
+            EdgeInsets.only(top: _px(context, 12), bottom: _px(context, 16)),
+          ),
+          padding: EdgeInsets.all(_px(context, small ? 16 : 20)),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [progressColor, progressColor.withValues(alpha: 0.85)],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: progressColor.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Date navigation
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _compactBtn(
+                    context,
+                    icon: Icons.chevron_left_rounded,
+                    onTap: () => setState(
+                      () => selectedDate = selectedDate.subtract(
+                        const Duration(days: 1),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: Column(
+                      children: [
+                        Text(
+                          isToday ? 'Hari ini' : dayName,
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: _ts(context, small ? 14 : 16),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        SizedBox(height: _px(context, 2)),
+                        Text(
+                          formattedDate,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: _ts(context, small ? 12 : 13),
+                          ),
+                        ),
+                        Text(
+                          hijriDate,
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            fontSize: _ts(context, small ? 11 : 12),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  _compactBtn(
+                    context,
+                    icon: Icons.chevron_right_rounded,
+                    onTap: () => setState(
+                      () => selectedDate = selectedDate.add(
+                        const Duration(days: 1),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              SizedBox(height: _px(context, 16)),
+              Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
+              SizedBox(height: _px(context, 16)),
+
+              // Location & Current Prayer Time
+              Row(
+                children: [
+                  // Location
+                  Expanded(
+                    flex: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.location_on_rounded,
+                              color: Colors.white.withValues(alpha: 0.7),
+                              size: _px(context, 14),
+                            ),
+                            SizedBox(width: _px(context, 4)),
+                            Text(
+                              'Purwokerto',
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.85),
+                                fontSize: _ts(context, small ? 11 : 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: _px(context, 8)),
+                        Text(
+                          'Dzuhur',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: _ts(context, small ? 16 : 18),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        Text(
+                          '11:37',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: _ts(context, small ? 22 : 26),
+                            fontWeight: FontWeight.bold,
+                            height: 1.1,
+                          ),
+                        ),
+                        SizedBox(height: _px(context, 4)),
+                        Text(
+                          'Ashar dalam 2j 25m',
+                          style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.75),
+                            fontSize: _ts(context, small ? 10 : 11),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Progress Circle - Animated
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: _px(context, small ? 90 : 100),
+                    height: _px(context, small ? 90 : 100),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 3,
+                      ),
+                    ),
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            transitionBuilder: (child, animation) {
+                              return ScaleTransition(
+                                scale: animation,
+                                child: child,
+                              );
+                            },
+                            child: Text(
+                              '$currentCompleted',
+                              key: ValueKey<int>(currentCompleted),
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: _ts(context, small ? 32 : 36),
+                                fontWeight: FontWeight.bold,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: _px(context, 2)),
+                          Text(
+                            '/ $currentTotal',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: _ts(context, small ? 14 : 16),
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          SizedBox(height: _px(context, 4)),
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: Text(
+                              isWajibTab ? 'Wajib' : 'Sunnah',
+                              key: ValueKey<bool>(isWajibTab),
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.8),
+                                fontSize: _ts(context, small ? 10 : 11),
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _compactBtn(
     BuildContext c, {
     required IconData icon,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.2),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: IconButton(
-        onPressed: onTap,
-        icon: Icon(icon, color: Colors.white, size: _px(c, 28)),
-      ),
-    );
-  }
-
-  Widget _buildLocationAndStatus(BuildContext context) {
-    final small = ResponsiveHelper.isSmallScreen(context);
-
-    return Padding(
-      padding: _hpad(context),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.symmetric(
-                horizontal: _px(context, small ? 12 : 16),
-                vertical: _px(context, small ? 6 : 8),
-              ),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.location_on_rounded,
-                    color: Colors.white,
-                    size: _px(context, small ? 16 : 18),
-                  ),
-                  SizedBox(width: _px(context, small ? 6 : 8)),
-                  Flexible(
-                    child: Text(
-                      'Purwokerto',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: _ts(context, small ? 12 : 14),
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          SizedBox(width: _px(context, small ? 8 : 12)),
-          Container(
-            padding: EdgeInsets.symmetric(
-              horizontal: _px(context, small ? 12 : 16),
-              vertical: _px(context, small ? 6 : 8),
-            ),
-            decoration: BoxDecoration(
-              color: AppTheme.accentGreen,
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.accentGreen.withValues(alpha: 0.4),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.check_circle_rounded,
-                  color: Colors.white,
-                  size: _px(context, small ? 14 : 16),
-                ),
-                SizedBox(width: _px(context, small ? 4 : 6)),
-                Text(
-                  'KEMENAG',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: _ts(context, small ? 12 : 14),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCurrentPrayerTime(BuildContext context) {
-    final small = ResponsiveHelper.isSmallScreen(context);
-
-    return Padding(
-      padding: _hpad(
-        context,
-      ).add(EdgeInsets.symmetric(vertical: _px(context, 12))),
-      child: Row(
-        children: [
-          // card kiri
-          Expanded(
-            child: Container(
-              padding: EdgeInsets.all(_px(context, small ? 16 : 20)),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Waktu Sholat Sekarang',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.8),
-                      fontSize: _ts(context, small ? 12 : 14),
-                    ),
-                  ),
-                  SizedBox(height: _px(context, small ? 6 : 8)),
-                  Row(
-                    children: [
-                      Text(
-                        'Dzuhur',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: _ts(context, small ? 18 : 20),
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: EdgeInsets.all(_px(context, 6)),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              Colors.amber.shade400,
-                              Colors.amber.shade600,
-                            ],
-                          ),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Icon(
-                          Icons.wb_sunny,
-                          color: Colors.white,
-                          size: _px(context, small ? 16 : 20),
-                        ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: _px(context, small ? 2 : 4)),
-                  Text(
-                    '11:37',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: _ts(context, small ? 28 : 32),
-                      fontWeight: FontWeight.bold,
-                      height: 1.2,
-                    ),
-                  ),
-                  SizedBox(height: _px(context, small ? 6 : 8)),
-                  Container(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: _px(context, 10),
-                      vertical: _px(context, 4),
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.2),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(
-                      'Ashar dalam 2j 25m',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontSize: _ts(context, small ? 11 : 13),
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          SizedBox(width: _px(context, small ? 12 : 16)),
-
-          // card kanan
-          Container(
-            padding: EdgeInsets.all(_px(context, small ? 16 : 20)),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: Colors.white.withValues(alpha: 0.3)),
-            ),
-            child: Column(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(_px(context, 8)),
-                  decoration: BoxDecoration(
-                    color: AppTheme.accentGreen.withValues(alpha: 0.3),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    Icons.check_circle_rounded,
-                    color: AppTheme.accentGreen,
-                    size: _px(context, small ? 28 : 32),
-                  ),
-                ),
-                SizedBox(height: _px(context, small ? 10 : 12)),
-                Text(
-                  '$completedWajibCount/5',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: _ts(context, small ? 20 : 24),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  'selesai',
-                  style: TextStyle(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    fontSize: _ts(context, small ? 11 : 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+    return Material(
+      color: Colors.white.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Padding(
+          padding: EdgeInsets.all(_px(c, 8)),
+          child: Icon(icon, color: Colors.white, size: _px(c, 20)),
+        ),
       ),
     );
   }
@@ -518,293 +530,197 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
   Widget _buildPrayerTimesList(BuildContext context) {
     final small = ResponsiveHelper.isSmallScreen(context);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: AppTheme.backgroundWhite,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(32),
-          topRight: Radius.circular(32),
+    return Column(
+      children: [
+        // Tabs
+        Container(
+          margin: _hpad(context).add(EdgeInsets.only(top: _px(context, 12))),
+          padding: EdgeInsets.all(_px(context, 4)),
+          decoration: BoxDecoration(
+            color: Colors.grey.shade100,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: TabBar(
+            controller: _tabController,
+            indicator: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            indicatorSize: TabBarIndicatorSize.tab,
+            labelColor: AppTheme.primaryBlue,
+            unselectedLabelColor: AppTheme.onSurfaceVariant,
+            labelStyle: TextStyle(
+              fontWeight: FontWeight.w600,
+              fontSize: _ts(context, small ? 13 : 14),
+            ),
+            dividerColor: Colors.transparent,
+            tabs: const [
+              Tab(text: 'Wajib'),
+              Tab(text: 'Sunnah'),
+            ],
+          ),
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, -5),
+
+        SizedBox(height: _px(context, 16)),
+
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [_buildWajibTab(context), _buildSunnahTab(context)],
           ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Container(
-            margin: EdgeInsets.only(
-              top: _px(context, 16),
-              bottom: _px(context, 8),
-            ),
-            width: 50,
-            height: 5,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryBlue.withValues(alpha: 0.3),
-                  AppTheme.accentGreen.withValues(alpha: 0.3),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(3),
-            ),
-          ),
-          // Tab
-          Container(
-            margin: _hpad(
-              context,
-            ).add(EdgeInsets.only(bottom: _px(context, 8))),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryBlue.withValues(alpha: 0.05),
-                  AppTheme.accentGreen.withValues(alpha: 0.05),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(14),
-            ),
-            child: TabBar(
-              controller: _tabController,
-              indicator: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
-                ),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              indicatorSize: TabBarIndicatorSize.tab,
-              labelColor: Colors.white,
-              unselectedLabelColor: AppTheme.onSurface,
-              labelStyle: TextStyle(
-                fontWeight: FontWeight.w600,
-                fontSize: _ts(context, small ? 13 : 14),
-              ),
-              tabs: const [
-                Tab(text: 'Sholat Wajib'),
-                Tab(text: 'Sholat Sunnah'),
-              ],
-            ),
-          ),
-          // imsak / terbit
-          Container(
-            margin: _hpad(context),
-            padding: EdgeInsets.symmetric(vertical: _px(context, 10)),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryBlue.withValues(alpha: 0.08),
-                  AppTheme.accentGreen.withValues(alpha: 0.08),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.wb_sunny_outlined,
-                  size: _px(context, small ? 14 : 16),
-                  color: AppTheme.primaryBlue,
-                ),
-                SizedBox(width: _px(context, small ? 6 : 8)),
-                Text(
-                  'Imsak 04:03',
-                  style: TextStyle(
-                    color: AppTheme.onSurface,
-                    fontSize: _ts(context, small ? 12 : 14),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                SizedBox(width: _px(context, small ? 12 : 16)),
-                Container(
-                  width: 1,
-                  height: _px(context, 16),
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.3),
-                ),
-                SizedBox(width: _px(context, small ? 12 : 16)),
-                Icon(
-                  Icons.wb_sunny,
-                  size: _px(context, small ? 14 : 16),
-                  color: AppTheme.accentGreen,
-                ),
-                SizedBox(width: _px(context, small ? 6 : 8)),
-                Text(
-                  'Terbit 05:25',
-                  style: TextStyle(
-                    color: AppTheme.onSurface,
-                    fontSize: _ts(context, small ? 12 : 14),
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: _px(context, 16)),
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [_buildWajibTab(context), _buildSunnahTab(context)],
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
+  // ...existing code... (buildWajibTab, buildSunnahTab, dll - sama seperti sebelumnya)
   Widget _buildWajibTab(BuildContext context) {
     final small = ResponsiveHelper.isSmallScreen(context);
 
     return ListView.builder(
-      padding: _hpad(context),
+      padding: _hpad(context).add(EdgeInsets.only(bottom: _px(context, 16))),
       physics: const BouncingScrollPhysics(),
       itemCount: _sholatWajibData.length,
       itemBuilder: (_, i) {
         final name = _sholatWajibData.keys.elementAt(i);
         final d = _sholatWajibData[name]!;
         final done = d['completed'] as bool;
-        final iconColor = (d['color'] as Color);
 
         return Container(
-          margin: EdgeInsets.only(bottom: _px(context, 12)),
+          margin: EdgeInsets.only(bottom: _px(context, 8)),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            color: done
+                ? AppTheme.primaryBlue.withValues(alpha: 0.04)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: done
-                  ? AppTheme.accentGreen.withValues(alpha: 0.3)
+                  ? AppTheme.primaryBlue.withValues(alpha: 0.15)
                   : Colors.grey.shade200,
-              width: done ? 2 : 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: done
-                    ? AppTheme.accentGreen.withValues(alpha: 0.1)
-                    : Colors.grey.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
           ),
-          child: Padding(
-            padding: EdgeInsets.all(_px(context, small ? 14 : 16)),
-            child: Row(
-              children: [
-                // checklist
-                GestureDetector(
-                  onTap: () {
-                    setState(() => d['completed'] = !done);
-                    if (!done) _showCompletionFeedback(name);
-                  },
-                  child: Container(
-                    width: _px(context, 24),
-                    height: _px(context, 24),
-                    decoration: BoxDecoration(
-                      color: d['completed']
-                          ? AppTheme.accentGreen
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: d['completed']
-                            ? AppTheme.accentGreen
-                            : Colors.grey.shade400,
-                        width: 2,
-                      ),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: d['completed']
-                        ? Icon(
-                            Icons.check,
-                            color: Colors.white,
-                            size: _px(context, 16),
-                          )
-                        : null,
-                  ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                if (!done) {
+                  _showSholatDetailModal(context, name, d);
+                } else {
+                  setState(() {
+                    d['completed'] = false;
+                    d['tepatWaktu'] = false;
+                    d['berjamaah'] = false;
+                    d['tempat'] = '';
+                  });
+                }
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: _px(context, small ? 14 : 16),
+                  vertical: _px(context, small ? 12 : 14),
                 ),
-                SizedBox(width: _px(context, small ? 12 : 16)),
-                // icon
-                Container(
-                  width: _px(context, small ? 48 : 52),
-                  height: _px(context, small ? 48 : 52),
-                  decoration: BoxDecoration(
-                    gradient: done
-                        ? LinearGradient(
-                            colors: [
-                              AppTheme.accentGreen,
-                              AppTheme.accentGreen.withValues(alpha: 0.8),
-                            ],
-                          )
-                        : LinearGradient(
-                            colors: [
-                              iconColor.withValues(alpha: 0.2),
-                              iconColor.withValues(alpha: 0.1),
-                            ],
-                          ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    done ? Icons.check_circle_rounded : d['icon'],
-                    color: done ? Colors.white : iconColor,
-                    size: _px(context, small ? 24 : 28),
-                  ),
-                ),
-                SizedBox(width: _px(context, small ? 12 : 16)),
-                // text
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: _ts(context, small ? 15 : 16),
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.onSurface,
+                child: Row(
+                  children: [
+                    Container(
+                      width: _px(context, 22),
+                      height: _px(context, 22),
+                      decoration: BoxDecoration(
+                        color: done ? AppTheme.primaryBlue : Colors.transparent,
+                        border: Border.all(
+                          color: done
+                              ? AppTheme.primaryBlue
+                              : Colors.grey.shade400,
+                          width: 2,
                         ),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      SizedBox(height: _px(context, 4)),
-                      Text(
-                        '${d['time']}',
-                        style: TextStyle(
-                          fontSize: _ts(context, small ? 13 : 14),
-                          color: AppTheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // alarm
-                GestureDetector(
-                  onTap: () => setState(
-                    () => d['alarmActive'] = !(d['alarmActive'] as bool),
-                  ),
-                  child: Container(
-                    padding: EdgeInsets.all(_px(context, small ? 10 : 12)),
-                    decoration: BoxDecoration(
-                      gradient: (d['alarmActive'] as bool)
-                          ? LinearGradient(
-                              colors: [
-                                AppTheme.primaryBlue,
-                                AppTheme.primaryBlue.withValues(alpha: 0.8),
-                              ],
+                      child: done
+                          ? Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: _px(context, 14),
                             )
                           : null,
-                      color: (d['alarmActive'] as bool)
-                          ? null
-                          : Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Icon(
-                      Icons.alarm_rounded,
-                      color: (d['alarmActive'] as bool)
-                          ? Colors.white
-                          : Colors.grey.shade600,
-                      size: _px(context, small ? 20 : 22),
+                    SizedBox(width: _px(context, 12)),
+                    Container(
+                      width: _px(context, 40),
+                      height: _px(context, 40),
+                      decoration: BoxDecoration(
+                        color: done
+                            ? AppTheme.primaryBlue.withValues(alpha: 0.15)
+                            : AppTheme.primaryBlue.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        d['icon'],
+                        color: AppTheme.primaryBlue,
+                        size: _px(context, 20),
+                      ),
                     ),
-                  ),
+                    SizedBox(width: _px(context, 12)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: _ts(context, small ? 14 : 15),
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.onSurface,
+                              decoration: done
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
+                          ),
+                          SizedBox(height: _px(context, 2)),
+                          Text(
+                            d['time'],
+                            style: TextStyle(
+                              fontSize: _ts(context, small ? 12 : 13),
+                              color: AppTheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    Material(
+                      color: (d['alarmActive'] as bool)
+                          ? AppTheme.primaryBlue.withValues(alpha: 0.1)
+                          : Colors.grey.shade100,
+                      borderRadius: BorderRadius.circular(10),
+                      child: InkWell(
+                        onTap: () => setState(
+                          () => d['alarmActive'] = !(d['alarmActive'] as bool),
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        child: Padding(
+                          padding: EdgeInsets.all(_px(context, 8)),
+                          child: Icon(
+                            (d['alarmActive'] as bool)
+                                ? Icons.alarm_on_rounded
+                                : Icons.alarm_rounded,
+                            color: (d['alarmActive'] as bool)
+                                ? AppTheme.primaryBlue
+                                : Colors.grey.shade500,
+                            size: _px(context, 18),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
@@ -816,130 +732,443 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     final small = ResponsiveHelper.isSmallScreen(context);
 
     return ListView.builder(
-      padding: _hpad(context),
+      padding: _hpad(context).add(EdgeInsets.only(bottom: _px(context, 16))),
       physics: const BouncingScrollPhysics(),
       itemCount: _sholatSunnahData.length,
       itemBuilder: (_, i) {
         final name = _sholatSunnahData.keys.elementAt(i);
         final d = _sholatSunnahData[name]!;
+        final done = d['completed'] as bool;
 
         return Container(
-          margin: EdgeInsets.only(bottom: _px(context, 12)),
+          margin: EdgeInsets.only(bottom: _px(context, 8)),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
+            color: done
+                ? AppTheme.accentGreen.withValues(alpha: 0.04)
+                : Colors.white,
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: (d['completed'] as bool)
-                  ? AppTheme.accentGreen.withValues(alpha: 0.3)
+              color: done
+                  ? AppTheme.accentGreen.withValues(alpha: 0.15)
                   : Colors.grey.shade200,
-              width: (d['completed'] as bool) ? 2 : 1,
             ),
-            boxShadow: [
-              BoxShadow(
-                color: (d['completed'] as bool)
-                    ? AppTheme.accentGreen.withValues(alpha: 0.1)
-                    : Colors.grey.withValues(alpha: 0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 3),
-              ),
-            ],
           ),
-          child: Padding(
-            padding: EdgeInsets.all(_px(context, small ? 14 : 16)),
-            child: Row(
-              children: [
-                // checklist
-                GestureDetector(
-                  onTap: () {
-                    setState(() => d['completed'] = !(d['completed'] as bool));
-                    if (d['completed'] == true) _showCompletionFeedback(name);
-                  },
-                  child: Container(
-                    width: _px(context, 24),
-                    height: _px(context, 24),
-                    decoration: BoxDecoration(
-                      color: (d['completed'] as bool)
-                          ? AppTheme.accentGreen
-                          : Colors.transparent,
-                      border: Border.all(
-                        color: (d['completed'] as bool)
-                            ? AppTheme.accentGreen
-                            : Colors.grey.shade400,
-                        width: 2,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () {
+                setState(() => d['completed'] = !done);
+                if (!done) _showCompletionFeedback(name);
+              },
+              borderRadius: BorderRadius.circular(14),
+              child: Padding(
+                padding: EdgeInsets.symmetric(
+                  horizontal: _px(context, small ? 14 : 16),
+                  vertical: _px(context, small ? 12 : 14),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: _px(context, 22),
+                      height: _px(context, 22),
+                      decoration: BoxDecoration(
+                        color: done ? AppTheme.accentGreen : Colors.transparent,
+                        border: Border.all(
+                          color: done
+                              ? AppTheme.accentGreen
+                              : Colors.grey.shade400,
+                          width: 2,
+                        ),
+                        borderRadius: BorderRadius.circular(6),
                       ),
-                      borderRadius: BorderRadius.circular(6),
+                      child: done
+                          ? Icon(
+                              Icons.check_rounded,
+                              color: Colors.white,
+                              size: _px(context, 14),
+                            )
+                          : null,
                     ),
-                    child: (d['completed'] as bool)
-                        ? Icon(
-                            Icons.check,
-                            color: Colors.white,
-                            size: _px(context, 16),
-                          )
-                        : null,
-                  ),
-                ),
-                SizedBox(width: _px(context, small ? 12 : 16)),
-                // icon
-                Container(
-                  width: _px(context, small ? 48 : 52),
-                  height: _px(context, small ? 48 : 52),
-                  decoration: BoxDecoration(
-                    gradient: (d['completed'] as bool)
-                        ? LinearGradient(
-                            colors: [
-                              AppTheme.accentGreen,
-                              AppTheme.accentGreen.withValues(alpha: 0.8),
-                            ],
-                          )
-                        : LinearGradient(
-                            colors: [
-                              AppTheme.primaryBlue.withValues(alpha: 0.15),
-                              AppTheme.accentGreen.withValues(alpha: 0.15),
-                            ],
+                    SizedBox(width: _px(context, 12)),
+                    Container(
+                      width: _px(context, 40),
+                      height: _px(context, 40),
+                      decoration: BoxDecoration(
+                        color: done
+                            ? AppTheme.accentGreen.withValues(alpha: 0.15)
+                            : AppTheme.accentGreen.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Icon(
+                        d['icon'],
+                        color: AppTheme.accentGreen,
+                        size: _px(context, 20),
+                      ),
+                    ),
+                    SizedBox(width: _px(context, 12)),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            name,
+                            style: TextStyle(
+                              fontSize: _ts(context, small ? 14 : 15),
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.onSurface,
+                              decoration: done
+                                  ? TextDecoration.lineThrough
+                                  : null,
+                            ),
                           ),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Icon(
-                    (d['completed'] as bool)
-                        ? Icons.check_circle_rounded
-                        : d['icon'],
-                    color: (d['completed'] as bool)
-                        ? Colors.white
-                        : AppTheme.primaryBlue,
-                    size: _px(context, small ? 24 : 28),
-                  ),
-                ),
-                SizedBox(width: _px(context, small ? 12 : 16)),
-                // text
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        name,
-                        style: TextStyle(
-                          fontSize: _ts(context, small ? 15 : 16),
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.onSurface,
-                        ),
+                          SizedBox(height: _px(context, 2)),
+                          Text(
+                            d['time'],
+                            style: TextStyle(
+                              fontSize: _ts(context, small ? 11 : 12),
+                              color: AppTheme.onSurfaceVariant,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
-                      SizedBox(height: _px(context, 4)),
-                      Text(
-                        '${d['time']}',
-                        style: TextStyle(
-                          fontSize: _ts(context, small ? 12 : 13),
-                          color: AppTheme.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         );
       },
+    );
+  }
+
+  void _showSholatDetailModal(
+    BuildContext context,
+    String sholatName,
+    Map<String, dynamic> data,
+  ) {
+    bool tepatWaktu = false;
+    bool berjamaah = false;
+    String tempat = '';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            padding: EdgeInsets.only(
+              bottom: MediaQuery.of(context).viewInsets.bottom,
+            ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            ),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          data['icon'],
+                          color: AppTheme.primaryBlue,
+                          size: 24,
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Sholat $sholatName',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.onSurface,
+                              ),
+                            ),
+                            Text(
+                              data['time'],
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: AppTheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    'Tepat Waktu',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.onSurface,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildOptionButton(
+                          context: context,
+                          label: 'Ya',
+                          icon: Icons.check_circle_outline_rounded,
+                          isSelected: tepatWaktu,
+                          onTap: () =>
+                              setModalState(() => tepatWaktu = !tepatWaktu),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _buildOptionButton(
+                          context: context,
+                          label: 'Tidak',
+                          icon: Icons.cancel_outlined,
+                          isSelected: !tepatWaktu && tempat.isNotEmpty,
+                          onTap: () =>
+                              setModalState(() => tepatWaktu = !tepatWaktu),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Berjamaah',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.onSurface,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildOptionButton(
+                          context: context,
+                          label: 'Ya',
+                          icon: Icons.groups_rounded,
+                          isSelected: berjamaah,
+                          onTap: () =>
+                              setModalState(() => berjamaah = !berjamaah),
+                        ),
+                      ),
+                      SizedBox(width: 12),
+                      Expanded(
+                        child: _buildOptionButton(
+                          context: context,
+                          label: 'Tidak',
+                          icon: Icons.person_rounded,
+                          isSelected: !berjamaah && tempat.isNotEmpty,
+                          onTap: () =>
+                              setModalState(() => berjamaah = !berjamaah),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20),
+                  Text(
+                    'Tempat',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.onSurface,
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _buildPlaceChip(
+                        context: context,
+                        label: 'Masjid',
+                        icon: Icons.mosque_rounded,
+                        isSelected: tempat == 'Masjid',
+                        onTap: () => setModalState(() => tempat = 'Masjid'),
+                      ),
+                      _buildPlaceChip(
+                        context: context,
+                        label: 'Rumah',
+                        icon: Icons.home_rounded,
+                        isSelected: tempat == 'Rumah',
+                        onTap: () => setModalState(() => tempat = 'Rumah'),
+                      ),
+                      _buildPlaceChip(
+                        context: context,
+                        label: 'Kantor',
+                        icon: Icons.business_rounded,
+                        isSelected: tempat == 'Kantor',
+                        onTap: () => setModalState(() => tempat = 'Kantor'),
+                      ),
+                      _buildPlaceChip(
+                        context: context,
+                        label: 'Lainnya',
+                        icon: Icons.location_on_rounded,
+                        isSelected: tempat == 'Lainnya',
+                        onTap: () => setModalState(() => tempat = 'Lainnya'),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: tempat.isEmpty
+                          ? null
+                          : () {
+                              setState(() {
+                                data['completed'] = true;
+                                data['tepatWaktu'] = tepatWaktu;
+                                data['berjamaah'] = berjamaah;
+                                data['tempat'] = tempat;
+                              });
+                              Navigator.pop(context);
+                              _showCompletionFeedback(sholatName);
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        padding: EdgeInsets.symmetric(vertical: 16),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 0,
+                        disabledBackgroundColor: Colors.grey.shade300,
+                        disabledForegroundColor: Colors.grey.shade500,
+                      ),
+                      child: Text(
+                        'Simpan',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildOptionButton({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: isSelected
+          ? AppTheme.primaryBlue.withValues(alpha: 0.1)
+          : Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade300,
+              width: 2,
+            ),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                icon,
+                color: isSelected
+                    ? AppTheme.primaryBlue
+                    : AppTheme.onSurfaceVariant,
+                size: 20,
+              ),
+              SizedBox(width: 8),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected
+                      ? AppTheme.primaryBlue
+                      : AppTheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPlaceChip({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Material(
+      color: isSelected ? AppTheme.primaryBlue : Colors.grey.shade100,
+      borderRadius: BorderRadius.circular(10),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                icon,
+                color: isSelected ? Colors.white : AppTheme.onSurfaceVariant,
+                size: 18,
+              ),
+              SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: isSelected ? Colors.white : AppTheme.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -953,40 +1182,6 @@ class _SholatPageState extends State<SholatPage> with TickerProviderStateMixin {
     ];
     final msg = feedbacks[DateTime.now().millisecond % feedbacks.length];
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(_px(context, 6)),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.check_circle_rounded,
-                color: Colors.white,
-                size: _px(context, 20),
-              ),
-            ),
-            SizedBox(width: _px(context, 12)),
-            Expanded(
-              child: Text(
-                msg,
-                style: TextStyle(
-                  fontWeight: FontWeight.w500,
-                  fontSize: _ts(context, 14),
-                ),
-              ),
-            ),
-          ],
-        ),
-        backgroundColor: AppTheme.accentGreen,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+    showMessageToast(context, message: msg, type: ToastType.success);
   }
 }
