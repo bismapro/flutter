@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/app/router.dart';
@@ -21,6 +22,7 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
 
   String _searchQuery = '';
   int? _selectedCategoryId;
+  String? _selectedType; // Add this: 'artikel', 'video', or null for all
   bool _isSearching = false;
 
   // Responsive helpers
@@ -114,7 +116,6 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
     final categories = artikelState.kategori;
     final artikels = artikelState.artikelList;
     final status = artikelState.status;
-    // final message = artikelState.message;
     final isOffline = artikelState.isOffline;
 
     // Listen to state changes for showing messages
@@ -150,6 +151,7 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Header Row
                     Row(
                       children: [
                         Container(
@@ -164,7 +166,9 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
-                            Icons.article_rounded,
+                            _selectedType == 'video'
+                                ? Icons.play_circle_outline_rounded
+                                : Icons.article_rounded,
                             color: AppTheme.accentGreen,
                             size: _px(context, 28),
                           ),
@@ -177,7 +181,9 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                               Row(
                                 children: [
                                   Text(
-                                    'Artikel Islami',
+                                    _selectedType == 'video'
+                                        ? 'Video Islami'
+                                        : 'Artikel Islami',
                                     style: TextStyle(
                                       fontSize: _ts(context, 28),
                                       fontWeight: FontWeight.bold,
@@ -278,7 +284,9 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                         },
                         onSubmitted: _onSearchSubmitted,
                         decoration: InputDecoration(
-                          hintText: 'Cari artikel...',
+                          hintText: _selectedType == 'video'
+                              ? 'Cari video...'
+                              : 'Cari artikel...',
                           hintStyle: TextStyle(
                             color: AppTheme.onSurfaceVariant.withValues(
                               alpha: 0.6,
@@ -328,74 +336,27 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                     ),
                     SizedBox(height: _px(context, 20)),
 
-                    // Enhanced Category Filter
+                    SizedBox(height: _px(context, 16)),
+                    // Category Filter
                     if (categories.isNotEmpty)
                       SizedBox(
                         height: _px(context, 44),
                         child: ListView.builder(
                           scrollDirection: Axis.horizontal,
-                          itemCount: categories.length + 1, // +1 for "Semua"
+                          itemCount: categories.length + 1,
                           physics: const BouncingScrollPhysics(),
                           itemBuilder: (context, index) {
-                            // Add "Semua" as first item
                             if (index == 0) {
                               final isSelected = _selectedCategoryId == null;
                               return Padding(
                                 padding: EdgeInsets.only(
                                   right: _px(context, 10),
                                 ),
-                                child: GestureDetector(
+                                child: _buildCategoryChip(
+                                  context,
+                                  label: 'Semua Kategori',
+                                  isSelected: isSelected,
                                   onTap: () => _onCategorySelected(null),
-                                  child: Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: _px(context, 18),
-                                      vertical: _px(context, 10),
-                                    ),
-                                    decoration: BoxDecoration(
-                                      gradient: isSelected
-                                          ? LinearGradient(
-                                              colors: [
-                                                AppTheme.accentGreen,
-                                                AppTheme.accentGreen.withValues(
-                                                  alpha: 0.8,
-                                                ),
-                                              ],
-                                            )
-                                          : null,
-                                      color: isSelected ? null : Colors.white,
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? AppTheme.accentGreen
-                                            : AppTheme.accentGreen.withValues(
-                                                alpha: 0.2,
-                                              ),
-                                        width: isSelected ? 0 : 1.5,
-                                      ),
-                                      boxShadow: isSelected
-                                          ? [
-                                              BoxShadow(
-                                                color: AppTheme.accentGreen
-                                                    .withValues(alpha: 0.3),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ]
-                                          : null,
-                                    ),
-                                    child: Text(
-                                      'Semua',
-                                      style: TextStyle(
-                                        color: isSelected
-                                            ? Colors.white
-                                            : AppTheme.onSurface,
-                                        fontWeight: isSelected
-                                            ? FontWeight.w600
-                                            : FontWeight.w500,
-                                        fontSize: _ts(context, 14),
-                                      ),
-                                    ),
-                                  ),
                                 ),
                               );
                             }
@@ -410,58 +371,11 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                                     ? 0
                                     : _px(context, 10),
                               ),
-                              child: GestureDetector(
+                              child: _buildCategoryChip(
+                                context,
+                                label: category.nama,
+                                isSelected: isSelected,
                                 onTap: () => _onCategorySelected(category.id),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: _px(context, 18),
-                                    vertical: _px(context, 10),
-                                  ),
-                                  decoration: BoxDecoration(
-                                    gradient: isSelected
-                                        ? LinearGradient(
-                                            colors: [
-                                              AppTheme.accentGreen,
-                                              AppTheme.accentGreen.withValues(
-                                                alpha: 0.8,
-                                              ),
-                                            ],
-                                          )
-                                        : null,
-                                    color: isSelected ? null : Colors.white,
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(
-                                      color: isSelected
-                                          ? AppTheme.accentGreen
-                                          : AppTheme.accentGreen.withValues(
-                                              alpha: 0.2,
-                                            ),
-                                      width: isSelected ? 0 : 1.5,
-                                    ),
-                                    boxShadow: isSelected
-                                        ? [
-                                            BoxShadow(
-                                              color: AppTheme.accentGreen
-                                                  .withValues(alpha: 0.3),
-                                              blurRadius: 8,
-                                              offset: const Offset(0, 2),
-                                            ),
-                                          ]
-                                        : null,
-                                  ),
-                                  child: Text(
-                                    category.nama,
-                                    style: TextStyle(
-                                      color: isSelected
-                                          ? Colors.white
-                                          : AppTheme.onSurface,
-                                      fontWeight: isSelected
-                                          ? FontWeight.w600
-                                          : FontWeight.w500,
-                                      fontSize: _ts(context, 14),
-                                    ),
-                                  ),
-                                ),
                               ),
                             );
                           },
@@ -474,6 +388,58 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
               // Articles List
               Expanded(child: _buildContent(context, status, artikels)),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCategoryChip(
+    BuildContext context, {
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: _px(context, 18),
+          vertical: _px(context, 10),
+        ),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: [
+                    AppTheme.accentGreen,
+                    AppTheme.accentGreen.withValues(alpha: 0.8),
+                  ],
+                )
+              : null,
+          color: isSelected ? null : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isSelected
+                ? AppTheme.accentGreen
+                : AppTheme.accentGreen.withValues(alpha: 0.2),
+            width: isSelected ? 0 : 1.5,
+          ),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppTheme.accentGreen.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: isSelected ? Colors.white : AppTheme.onSurface,
+            fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+            fontSize: _ts(context, 14),
           ),
         ),
       ),
@@ -719,12 +685,21 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
   }
 
   Widget _buildArtikelCard(BuildContext context, Artikel artikel) {
+    final isVideo = artikel.tipe == 'video';
+
+    // Fix: Build proper image URL
+    final storage = dotenv.env['STORAGE_URL'] ?? '';
+    final coverPath = artikel.cover;
+    final coverUrl = coverPath.isNotEmpty && storage.isNotEmpty
+        ? '$storage/$coverPath'
+        : '';
+
     return GestureDetector(
       onTap: () {
         Navigator.pushNamed(
           context,
           AppRoutes.articleDetail,
-          arguments: artikel,
+          arguments: artikel.id,
         );
       },
       child: Container(
@@ -733,11 +708,15 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+            color: (isVideo ? Colors.red : AppTheme.primaryBlue).withValues(
+              alpha: 0.1,
+            ),
           ),
           boxShadow: [
             BoxShadow(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+              color: (isVideo ? Colors.red : AppTheme.primaryBlue).withValues(
+                alpha: 0.08,
+              ),
               blurRadius: 20,
               offset: const Offset(0, 4),
               spreadRadius: -5,
@@ -747,7 +726,7 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Article Image with Overlay
+            // Article/Video Image with Overlay
             Stack(
               children: [
                 ClipRRect(
@@ -755,54 +734,178 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                     topLeft: Radius.circular(20),
                     topRight: Radius.circular(20),
                   ),
-                  child: Image.network(
-                    artikel.cover,
-                    width: double.infinity,
-                    height: _px(context, 200),
-                    fit: BoxFit.cover,
-                    errorBuilder: (context, error, stackTrace) {
-                      return Container(
-                        width: double.infinity,
-                        height: _px(context, 200),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [
-                              AppTheme.primaryBlue.withValues(alpha: 0.2),
-                              AppTheme.primaryBlue.withValues(alpha: 0.1),
-                            ],
+                  child: coverUrl.isNotEmpty
+                      ? Image.network(
+                          coverUrl,
+                          width: double.infinity,
+                          height: _px(context, 200),
+                          fit: BoxFit.cover,
+                          loadingBuilder: (context, child, loadingProgress) {
+                            if (loadingProgress == null) return child;
+                            return Container(
+                              width: double.infinity,
+                              height: _px(context, 200),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    (isVideo
+                                            ? Colors.red
+                                            : AppTheme.primaryBlue)
+                                        .withValues(alpha: 0.1),
+                                    (isVideo
+                                            ? Colors.red
+                                            : AppTheme.primaryBlue)
+                                        .withValues(alpha: 0.05),
+                                  ],
+                                ),
+                              ),
+                              child: Center(
+                                child: CircularProgressIndicator(
+                                  color: isVideo
+                                      ? Colors.red
+                                      : AppTheme.primaryBlue,
+                                  strokeWidth: 2,
+                                ),
+                              ),
+                            );
+                          },
+                          errorBuilder: (context, error, stackTrace) {
+                            // Debug: Print error
+                            debugPrint('Image load error: $error');
+                            debugPrint('Image URL: $coverUrl');
+
+                            return Container(
+                              width: double.infinity,
+                              height: _px(context, 200),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    (isVideo
+                                            ? Colors.red
+                                            : AppTheme.primaryBlue)
+                                        .withValues(alpha: 0.2),
+                                    (isVideo
+                                            ? Colors.red
+                                            : AppTheme.primaryBlue)
+                                        .withValues(alpha: 0.1),
+                                  ],
+                                ),
+                              ),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(
+                                    isVideo
+                                        ? Icons.play_circle_outline_rounded
+                                        : Icons.image_rounded,
+                                    size: _px(context, 64),
+                                    color:
+                                        (isVideo
+                                                ? Colors.red
+                                                : AppTheme.primaryBlue)
+                                            .withValues(alpha: 0.4),
+                                  ),
+                                  SizedBox(height: _px(context, 8)),
+                                  Text(
+                                    'Gambar tidak tersedia',
+                                    style: TextStyle(
+                                      color: AppTheme.onSurfaceVariant,
+                                      fontSize: _ts(context, 12),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                        )
+                      : Container(
+                          width: double.infinity,
+                          height: _px(context, 200),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                (isVideo ? Colors.red : AppTheme.primaryBlue)
+                                    .withValues(alpha: 0.2),
+                                (isVideo ? Colors.red : AppTheme.primaryBlue)
+                                    .withValues(alpha: 0.1),
+                              ],
+                            ),
+                          ),
+                          child: Icon(
+                            isVideo
+                                ? Icons.play_circle_outline_rounded
+                                : Icons.image_rounded,
+                            size: _px(context, 64),
+                            color: (isVideo ? Colors.red : AppTheme.primaryBlue)
+                                .withValues(alpha: 0.4),
                           ),
                         ),
-                        child: Icon(
-                          Icons.image_rounded,
-                          size: _px(context, 64),
-                          color: AppTheme.primaryBlue.withValues(alpha: 0.4),
-                        ),
-                      );
-                    },
-                  ),
                 ),
 
-                // Gradient Overlay
-                Positioned.fill(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(20),
-                        topRight: Radius.circular(20),
+                // Video Play Button Overlay
+                if (isVideo)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withValues(alpha: 0.1),
+                            Colors.black.withValues(alpha: 0.5),
+                          ],
+                        ),
                       ),
-                      gradient: LinearGradient(
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        colors: [
-                          Colors.transparent,
-                          Colors.black.withValues(alpha: 0.3),
-                        ],
+                      child: Center(
+                        child: Container(
+                          padding: EdgeInsets.all(_px(context, 16)),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.red.withValues(alpha: 0.5),
+                                blurRadius: 20,
+                                spreadRadius: 5,
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: _px(context, 40),
+                          ),
+                        ),
                       ),
                     ),
                   ),
-                ),
 
-                // Category Badge
+                // Gradient Overlay (only for non-video)
+                if (!isVideo)
+                  Positioned.fill(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(20),
+                          topRight: Radius.circular(20),
+                        ),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withValues(alpha: 0.3),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+
+                // Type Badge
                 Positioned(
                   top: _px(context, 16),
                   left: _px(context, 16),
@@ -812,11 +915,12 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                       vertical: _px(context, 6),
                     ),
                     decoration: BoxDecoration(
-                      color: AppTheme.primaryBlue,
+                      color: isVideo ? Colors.red : AppTheme.primaryBlue,
                       borderRadius: BorderRadius.circular(10),
                       boxShadow: [
                         BoxShadow(
-                          color: AppTheme.primaryBlue.withValues(alpha: 0.4),
+                          color: (isVideo ? Colors.red : AppTheme.primaryBlue)
+                              .withValues(alpha: 0.4),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -826,13 +930,15 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(
-                          Icons.article_rounded,
+                          isVideo
+                              ? Icons.play_circle_outline_rounded
+                              : Icons.article_rounded,
                           color: Colors.white,
                           size: _px(context, 16),
                         ),
                         SizedBox(width: _px(context, 6)),
                         Text(
-                          artikel.kategori.nama,
+                          isVideo ? 'Video' : artikel.kategori.nama,
                           style: TextStyle(
                             color: Colors.white,
                             fontSize: _ts(context, 12),
@@ -843,6 +949,31 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                     ),
                   ),
                 ),
+
+                // Category Badge for Video
+                if (isVideo)
+                  Positioned(
+                    bottom: _px(context, 16),
+                    left: _px(context, 16),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: _px(context, 10),
+                        vertical: _px(context, 5),
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        artikel.kategori.nama,
+                        style: TextStyle(
+                          color: AppTheme.onSurface,
+                          fontSize: _ts(context, 11),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
 
                 // Bookmark Icon
                 Positioned(
@@ -856,7 +987,7 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                     ),
                     child: Icon(
                       Icons.bookmark_border_rounded,
-                      color: AppTheme.primaryBlue,
+                      color: isVideo ? Colors.red : AppTheme.primaryBlue,
                       size: _px(context, 20),
                     ),
                   ),
@@ -864,7 +995,7 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
               ],
             ),
 
-            // Article Content
+            // Article/Video Content
             Padding(
               padding: EdgeInsets.all(_px(context, 18)),
               child: Column(
@@ -887,7 +1018,7 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
 
                   // Summary/Excerpt
                   Text(
-                    artikel.excerpt,
+                    artikel.excerpt ?? '',
                     style: TextStyle(
                       fontSize: _ts(context, 14),
                       color: AppTheme.onSurface.withValues(alpha: 0.7),
@@ -900,7 +1031,8 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
 
                   // Divider
                   Divider(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                    color: (isVideo ? Colors.red : AppTheme.primaryBlue)
+                        .withValues(alpha: 0.1),
                     height: 1,
                   ),
                   SizedBox(height: _px(context, 12)),
@@ -914,7 +1046,8 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                           vertical: _px(context, 6),
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                          color: (isVideo ? Colors.red : AppTheme.primaryBlue)
+                              .withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(8),
                         ),
                         child: Row(
@@ -922,14 +1055,18 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                             Icon(
                               Icons.access_time_rounded,
                               size: _px(context, 16),
-                              color: AppTheme.primaryBlue,
+                              color: isVideo
+                                  ? Colors.red
+                                  : AppTheme.primaryBlue,
                             ),
                             SizedBox(width: _px(context, 4)),
                             Text(
                               _formatDate(artikel.createdAt),
                               style: TextStyle(
                                 fontSize: _ts(context, 13),
-                                color: AppTheme.primaryBlue,
+                                color: isVideo
+                                    ? Colors.red
+                                    : AppTheme.primaryBlue,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -940,7 +1077,7 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                       Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: _px(context, 16),
-                        color: AppTheme.primaryBlue,
+                        color: isVideo ? Colors.red : AppTheme.primaryBlue,
                       ),
                     ],
                   ),

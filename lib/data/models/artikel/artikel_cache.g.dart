@@ -23,20 +23,21 @@ class ArtikelCacheAdapter extends TypeAdapter<ArtikelCache> {
       cover: fields[3] as String,
       tipe: fields[4] as String,
       videoUrl: fields[5] as String?,
+      konten: fields[12] as String?,
       daftarGambar: (fields[6] as List).cast<String>(),
       createdAt: fields[7] as DateTime,
       updatedAt: fields[8] as DateTime,
       excerpt: fields[9] as String,
       penulis: fields[10] as String,
       kategori: fields[11] as KategoriArtikelCache,
-      cachedAt: fields[12] as DateTime,
+      cachedAt: fields[13] as DateTime,
     );
   }
 
   @override
   void write(BinaryWriter writer, ArtikelCache obj) {
     writer
-      ..writeByte(13)
+      ..writeByte(14)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -62,6 +63,8 @@ class ArtikelCacheAdapter extends TypeAdapter<ArtikelCache> {
       ..writeByte(11)
       ..write(obj.kategori)
       ..writeByte(12)
+      ..write(obj.konten)
+      ..writeByte(13)
       ..write(obj.cachedAt);
   }
 

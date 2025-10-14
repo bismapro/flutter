@@ -26,7 +26,7 @@ class ArtikelCache extends HiveObject {
   String? videoUrl;
 
   @HiveField(6)
-  List<String> daftarGambar;
+  List<String>? daftarGambar;
 
   @HiveField(7)
   DateTime createdAt;
@@ -35,15 +35,18 @@ class ArtikelCache extends HiveObject {
   DateTime updatedAt;
 
   @HiveField(9)
-  String excerpt;
+  String? excerpt;
 
   @HiveField(10)
-  String penulis;
+  String? penulis;
 
   @HiveField(11)
   KategoriArtikelCache kategori;
 
   @HiveField(12)
+  String? konten;
+
+  @HiveField(13)
   DateTime cachedAt;
 
   ArtikelCache({
@@ -53,11 +56,12 @@ class ArtikelCache extends HiveObject {
     required this.cover,
     required this.tipe,
     this.videoUrl,
-    required this.daftarGambar,
+    this.konten,
+    this.daftarGambar,
     required this.createdAt,
     required this.updatedAt,
     required this.excerpt,
-    required this.penulis,
+    this.penulis,
     required this.kategori,
     required this.cachedAt,
   });
@@ -70,6 +74,7 @@ class ArtikelCache extends HiveObject {
       cover: a.cover,
       tipe: a.tipe,
       videoUrl: a.videoUrl,
+      konten: a.konten,
       daftarGambar: a.daftarGambar,
       createdAt: a.createdAt,
       updatedAt: a.updatedAt,
@@ -87,6 +92,7 @@ class ArtikelCache extends HiveObject {
       judul: judul,
       cover: cover,
       tipe: tipe,
+      konten: konten,
       videoUrl: videoUrl,
       daftarGambar: daftarGambar,
       createdAt: createdAt,

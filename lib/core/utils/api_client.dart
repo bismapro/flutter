@@ -30,6 +30,18 @@ class ApiClient {
     String fallback = 'Terjadi kesalahan! Silakan coba lagi.',
   }) {
     logger.fine('Dio error occurred: $e');
+
+    // No internet connection
+    if (e.type == DioExceptionType.connectionError) {
+      return 'Koneksi internet bermasalah. Silakan coba lagi.';
+    }
+
+    // Timeout
+    if (e.type == DioExceptionType.receiveTimeout ||
+        e.type == DioExceptionType.sendTimeout) {
+      return 'Waktu koneksi habis. Cek koneksi internet Anda atau coba lagi sebentar.';
+    }
+
     // 1. Prioritaskan pesan error dari Dio jika ada (misal: timeout, no internet)
     if (e.message != null && e.response == null) {
       // Cek pesan umum seperti koneksi timeout atau masalah jaringan

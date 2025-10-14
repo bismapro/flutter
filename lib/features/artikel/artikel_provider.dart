@@ -149,7 +149,7 @@ class ArtikelNotifier extends StateNotifier<ArtikelState> {
     state = state.copyWith(status: ArtikelStatus.loading);
     try {
       final response = await ArtikelService.getArtikelById(id);
-      final artikel = response['data'];
+      final artikel = Artikel.fromJson(response['data']);
       state = state.copyWith(
         status: ArtikelStatus.loaded,
         selectedArtikel: artikel,

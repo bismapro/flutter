@@ -6,12 +6,13 @@ class Artikel {
   final String judul;
   final String cover;
   final String tipe;
+  final String? konten;
   final String? videoUrl;
-  final List<String> daftarGambar;
+  final List<String>? daftarGambar;
   final DateTime createdAt;
   final DateTime updatedAt;
-  final String excerpt;
-  final String penulis;
+  final String? excerpt;
+  final String? penulis;
   final KategoriArtikel kategori;
 
   Artikel({
@@ -21,11 +22,12 @@ class Artikel {
     required this.cover,
     required this.tipe,
     this.videoUrl,
-    required this.daftarGambar,
+    this.konten,
+    this.daftarGambar,
     required this.createdAt,
     required this.updatedAt,
-    required this.excerpt,
-    required this.penulis,
+    this.excerpt,
+    this.penulis,
     required this.kategori,
   });
 
@@ -37,6 +39,7 @@ class Artikel {
       cover: json['cover'] as String,
       tipe: json['tipe'] as String,
       videoUrl: json['video_url'] as String?,
+      konten: json['konten'] as String?,
       daftarGambar:
           (json['daftar_gambar'] as List<dynamic>?)
               ?.map((e) => e.toString())
@@ -44,8 +47,8 @@ class Artikel {
           [],
       createdAt: DateTime.parse(json['created_at'] as String),
       updatedAt: DateTime.parse(json['updated_at'] as String),
-      excerpt: json['excerpt'] as String,
-      penulis: json['penulis'] as String,
+      excerpt: json['excerpt'] as String?,
+      penulis: json['penulis'] as String? ?? 'Admin',
       kategori: KategoriArtikel.fromJson(
         json['kategori'] as Map<String, dynamic>,
       ),
@@ -60,6 +63,7 @@ class Artikel {
       'cover': cover,
       'tipe': tipe,
       'video_url': videoUrl,
+      'konten': konten,
       'daftar_gambar': daftarGambar,
       'created_at': createdAt.toIso8601String(),
       'updated_at': updatedAt.toIso8601String(),

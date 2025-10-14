@@ -75,7 +75,7 @@ class AppRoutes {
       case articleDetail:
         return MaterialPageRoute(
           builder: (_) =>
-              ArtikelDetailPage(article: settings.arguments as dynamic),
+              ArtikelDetailPage(artikelId: settings.arguments as dynamic),
         );
       case alarmSettings:
         return MaterialPageRoute(builder: (_) => const AlarmSettingsPage());
