@@ -20,6 +20,10 @@ class CacheKeys {
 
   // Sholat
   static const String jadwalSholat = 'jadwal_sholat';
+  static const String progressSholatWajibHariIni = 'progress_sholat_wajib_hari_ini';
+  static const String progressSholatSunnahHariIni = 'progress_sholat_sunnah_hari_ini';
+  static const String progressSholatWajibRiwayat = 'progress_sholat_wajib_riwayat';
+  static const String progressSholatSunnahRiwayat = 'progress_sholat_sunnah_riwayat';
 
   // Home
   static const String homeLatestArticle = 'home_latest_article';

@@ -1,22 +1,73 @@
-class FormatHelper {
-  static String getFormattedDate(DateTime createdAt) {
-    final now = DateTime.now();
-    final difference = now.difference(createdAt);
+import 'package:hijri/hijri_calendar.dart';
+import 'package:intl/intl.dart';
 
-    if (difference.inDays > 7) {
-      return '${createdAt.day}/${createdAt.month}/${createdAt.year}';
-    } else if (difference.inDays > 0) {
-      return '${difference.inDays} days ago';
-    } else if (difference.inHours > 0) {
-      return '${difference.inHours} hours ago';
-    } else if (difference.inMinutes > 0) {
-      return '${difference.inMinutes} minutes ago';
+class FormatHelper {
+  /// Mengubah DateTime menjadi format "waktu yang lalu" (Contoh: 5 menit yang lalu).
+  /// Lebih user-friendly untuk menampilkan durasi singkat.
+  static String formatTimeAgo(DateTime date) {
+    final now = DateTime.now();
+    final difference = now.difference(date);
+
+    if (difference.inDays >= 2) {
+      // Jika lebih dari 2 hari, tampilkan tanggal lengkap
+      return DateFormat('d MMMM yyyy', 'id_ID').format(date);
+    } else if (difference.inDays >= 1) {
+      return 'Kemarin';
+    } else if (difference.inHours >= 1) {
+      return '${difference.inHours} jam yang lalu';
+    } else if (difference.inMinutes >= 1) {
+      return '${difference.inMinutes} menit yang lalu';
     } else {
-      return 'Just now';
+      return 'Baru saja';
     }
   }
 
-  static String formatCurrency(int amount) {
-    return 'Rp ${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (Match m) => '${m[1]}.')}';
+  /// Memformat angka (integer) menjadi format mata uang Rupiah.
+  /// Contoh: 50000 -> "Rp50.000"
+  static String formatCurrency(int amount, {String locale = 'id_ID'}) {
+    final format = NumberFormat.currency(
+      locale: locale,
+      symbol: 'Rp', // Simbol Rupiah
+      decimalDigits: 0, // Tanpa angka desimal
+    );
+    return format.format(amount);
+  }
+
+  /// Mendapatkan nama hari dari sebuah tanggal dalam Bahasa Indonesia.
+  /// Contoh: "Selasa"
+  static String getDayName(DateTime date, {String locale = 'id_ID'}) {
+    return DateFormat('EEEE', locale).format(date);
+  }
+
+  /// Memformat tanggal menjadi format lengkap dalam Bahasa Indonesia.
+  /// Contoh: "14 Oktober 2025"
+  static String getFullDate(DateTime date, {String locale = 'id_ID'}) {
+    return DateFormat('d MMMM yyyy', locale).format(date);
+  }
+
+  /// Mengonversi tanggal Masehi ke format tanggal Hijriah lengkap.
+  /// Contoh: "14 Rabiul Awal 1447 H"
+  static String getHijriDate(DateTime date) {
+    try {
+      final hijri = HijriCalendar.fromDate(date);
+      const hijriMonths = [
+        'Muharram',
+        'Safar',
+        'Rabiul Awal',
+        'Rabiul Akhir',
+        'Jumadil Awal',
+        'Jumadil Akhir',
+        'Rajab',
+        "Sya'ban",
+        'Ramadan',
+        'Syawal',
+        "Dzulqa'dah",
+        'Dzulhijjah',
+      ];
+      return '${hijri.hDay} ${hijriMonths[hijri.hMonth - 1]} ${hijri.hYear} H';
+    } catch (e) {
+      print('Error saat konversi Hijriah: $e');
+      return 'Tanggal Hijriah tidak valid';
+    }
   }
 }

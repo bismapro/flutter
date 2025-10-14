@@ -2,8 +2,8 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/date_symbol_data_local.dart';
-import 'package:permission_handler/permission_handler.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/services/cache/cache_service.dart';
@@ -16,6 +16,8 @@ import 'data/services/audio_player_service.dart';
 Future<void> main() async {
   // Flutter bindings
   WidgetsFlutterBinding.ensureInitialized();
+
+   HijriCalendar.setLocal('id');
 
   // Load all timezone data
   tz.initializeTimeZones();

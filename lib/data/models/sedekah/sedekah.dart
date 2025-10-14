@@ -58,7 +58,7 @@ class Sedekah {
       'id': id,
       'user_id': userId,
       'jenis_sedekah': jenisSedekah,
-      'tanggal': FormatHelper.getFormattedDate(tanggal),
+      'tanggal': FormatHelper.formatTimeAgo(tanggal),
       'jumlah': jumlah,
       'keterangan': keterangan,
       'created_at': createdAt.toIso8601String(),

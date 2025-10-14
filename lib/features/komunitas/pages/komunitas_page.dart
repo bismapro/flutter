@@ -196,7 +196,7 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
         'kategoriIcon': iconPath.isNotEmpty && storage.isNotEmpty
             ? '$storage/$iconPath'
             : null,
-        'date': FormatHelper.getFormattedDate(item.createdAt),
+        'date': FormatHelper.formatTimeAgo(item.createdAt),
         'coverUrl': coverPath.isNotEmpty && storage.isNotEmpty
             ? '$storage/$coverPath'
             : null,

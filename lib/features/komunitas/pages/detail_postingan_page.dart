@@ -644,7 +644,7 @@ class _DetailPostinganPageState extends ConsumerState<DetailPostinganPage> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          FormatHelper.getFormattedDate(post.createdAt),
+                          FormatHelper.formatTimeAgo(post.createdAt),
                           style: TextStyle(
                             color: AppTheme.onSurfaceVariant,
                             fontSize: ResponsiveHelper.adaptiveTextSize(

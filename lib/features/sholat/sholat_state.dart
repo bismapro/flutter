@@ -12,6 +12,10 @@ class SholatState {
   final String? localTime;
   final String? message;
   final bool isOffline;
+  final Map<String, dynamic> progressWajibHariIni;
+  final Map<String, dynamic> progressSunnahHariIni;
+  final Map<String, dynamic> progressWajibRiwayat;
+  final Map<String, dynamic> progressSunnahRiwayat;
 
   const SholatState({
     required this.status,
@@ -23,6 +27,10 @@ class SholatState {
     this.localTime,
     this.message,
     required this.isOffline,
+    required this.progressWajibHariIni,
+    required this.progressSunnahHariIni,
+    required this.progressWajibRiwayat,
+    required this.progressSunnahRiwayat,
   });
 
   factory SholatState.initial() {
@@ -30,6 +38,10 @@ class SholatState {
       status: SholatStatus.initial,
       sholatList: [],
       isOffline: false,
+      progressWajibHariIni: {},
+      progressSunnahHariIni: {},
+      progressWajibRiwayat: {},
+      progressSunnahRiwayat: {},
     );
   }
 
@@ -43,6 +55,10 @@ class SholatState {
     String? localTime,
     String? message,
     bool? isOffline,
+    Map<String, dynamic>? progressWajibHariIni,
+    Map<String, dynamic>? progressSunnahHariIni,
+    Map<String, dynamic>? progressWajibRiwayat,
+    Map<String, dynamic>? progressSunnahRiwayat,
   }) {
     return SholatState(
       status: status ?? this.status,
@@ -54,6 +70,12 @@ class SholatState {
       localTime: localTime ?? this.localTime,
       message: message ?? this.message,
       isOffline: isOffline ?? this.isOffline,
+      progressWajibHariIni: progressWajibHariIni ?? this.progressWajibHariIni,
+      progressSunnahHariIni:
+          progressSunnahHariIni ?? this.progressSunnahHariIni,
+      progressWajibRiwayat: progressWajibRiwayat ?? this.progressWajibRiwayat,
+      progressSunnahRiwayat:
+          progressSunnahRiwayat ?? this.progressSunnahRiwayat,
     );
   }
 }
