@@ -67,6 +67,21 @@ class HomeProvider extends StateNotifier<HomeState> {
   }
 
   // ...existing code...
+  Future<void> checkIsJadwalSholatCacheExist() async {
+    final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
+
+    final isCacheExist = cachedJadwal != Sholat.empty();
+
+    state = state.copyWith(jadwalSholat: isCacheExist ? cachedJadwal : null);
+  }
+
+  Future<void> checkIsArtikelCacheExist() async {
+    final cachedArtikel = HomeCacheService.getCachedArtikelTerbaru();
+
+    final isCacheExist = cachedArtikel.isNotEmpty;
+
+    state = state.copyWith(articles: isCacheExist ? cachedArtikel : null);
+  }
 
   Future<void> fetchJadwalSholat({
     double? latitude,
@@ -231,7 +246,7 @@ class HomeProvider extends StateNotifier<HomeState> {
       // 1. Try network first
       final response = await HomeService.getLatestArticle();
 
-      final artikelList = response['data'] as List<Artikel>;
+      final artikelList = response['data'];
 
       // 2. Cache the fetched data
       await HomeCacheService.cacheArtikelTerbaru(artikelList);

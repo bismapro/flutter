@@ -106,9 +106,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     // Load all data when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // Fetch jadwal sholat (akan ambil dari cache jika ada)
-      ref.read(homeProvider.notifier).fetchJadwalSholat();
+      ref.read(homeProvider.notifier).checkIsJadwalSholatCacheExist();
       // Fetch artikel terbaru (akan ambil dari cache jika ada)
-      ref.read(homeProvider.notifier).fetchArtikelTerbaru();
+      ref.read(homeProvider.notifier).checkIsArtikelCacheExist();
     });
 
     // Start timer to update time every second
@@ -183,6 +183,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     final localDate = homeState.localDate ?? '';
     final localTime = homeState.localTime ?? '';
 
+    // Get screen height for responsive adjustments
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isShortScreen = screenHeight < 700;
+
     // Format dates
     String gregorianDate = 'Loading...';
     String hijriDate = 'Loading...';
@@ -219,11 +223,13 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             bottom: false,
             child: Column(
               children: [
-                // Header
+                // Header with adjusted padding
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: _hpad(context),
-                    vertical: _px(context, 16),
+                    vertical: isShortScreen
+                        ? _px(context, 12)
+                        : _px(context, 16),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -237,7 +243,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                               hijriDate,
                               style: TextStyle(
                                 color: Colors.white,
-                                fontSize: _t(context, 16),
+                                fontSize: _t(context, isShortScreen ? 15 : 16),
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -247,7 +253,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                               gregorianDate,
                               style: TextStyle(
                                 color: Colors.white70,
-                                fontSize: _t(context, 13),
+                                fontSize: _t(context, isShortScreen ? 12 : 13),
                               ),
                             ),
                             SizedBox(height: _px(context, 6)),
@@ -265,7 +271,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                     locationName,
                                     style: TextStyle(
                                       color: Colors.white70,
-                                      fontSize: _t(context, 13),
+                                      fontSize: _t(
+                                        context,
+                                        isShortScreen ? 12 : 13,
+                                      ),
                                     ),
                                     overflow: TextOverflow.ellipsis,
                                   ),
@@ -281,7 +290,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                   localTime,
                                   style: TextStyle(
                                     color: Colors.white70,
-                                    fontSize: _t(context, 13),
+                                    fontSize: _t(
+                                      context,
+                                      isShortScreen ? 12 : 13,
+                                    ),
                                   ),
                                 ),
                               ],
@@ -294,7 +306,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           // Refresh location button
                           GestureDetector(
                             onTap: () async {
-                              // Refresh location and jadwal sholat with force refresh
                               await ref
                                   .read(homeProvider.notifier)
                                   .fetchJadwalSholat(
@@ -350,17 +361,23 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                   ),
                 ),
 
-                SizedBox(height: _px(context, 18)),
+                SizedBox(
+                  height: isShortScreen ? _px(context, 12) : _px(context, 18),
+                ),
 
                 // Current prayer time with loading state
                 _buildPrayerTimeDisplay(context, sholat, status),
 
-                SizedBox(height: _px(context, 28)),
+                SizedBox(
+                  height: isShortScreen ? _px(context, 16) : _px(context, 28),
+                ),
 
                 // Prayer times row with loading state
                 _buildPrayerTimesRow(context, sholat, status),
 
-                SizedBox(height: _px(context, 20)),
+                SizedBox(
+                  height: isShortScreen ? _px(context, 12) : _px(context, 20),
+                ),
               ],
             ),
           ),
@@ -369,8 +386,20 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           LayoutBuilder(
             builder: (context, constraints) {
               final h = constraints.maxHeight;
-              final initial = h < 680 ? 0.52 : (h < 800 ? 0.48 : 0.45);
-              final max = _isDesktop(context) ? 0.9 : 0.85;
+
+              // Adjust initial size based on screen height
+              double initial;
+              if (h < 650) {
+                initial = 0.55; // Very short screens
+              } else if (h < 700) {
+                initial = 0.52; // Short screens
+              } else if (h < 800) {
+                initial = 0.48; // Medium screens
+              } else {
+                initial = 0.45; // Tall screens
+              }
+
+              final max = _isDesktop(context) ? 0.9 : 0.88;
 
               return DraggableScrollableSheet(
                 initialChildSize: initial,
@@ -624,10 +653,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     final notifier = ref.read(homeProvider.notifier);
     final activePrayerName = notifier.getActivePrayerName();
 
+    // Get screen height to determine if we need compact mode
+    final screenHeight = MediaQuery.of(context).size.height;
+    final isCompact =
+        screenHeight < 700; // Use compact mode for shorter screens
+
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: _hpad(context)),
       child: _ResponsivePrayerRow(
-        itemHeight: _px(context, 100),
+        itemHeight: isCompact ? _px(context, 85) : _px(context, 100),
+        isCompact: isCompact,
         children: [
           _buildPrayerTimeWidget(
             context,
@@ -635,6 +670,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             sholat.wajib.shubuh,
             Icons.nightlight_round,
             activePrayerName == 'Fajr',
+            isCompact: isCompact,
           ),
           _buildPrayerTimeWidget(
             context,
@@ -642,6 +678,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             sholat.wajib.dzuhur,
             Icons.wb_sunny_rounded,
             activePrayerName == 'Dzuhr',
+            isCompact: isCompact,
           ),
           _buildPrayerTimeWidget(
             context,
@@ -649,6 +686,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             sholat.wajib.ashar,
             Icons.wb_twilight_rounded,
             activePrayerName == 'Asr',
+            isCompact: isCompact,
           ),
           _buildPrayerTimeWidget(
             context,
@@ -656,6 +694,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             sholat.wajib.maghrib,
             Icons.wb_sunny_outlined,
             activePrayerName == 'Maghrib',
+            isCompact: isCompact,
           ),
           _buildPrayerTimeWidget(
             context,
@@ -663,6 +702,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             sholat.wajib.isya,
             Icons.dark_mode_rounded,
             activePrayerName == 'Isha',
+            isCompact: isCompact,
           ),
         ],
       ),
@@ -697,6 +737,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       ),
     );
   }
+
+  // Tambahkan di dalam _buildBottomSheetContent setelah Quick Access section dan sebelum Latest Articles
 
   Widget _buildBottomSheetContent(
     BuildContext context,
@@ -1078,15 +1120,17 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   Widget _buildPrayerTimeWidget(
     BuildContext context,
     String name,
-    String? time, // <- boleh null
+    String? time,
     IconData icon,
-    bool isActive,
-  ) {
-    final box = _px(context, 44);
-    final ic = _icon(context, 20);
-    final nameFs = _t(context, 12);
-    final timeFs = _t(context, 11);
-    final gap = _px(context, 6);
+    bool isActive, {
+    bool isCompact = false,
+  }) {
+    // Adjust sizes based on compact mode
+    final box = isCompact ? _px(context, 38) : _px(context, 44);
+    final ic = isCompact ? _icon(context, 18) : _icon(context, 20);
+    final nameFs = isCompact ? _t(context, 11) : _t(context, 12);
+    final timeFs = isCompact ? _t(context, 10) : _t(context, 11);
+    final gap = isCompact ? _px(context, 4) : _px(context, 6);
 
     final display = (time != null && time.trim().isNotEmpty) ? time : '--:--';
 
@@ -1114,7 +1158,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
               color: isActive
                   ? Colors.white.withValues(alpha: .3)
                   : Colors.white.withValues(alpha: .1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(isCompact ? 10 : 12),
               border: isActive
                   ? Border.all(
                       color: Colors.white.withValues(alpha: 0.5),
@@ -1126,7 +1170,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           ),
           SizedBox(height: gap),
           Text(
-            display, // <- aman walau null
+            display,
             style: TextStyle(
               color: isActive ? Colors.white : Colors.white70,
               fontSize: timeFs,
@@ -1238,23 +1282,337 @@ class AllFeaturesSheet extends StatelessWidget {
 
               // Grid of features
               Expanded(
-                child: GridView.count(
+                child: ListView(
                   controller: scrollController,
-                  crossAxisCount: _gridColumns(context),
                   padding: EdgeInsets.symmetric(
                     horizontal: _hpad(context),
                     vertical: 16.0,
                   ),
-                  mainAxisSpacing: _px(context, 20),
-                  crossAxisSpacing: _px(context, 16),
-                  childAspectRatio: 0.95,
-                  children: _buildFeatureItems(context),
+                  children: [
+                    // Grid fitur di bawahnya
+                    GridView.count(
+                      shrinkWrap: true,
+                      physics: NeverScrollableScrollPhysics(),
+                      crossAxisCount: _gridColumns(context),
+                      mainAxisSpacing: _px(context, 20),
+                      crossAxisSpacing: _px(context, 16),
+                      childAspectRatio: 0.95,
+                      children: _buildFeatureItems(context),
+                    ),
+
+                    // Bagian Syahadat di atas
+                    _buildSyahadatSection(context),
+                    SizedBox(height: _px(context, 32)),
+                  ],
                 ),
               ),
             ],
           ),
         );
       },
+    );
+  }
+
+  // Tambahkan method baru untuk Syahadat Section
+  Widget _buildSyahadatSection(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header
+        Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(_px(context, 8)),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    AppTheme.accentGreen.withValues(alpha: 0.15),
+                    AppTheme.primaryBlue.withValues(alpha: 0.15),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                FlutterIslamicIcons.solidKaaba,
+                color: AppTheme.accentGreen,
+                size: _px(context, 20),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'Dua Kalimat Syahadat',
+              style: TextStyle(
+                fontSize: _t(context, 20),
+                fontWeight: FontWeight.bold,
+                color: AppTheme.onSurface,
+                letterSpacing: -0.5,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: _px(context, 16)),
+
+        // Syahadat Container
+        Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                AppTheme.accentGreen.withValues(alpha: 0.05),
+                AppTheme.primaryBlue.withValues(alpha: 0.05),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: AppTheme.accentGreen.withValues(alpha: 0.2),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.accentGreen.withValues(alpha: 0.08),
+                blurRadius: 15,
+                offset: const Offset(0, 4),
+                spreadRadius: -3,
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              // Syahadat Pertama
+              _buildSyahadatCard(
+                context,
+                number: '1',
+                title: 'Syahadat Pertama (Tauhid)',
+                arabicText: 'أَشْهَدُ أَنْ لاَ إِلَهَ إِلاَّ اللهُ',
+                transliteration: 'Asyhadu an laa ilaaha illallah',
+                translation: 'Aku bersaksi bahwa tidak ada Tuhan selain Allah',
+                isFirst: true,
+              ),
+
+              // Divider
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: _px(context, 20)),
+                child: Divider(
+                  color: AppTheme.accentGreen.withValues(alpha: 0.2),
+                  thickness: 1,
+                ),
+              ),
+
+              // Syahadat Kedua
+              _buildSyahadatCard(
+                context,
+                number: '2',
+                title: 'Syahadat Kedua (Risalah)',
+                arabicText: 'أَشْهَدُ أَنَّ مُحَمَّدًا رَسُوْلُ اللهُ',
+                transliteration: 'Wa asyhadu anna Muhammadar Rasulullah',
+                translation:
+                    'Dan aku bersaksi bahwa Muhammad adalah utusan Allah',
+                isFirst: false,
+              ),
+            ],
+          ),
+        ),
+
+        SizedBox(height: _px(context, 12)),
+
+        // Info footer
+        Container(
+          padding: EdgeInsets.all(_px(context, 12)),
+          decoration: BoxDecoration(
+            color: AppTheme.accentGreen.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: AppTheme.accentGreen.withValues(alpha: 0.1),
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                color: AppTheme.accentGreen,
+                size: _px(context, 18),
+              ),
+              SizedBox(width: _px(context, 8)),
+              Expanded(
+                child: Text(
+                  'Membaca syahadat adalah rukun Islam yang pertama',
+                  style: TextStyle(
+                    fontSize: _t(context, 12),
+                    color: AppTheme.onSurfaceVariant,
+                    fontStyle: FontStyle.italic,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSyahadatCard(
+    BuildContext context, {
+    required String number,
+    required String title,
+    required String arabicText,
+    required String transliteration,
+    required String translation,
+    required bool isFirst,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(_px(context, 20)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Number badge and title
+          Row(
+            children: [
+              Container(
+                width: _px(context, 32),
+                height: _px(context, 32),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.accentGreen,
+                      AppTheme.accentGreen.withValues(alpha: 0.8),
+                    ],
+                  ),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppTheme.accentGreen.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    number,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: _t(context, 16),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: _px(context, 12)),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: _t(context, 14),
+                    fontWeight: FontWeight.w600,
+                    color: AppTheme.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: _px(context, 16)),
+
+          // Arabic text
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.all(_px(context, 16)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Text(
+              arabicText,
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: _t(context, 24),
+                fontWeight: FontWeight.w600,
+                color: AppTheme.accentGreen,
+                height: 2.0,
+                fontFamily: 'Arabic', // You can add Arabic font if needed
+              ),
+            ),
+          ),
+          SizedBox(height: _px(context, 12)),
+
+          // Transliteration
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: _px(context, 12),
+              vertical: _px(context, 8),
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.primaryBlue.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              children: [
+                Icon(
+                  Icons.translate_rounded,
+                  size: _px(context, 16),
+                  color: AppTheme.primaryBlue,
+                ),
+                SizedBox(width: _px(context, 8)),
+                Expanded(
+                  child: Text(
+                    transliteration,
+                    style: TextStyle(
+                      fontSize: _t(context, 14),
+                      fontStyle: FontStyle.italic,
+                      color: AppTheme.primaryBlue,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: _px(context, 8)),
+
+          // Translation
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: _px(context, 12),
+              vertical: _px(context, 8),
+            ),
+            decoration: BoxDecoration(
+              color: AppTheme.accentGreen.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.description_outlined,
+                  size: _px(context, 16),
+                  color: AppTheme.accentGreen,
+                ),
+                SizedBox(width: _px(context, 8)),
+                Expanded(
+                  child: Text(
+                    translation,
+                    style: TextStyle(
+                      fontSize: _t(context, 13),
+                      color: AppTheme.onSurface,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1301,12 +1659,6 @@ class AllFeaturesSheet extends StatelessWidget {
         'Tahajud Challenge',
         AppTheme.accentGreen,
         '/tahajud',
-      ),
-      _FeatureData(
-        Icons.alarm_rounded,
-        'Syahadat',
-        AppTheme.accentGreen,
-        '/alarm-settings',
       ),
       _FeatureData(Icons.article, 'Artikel', AppTheme.accentGreen, '/article'),
     ];
@@ -1384,26 +1736,32 @@ class _FeatureData {
 class _ResponsivePrayerRow extends StatelessWidget {
   final List<Widget> children;
   final double itemHeight;
+  final bool isCompact;
+
   const _ResponsivePrayerRow({
     required this.children,
     required this.itemHeight,
+    this.isCompact = false,
   });
 
   @override
   Widget build(BuildContext context) {
     final w = ResponsiveHelper.getScreenWidth(context);
-    if (w < 340) {
+
+    // For very narrow screens or compact mode, always use horizontal scroll
+    if (w < 340 || (isCompact && w < 400)) {
       return SizedBox(
         height: itemHeight,
         child: ListView.separated(
           scrollDirection: Axis.horizontal,
           physics: const BouncingScrollPhysics(),
           itemCount: children.length,
-          separatorBuilder: (_, _) => const SizedBox(width: 10),
+          separatorBuilder: (_, _) => SizedBox(width: isCompact ? 8 : 10),
           itemBuilder: (_, i) => children[i],
         ),
       );
     }
+
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: children,
