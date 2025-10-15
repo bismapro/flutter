@@ -507,15 +507,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     bool isGuest = false,
   }) {
     // Handle case when user is null
-    final name = user != null
-        ? (user['user']['name'] ?? user['name'] ?? '-')
-        : '-';
-    final email = user != null
-        ? (user['user']['email'] ?? user['email'] ?? '-')
-        : '-';
-    final phone = user != null
-        ? (user['user']['phone'] ?? user['phone'] ?? '-')
-        : '-';
+    final name = user != null ? (user['name'] ?? '-') : '-';
+    final email = user != null ? (user['email'] ?? '-') : '-';
+    final phone = user != null ? (user['phone'] ?? '-') : '-';
     final isDataAvailable = user != null;
 
     return Column(
