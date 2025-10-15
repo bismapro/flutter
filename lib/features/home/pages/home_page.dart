@@ -187,18 +187,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     String gregorianDate = 'Loading...';
     String hijriDate = 'Loading...';
 
-    if (localDate != null) {
-      try {
-        final dateParts = localDate.split('-');
-        final year = int.parse(dateParts[0]);
-        final month = int.parse(dateParts[1]);
-        final day = int.parse(dateParts[2]);
-        final date = DateTime(year, month, day);
-        gregorianDate = _formatGregorianDate(date);
-        hijriDate = _formatHijriDate(date);
-      } catch (e) {
-        logger.warning('Error parsing date: $e');
-      }
+    try {
+      final dateParts = localDate.split('-');
+      final year = int.parse(dateParts[0]);
+      final month = int.parse(dateParts[1]);
+      final day = int.parse(dateParts[2]);
+      final date = DateTime(year, month, day);
+      gregorianDate = _formatGregorianDate(date);
+      hijriDate = _formatHijriDate(date);
+    } catch (e) {
+      logger.warning('Error parsing date: $e');
     }
 
     return Scaffold(

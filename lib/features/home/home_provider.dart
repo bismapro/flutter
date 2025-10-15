@@ -503,9 +503,6 @@ class HomeProvider extends StateNotifier<HomeState> {
       nextPrayer = fajr;
     }
 
-    // nextPrayer will never be null at this point
-    if (nextPrayer == null) return null;
-
     // Hitung selisih waktu
     final difference = _timeDifference(currentTime, nextPrayer);
 

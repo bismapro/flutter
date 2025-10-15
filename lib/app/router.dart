@@ -8,7 +8,6 @@ import 'package:test_flutter/features/auth/pages/welcome_page.dart';
 import 'package:test_flutter/features/compass/pages/compass_page.dart';
 import 'package:test_flutter/features/home/pages/home_page.dart';
 import 'package:test_flutter/features/monitoring/pages/monitoring_page.dart';
-import 'package:test_flutter/features/ngaji/pages/ngaji_online_page.dart';
 import 'package:test_flutter/features/profile/pages/profile_page.dart';
 import 'package:test_flutter/features/puasa/pages/puasa_page.dart';
 import 'package:test_flutter/features/quran/pages/quran_page.dart';
@@ -63,8 +62,6 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const PuasaPage());
       case zakat:
         return MaterialPageRoute(builder: (_) => const SedekahPage());
-      case ngajiOnline:
-        return MaterialPageRoute(builder: (_) => const NgajiOnlinePage());
       case monitoring:
         return MaterialPageRoute(builder: (_) => const MonitoringPage());
       case tahajud:
