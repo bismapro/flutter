@@ -97,6 +97,7 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
+  // ...existing code...
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -113,7 +114,7 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
               AppTheme.primaryBlue.withValues(alpha: 0.03),
               AppTheme.backgroundWhite,
             ],
-            stops: const [0.0, 0.3],
+            // stops: const [0.0, 0.3],
           ),
         ),
         child: SafeArea(
@@ -150,13 +151,13 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
                             Icons.mosque,
                             color: AppTheme.primaryBlue,
                             size: isDesktop
-                                ? 32
+                                ? 28
                                 : isTablet
-                                ? 30
-                                : 28,
+                                ? 26
+                                : 24,
                           ),
                         ),
-                        SizedBox(width: isTablet ? 20 : 16),
+                        SizedBox(width: isTablet ? 16 : 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,10 +166,10 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
                                 'Kalender Puasa',
                                 style: TextStyle(
                                   fontSize: isDesktop
-                                      ? 32
+                                      ? 22
                                       : isTablet
-                                      ? 30
-                                      : 28,
+                                      ? 20
+                                      : 24,
                                   fontWeight: FontWeight.bold,
                                   color: AppTheme.onSurface,
                                   letterSpacing: -0.5,
@@ -177,7 +178,11 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
                               Text(
                                 'Tracking ibadah puasa',
                                 style: TextStyle(
-                                  fontSize: isTablet ? 17 : 15,
+                                  fontSize: isDesktop
+                                      ? 15
+                                      : isTablet
+                                      ? 14
+                                      : 14,
                                   color: AppTheme.onSurfaceVariant,
                                 ),
                               ),
@@ -190,7 +195,7 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
                 ),
               ),
 
-              SizedBox(height: isTablet ? 24 : 20),
+              SizedBox(height: isTablet ? 16 : 12),
 
               // Tab Bar
               Container(
@@ -201,34 +206,36 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
                       ? 28.0
                       : 24.0,
                 ),
+                padding: EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(isTablet ? 18 : 16),
-                  border: Border.all(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                      spreadRadius: -5,
-                    ),
-                  ],
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: TabBar(
                   controller: _tabController,
-                  indicatorColor: AppTheme.primaryBlue,
+                  indicator: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: AppTheme.primaryBlue,
                   unselectedLabelColor: AppTheme.onSurfaceVariant,
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: isTablet ? 15 : 14,
+                    fontSize: isTablet ? 14 : 13,
                   ),
                   unselectedLabelStyle: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: isTablet ? 15 : 14,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isTablet ? 14 : 13,
                   ),
+                  dividerColor: Colors.transparent,
                   tabs: const [
                     Tab(text: 'Puasa Wajib'),
                     Tab(text: 'Puasa Sunnah'),
@@ -236,7 +243,8 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
                 ),
               ),
 
-              SizedBox(height: isTablet ? 24 : 20),
+              SizedBox(height: isTablet ? 16 : 12),
+              // ...existing code...
 
               // TabView Content
               Expanded(

@@ -202,10 +202,10 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
                             widget.puasaData['name'],
                             style: TextStyle(
                               fontSize: isDesktop
-                                  ? 26
+                                  ? 22
                                   : isTablet
-                                  ? 24
-                                  : 22,
+                                  ? 20
+                                  : 20,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.onSurface,
                               letterSpacing: -0.5,
@@ -214,7 +214,7 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
                           Text(
                             widget.puasaData['description'],
                             style: TextStyle(
-                              fontSize: isTablet ? 16 : 14,
+                              fontSize: isTablet ? 14 : 14,
                               color: AppTheme.onSurfaceVariant,
                             ),
                           ),
@@ -225,7 +225,7 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
                 ),
               ),
 
-              // Progress Summary
+              // Progress Summary - Only Completed
               Container(
                 margin: EdgeInsets.symmetric(
                   horizontal: isDesktop
@@ -234,38 +234,18 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
                       ? 28.0
                       : 24.0,
                 ),
-                child: Row(
-                  children: [
-                    _buildProgressCard(
-                      _getCompletedCount().toString(),
-                      'Completed',
-                      AppTheme.accentGreen,
-                      Icons.check_circle_rounded,
-                      isTablet,
-                    ),
-                    SizedBox(width: isTablet ? 16 : 12),
-                    _buildProgressCard(
-                      _getPlannedCount().toString(),
-                      'Planned',
-                      AppTheme.primaryBlue,
-                      Icons.schedule_rounded,
-                      isTablet,
-                    ),
-                    SizedBox(width: isTablet ? 16 : 12),
-                    _buildProgressCard(
-                      '${_getCompletionRate()}%',
-                      'Success Rate',
-                      AppTheme.primaryBlueDark,
-                      Icons.trending_up_rounded,
-                      isTablet,
-                    ),
-                  ],
+                child: _buildProgressCard(
+                  _getCompletedCount().toString(),
+                  'Puasa Diselesaikan',
+                  AppTheme.accentGreen,
+                  Icons.check_circle_rounded,
+                  isTablet,
                 ),
               ),
 
-              SizedBox(height: isTablet ? 28 : 24),
+              SizedBox(height: isTablet ? 16 : 12),
 
-              // Tab Bar
+              // Tab Bar - New Style
               Container(
                 margin: EdgeInsets.symmetric(
                   horizontal: isDesktop
@@ -274,43 +254,45 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
                       ? 28.0
                       : 24.0,
                 ),
+                padding: EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(isTablet ? 18 : 16),
-                  border: Border.all(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                      spreadRadius: -5,
-                    ),
-                  ],
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: TabBar(
                   controller: _tabController,
-                  indicatorColor: AppTheme.primaryBlue,
+                  indicator: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: AppTheme.primaryBlue,
                   unselectedLabelColor: AppTheme.onSurfaceVariant,
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: isTablet ? 15 : 14,
+                    fontSize: isTablet ? 14 : 13,
                   ),
                   unselectedLabelStyle: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: isTablet ? 15 : 14,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isTablet ? 14 : 13,
                   ),
+                  dividerColor: Colors.transparent,
                   tabs: const [
                     Tab(text: 'Tracking'),
                     Tab(text: 'Panduan'),
-                    Tab(text: 'Statistik'),
+                    // Tab(text: 'Statistik'),
                   ],
                 ),
               ),
 
-              SizedBox(height: isTablet ? 24 : 20),
+              SizedBox(height: isTablet ? 16 : 12),
 
               // TabView Content
               Expanded(
@@ -337,58 +319,62 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
     IconData icon,
     bool isTablet,
   ) {
-    return Expanded(
-      child: Container(
-        padding: EdgeInsets.all(isTablet ? 20 : 18),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(isTablet ? 18 : 16),
-          border: Border.all(color: color.withValues(alpha: 0.1)),
-          boxShadow: [
-            BoxShadow(
-              color: color.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-              spreadRadius: -2,
+    return Container(
+      padding: EdgeInsets.all(isTablet ? 16 : 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+        border: Border.all(color: color.withValues(alpha: 0.1)),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+            spreadRadius: -2,
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(isTablet ? 12 : 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  color.withValues(alpha: 0.15),
+                  color.withValues(alpha: 0.1),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Container(
-              padding: EdgeInsets.all(isTablet ? 12 : 10),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    color.withValues(alpha: 0.15),
-                    color.withValues(alpha: 0.1),
-                  ],
+            child: Icon(icon, color: color, size: isTablet ? 24 : 22),
+          ),
+          SizedBox(width: isTablet ? 16 : 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: TextStyle(
+                    fontSize: isTablet ? 24 : 22,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
                 ),
-                borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
-              ),
-              child: Icon(icon, color: color, size: isTablet ? 24 : 22),
+                SizedBox(height: isTablet ? 4 : 2),
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: isTablet ? 14 : 13,
+                    color: AppTheme.onSurfaceVariant,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
             ),
-            SizedBox(height: isTablet ? 12 : 10),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: isTablet ? 20 : 18,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            SizedBox(height: isTablet ? 6 : 4),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: isTablet ? 12 : 11,
-                color: AppTheme.onSurfaceVariant,
-                fontWeight: FontWeight.w500,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

@@ -167,10 +167,10 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                               'Puasa Ramadhan 1446 H',
                               style: TextStyle(
                                 fontSize: isDesktop
-                                    ? 26
+                                    ? 22
                                     : isTablet
-                                    ? 24
-                                    : 22,
+                                    ? 20
+                                    : 20,
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.onSurface,
                                 letterSpacing: -0.5,
@@ -179,7 +179,7 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                             Text(
                               'Bulan penuh berkah dan ampunan',
                               style: TextStyle(
-                                fontSize: isTablet ? 16 : 14,
+                                fontSize: isTablet ? 14 : 14,
                                 color: AppTheme.onSurfaceVariant,
                               ),
                             ),
@@ -191,7 +191,7 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                 ),
               ],
 
-              // Progress Summary Cards
+              // Progress Summary Cards - Smaller
               Container(
                 margin: EdgeInsets.symmetric(
                   horizontal: isDesktop
@@ -205,36 +205,27 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                     _buildProgressCard(
                       '5',
                       '30',
-                      'Hari Completed',
+                      'Completed',
                       AppTheme.accentGreen,
                       Icons.check_circle_rounded,
                       isTablet,
                     ),
-                    SizedBox(width: isTablet ? 16 : 12),
+                    SizedBox(width: isTablet ? 12 : 10),
                     _buildProgressCard(
                       '25',
                       '30',
-                      'Hari Tersisa',
+                      'Tersisa',
                       AppTheme.primaryBlue,
                       Icons.schedule_rounded,
-                      isTablet,
-                    ),
-                    SizedBox(width: isTablet ? 16 : 12),
-                    _buildProgressCard(
-                      '83%',
-                      '',
-                      'Progress',
-                      AppTheme.primaryBlueDark,
-                      Icons.trending_up_rounded,
                       isTablet,
                     ),
                   ],
                 ),
               ),
 
-              SizedBox(height: isTablet ? 28 : 24),
+              SizedBox(height: isTablet ? 16 : 12),
 
-              // Tab Bar
+              // Tab Bar - New Style
               Container(
                 margin: EdgeInsets.symmetric(
                   horizontal: isDesktop
@@ -243,43 +234,45 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                       ? 28.0
                       : 24.0,
                 ),
+                padding: EdgeInsets.all(4),
                 decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(isTablet ? 18 : 16),
-                  border: Border.all(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
-                      spreadRadius: -5,
-                    ),
-                  ],
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: TabBar(
                   controller: _tabController,
-                  indicatorColor: AppTheme.primaryBlue,
+                  indicator: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  indicatorSize: TabBarIndicatorSize.tab,
                   labelColor: AppTheme.primaryBlue,
                   unselectedLabelColor: AppTheme.onSurfaceVariant,
                   labelStyle: TextStyle(
                     fontWeight: FontWeight.w600,
-                    fontSize: isTablet ? 15 : 14,
+                    fontSize: isTablet ? 14 : 13,
                   ),
                   unselectedLabelStyle: TextStyle(
-                    fontWeight: FontWeight.w500,
-                    fontSize: isTablet ? 15 : 14,
+                    fontWeight: FontWeight.w600,
+                    fontSize: isTablet ? 14 : 13,
                   ),
+                  dividerColor: Colors.transparent,
                   tabs: const [
                     Tab(text: 'Kalender'),
                     Tab(text: 'Amalan Sunnah'),
-                    Tab(text: 'Statistik'),
+                    // Tab(text: 'Statistik'),
                   ],
                 ),
               ),
 
-              SizedBox(height: isTablet ? 24 : 20),
+              SizedBox(height: isTablet ? 16 : 12),
 
               // TabView Content
               Expanded(
@@ -309,16 +302,16 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
   ) {
     return Expanded(
       child: Container(
-        padding: EdgeInsets.all(isTablet ? 20 : 18),
+        padding: EdgeInsets.all(isTablet ? 16 : 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(isTablet ? 18 : 16),
+          borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
           border: Border.all(color: color.withValues(alpha: 0.1)),
           boxShadow: [
             BoxShadow(
               color: color.withValues(alpha: 0.08),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
+              blurRadius: 12,
+              offset: const Offset(0, 3),
               spreadRadius: -2,
             ),
           ],
@@ -326,7 +319,7 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
         child: Column(
           children: [
             Container(
-              padding: EdgeInsets.all(isTablet ? 12 : 10),
+              padding: EdgeInsets.all(isTablet ? 8 : 6),
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -334,18 +327,18 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                     color.withValues(alpha: 0.1),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
+                borderRadius: BorderRadius.circular(isTablet ? 10 : 8),
               ),
-              child: Icon(icon, color: color, size: isTablet ? 24 : 22),
+              child: Icon(icon, color: color, size: isTablet ? 18 : 16),
             ),
-            SizedBox(height: isTablet ? 12 : 10),
+            SizedBox(height: isTablet ? 8 : 6),
             RichText(
               text: TextSpan(
                 children: [
                   TextSpan(
                     text: value,
                     style: TextStyle(
-                      fontSize: isTablet ? 20 : 18,
+                      fontSize: isTablet ? 16 : 14,
                       fontWeight: FontWeight.bold,
                       color: color,
                     ),
@@ -354,7 +347,7 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                     TextSpan(
                       text: '/$total',
                       style: TextStyle(
-                        fontSize: isTablet ? 14 : 12,
+                        fontSize: isTablet ? 11 : 10,
                         color: AppTheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
@@ -362,11 +355,11 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                 ],
               ),
             ),
-            SizedBox(height: isTablet ? 6 : 4),
+            SizedBox(height: isTablet ? 4 : 2),
             Text(
               label,
               style: TextStyle(
-                fontSize: isTablet ? 12 : 11,
+                fontSize: isTablet ? 10 : 9,
                 color: AppTheme.onSurfaceVariant,
                 fontWeight: FontWeight.w500,
               ),
@@ -406,9 +399,9 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
       ),
       child: Column(
         children: [
-          // Calendar Header
+          // Calendar Header - Smaller
           Container(
-            padding: EdgeInsets.all(isTablet ? 24 : 20),
+            padding: EdgeInsets.all(isTablet ? 14 : 12),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -429,17 +422,17 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                 Icon(
                   Icons.mosque,
                   color: AppTheme.primaryBlue,
-                  size: isTablet ? 28 : 24,
+                  size: isTablet ? 20 : 18,
                 ),
-                SizedBox(width: isTablet ? 12 : 8),
+                SizedBox(width: isTablet ? 8 : 6),
                 Text(
                   'Ramadhan 1446 H',
                   style: TextStyle(
                     fontSize: isDesktop
-                        ? 22
+                        ? 16
                         : isTablet
-                        ? 20
-                        : 18,
+                        ? 15
+                        : 14,
                     fontWeight: FontWeight.bold,
                     color: AppTheme.primaryBlue,
                   ),
@@ -448,14 +441,18 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
             ),
           ),
 
-          // Calendar Grid
+          // Calendar Grid - Larger
           Expanded(
             child: Padding(
-              padding: EdgeInsets.all(isTablet ? 24 : 20),
+              padding: EdgeInsets.all(isTablet ? 16 : 12),
               child: GridView.builder(
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 7,
-                  childAspectRatio: 1.0,
+                  childAspectRatio: isDesktop
+                      ? 1.0
+                      : isTablet
+                      ? 0.95
+                      : 0.85,
                   crossAxisSpacing: isTablet ? 8 : 6,
                   mainAxisSpacing: isTablet ? 8 : 6,
                 ),
@@ -487,10 +484,7 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                               ),
                         borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
                         border: isToday
-                            ? Border.all(
-                                color: AppTheme.primaryBlue,
-                                width: isTablet ? 3 : 2,
-                              )
+                            ? Border.all(color: AppTheme.primaryBlue, width: 2)
                             : Border.all(
                                 color: isCompleted
                                     ? AppTheme.accentGreen.withValues(
@@ -515,6 +509,7 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                       ),
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
                             day.toString(),
@@ -531,11 +526,11 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
                             ),
                           ),
                           if (isCompleted) ...[
-                            SizedBox(height: isTablet ? 4 : 2),
+                            SizedBox(height: 2),
                             Icon(
                               Icons.check_circle,
                               color: AppTheme.accentGreen,
-                              size: isTablet ? 16 : 14,
+                              size: isTablet ? 14 : 12,
                             ),
                           ],
                         ],
@@ -551,6 +546,7 @@ class _RamadhanDetailPageState extends State<RamadhanDetailPage>
     );
   }
 
+  // ...existing code...
   Widget _buildSunnahTab() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
