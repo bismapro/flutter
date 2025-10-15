@@ -1,412 +1,537 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:test_flutter/core/utils/connection/connection_provider.dart';
+import 'package:test_flutter/core/utils/connection/connection_state.dart';
 import 'package:test_flutter/core/utils/logger.dart';
+import 'package:test_flutter/data/models/artikel/artikel.dart';
+import 'package:test_flutter/data/models/sholat/sholat.dart';
 import 'package:test_flutter/data/services/location/location_service.dart';
+import 'package:test_flutter/features/artikel/services/artikel_service.dart';
 import 'package:test_flutter/features/home/home_state.dart';
 import 'package:test_flutter/features/home/services/home_cache_service.dart';
 import 'package:test_flutter/features/home/services/home_service.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'package:timezone/data/latest.dart' as tz;
 
-class HomeNotifier extends StateNotifier<HomeState> {
-  HomeNotifier() : super(HomeState.initial()) {
-    _initializeTimezone();
-  }
+class HomeProvider extends StateNotifier<HomeState> {
+  HomeProvider(this._ref) : super(HomeState.initial()) {
+    _loadCachedData();
+    // Listen to connection changes
+    _ref.listen<ConnectionStateX>(connectionProvider, (previous, next) {
+      // Update isOffline state when connection changes
+      if (previous?.isOnline != next.isOnline) {
+        state = state.copyWith(isOffline: !next.isOnline);
 
-  // Initialize timezone data
-  void _initializeTimezone() {
-    try {
-      tz.initializeTimeZones();
-    } catch (e) {
-      logger.warning('Failed to initialize timezones: $e');
-    }
-  }
-
-  // Get timezone based on latitude and longitude
-  String _getTimezoneFromLocation(double latitude, double longitude) {
-    if (latitude >= -11 &&
-        latitude <= 6 &&
-        longitude >= 95 &&
-        longitude <= 141) {
-      if (longitude >= 95 && longitude <= 105) {
-        return 'Asia/Jakarta'; // WIB (UTC+7)
-      } else if (longitude >= 105 && longitude <= 120) {
-        return 'Asia/Makassar'; // WITA (UTC+8)
-      } else if (longitude >= 120 && longitude <= 141) {
-        return 'Asia/Jayapura'; // WIT (UTC+9)
+        // Auto refresh data when back online
+        if (next.isOnline && previous?.isOnline == false) {
+          logger.info('Connection restored, refreshing data...');
+          refreshAllData();
+        }
       }
-    }
-    return 'Asia/Jakarta';
+    });
   }
 
-  // Get current time based on location
-  DateTime _getCurrentTimeForLocation() {
-    final location = state.lastLocation;
-    if (location == null) {
-      return DateTime.now();
-    }
+  final Ref _ref;
 
-    final latitude = location['latitude'] as double;
-    final longitude = location['longitude'] as double;
+  // Helper to check if online
+  // bool get _isOnline => _ref.read(connectionProvider).isOnline;
 
-    try {
-      final timezoneName = _getTimezoneFromLocation(latitude, longitude);
-      final timezone = tz.getLocation(timezoneName);
-      return tz.TZDateTime.now(timezone);
-    } catch (e) {
-      logger.warning('Failed to get timezone time: $e');
-      return DateTime.now();
+  // Load cached data saat inisialisasi
+  Future<void> _loadCachedData() async {
+    final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
+    final cachedLocation = await LocationService.getLocation();
+    final cachedArtikelTerbaru = HomeCacheService.getCachedArtikelTerbaru();
+
+    if (cachedJadwal != Sholat.empty() &&
+        cachedLocation != null &&
+        cachedLocation.isNotEmpty) {
+      // Update state dengan jadwal dan lokasi dari cache
+      state = state.copyWith(
+        jadwalSholat: cachedJadwal,
+        articles: cachedArtikelTerbaru,
+        latitude: cachedLocation['lat'] as double?,
+        longitude: cachedLocation['long'] as double?,
+        locationName: cachedLocation['name'] as String?,
+        localDate: cachedLocation['date'] as String?,
+        localTime: cachedLocation['time'] as String?,
+      );
+    } else if (cachedLocation != null) {
+      // Jika ada lokasi tapi belum ada jadwal, set lokasi saja
+      state = state.copyWith(
+        latitude: cachedLocation['lat'] as double?,
+        longitude: cachedLocation['long'] as double?,
+        locationName: cachedLocation['name'] as String?,
+        localDate: cachedLocation['date'] as String?,
+        localTime: cachedLocation['time'] as String?,
+      );
     }
   }
 
-  // Load all data when page loads
-  Future<void> loadAllData() async {
-    try {
+  // ...existing code...
+
+  Future<void> fetchJadwalSholat({
+    double? latitude,
+    double? longitude,
+    String? locationName,
+    String? localDate,
+    String? localTime,
+    bool forceRefresh = false,
+    bool useCurrentLocation = false,
+  }) async {
+    // Jika useCurrentLocation = true, ambil lokasi real-time
+    if (useCurrentLocation) {
+      logger.info('Fetching current location...');
       state = state.copyWith(status: HomeStatus.loading);
 
-      // Load articles first (doesn't need location)
-      await _loadLatestArticlesInternal();
-
-      // Load location and jadwal sholat
-      await _loadLocationAndJadwalSholatInternal();
-
-      // Check final state
-      final hasJadwalSholat = state.jadwalSholat != null;
-      final hasArticles = state.articles.isNotEmpty;
-
-      if (hasJadwalSholat && hasArticles) {
-        state = state.copyWith(status: HomeStatus.loaded);
+      Map<String, dynamic> locationData;
+      if (forceRefresh) {
+        locationData = await LocationService.getCurrentLocation(
+          forceRefresh: true,
+        );
+      } else {
+        locationData = await LocationService.getCurrentLocation();
       }
-    } catch (e) {
-      logger.warning('Error loading all data: $e');
-      state = state.copyWith(
-        status: HomeStatus.error,
-        error: 'Failed to load data: ${e.toString()}',
+      latitude = locationData['lat'] as double;
+      longitude = locationData['long'] as double;
+      locationName = locationData['name'] as String;
+      localDate = locationData['date'] as String;
+      localTime = locationData['time'] as String;
+
+      logger.info(
+        'Location obtained: $locationName ($latitude, $longitude) | $localDate $localTime',
       );
-    }
-  }
+    } else {
+      // Jika tidak ada parameter, gunakan dari state atau cache
+      latitude ??= state.latitude;
+      longitude ??= state.longitude;
+      locationName ??= state.locationName;
+      localDate ??= state.localDate;
+      localTime ??= state.localTime;
 
-  // Internal method to load location and jadwal sholat
-  Future<void> _loadLocationAndJadwalSholatInternal() async {
-    try {
-      final position = await LocationService.getCurrentLocation();
-
-      // Store location
-      state = state.copyWith(
-        lastLocation: {
-          'latitude': position['latitude'],
-          'longitude': position['longitude'],
-        },
-        clearLocationError: true,
-      );
-
-      // Load jadwal sholat
-      await _loadJadwalSholatInternal(
-        latitude: position['latitude'],
-        longitude: position['longitude'],
-      );
-    } catch (e) {
-      logger.warning('Error loading location: $e');
-      state = state.copyWith(
-        status: HomeStatus.error,
-        error: 'Failed to load location: ${e.toString()}',
-      );
-    }
-  }
-
-  // Internal method to load jadwal sholat
-  Future<void> _loadJadwalSholatInternal({
-    required double latitude,
-    required double longitude,
-  }) async {
-    try {
-      logger.fine('Loading jadwal sholat for location: $latitude, $longitude');
-
-      // Try network first
-      try {
-        final resp = await HomeService.getJadwalSholat(
-          latitude: latitude,
-          longitude: longitude,
-        );
-
-        final sholat = resp['data'];
-
-        // Cache the data
-        await HomeCacheService.cacheJadwalSholat(
-          sholat: sholat,
-          latitude: latitude,
-          longitude: longitude,
-        );
-
-        state = state.copyWith(
-          jadwalSholat: sholat,
-          clearError: true,
-          isOffline: false,
-        );
-
-        logger.fine('Jadwal sholat loaded successfully from network');
-      } catch (networkError) {
-        logger.warning('Network error, trying cache: $networkError');
-
-        // Try to load from cache
-        final cachedSholat = HomeCacheService.getCachedJadwalSholat(
-          latitude: latitude,
-          longitude: longitude,
-        );
-
-        if (cachedSholat != null) {
-          state = state.copyWith(
-            status: HomeStatus.offline,
-            jadwalSholat: cachedSholat,
-            error:
-                HomeCacheService.isJadwalSholatCacheValid(
-                  latitude: latitude,
-                  longitude: longitude,
-                )
-                ? null
-                : 'Prayer schedule may not be up to date. No internet connection.',
-            isOffline: true,
-          );
-
-          logger.fine('Jadwal sholat loaded from cache');
-        } else {
-          state = state.copyWith(
-            status: HomeStatus.error,
-            error: 'Failed to load prayer schedule: ${networkError.toString()}',
-            isOffline: true,
-          );
+      // Jika masih null, ambil dari cache
+      if (latitude == null || longitude == null) {
+        final cachedLocation = await LocationService.getLocation();
+        if (cachedLocation != null) {
+          latitude = cachedLocation['lat'] as double;
+          longitude = cachedLocation['long'] as double;
+          locationName = cachedLocation['name'] as String;
+          localDate = cachedLocation['date'] as String;
+          localTime = cachedLocation['time'] as String;
         }
       }
-    } catch (e) {
-      logger.warning('Error loading jadwal sholat: $e');
-      state = state.copyWith(
-        status: HomeStatus.error,
-        error: 'Failed to load prayer schedule: ${e.toString()}',
-      );
-    }
-  }
 
-  // Internal method to load latest articles
-  Future<void> _loadLatestArticlesInternal() async {
-    try {
-      logger.fine('Loading latest articles');
-
-      // Try network first
-      try {
-        final resp = await HomeService.getLatestArticle();
-        final articles = resp['data'];
-
-        // Cache the data
-        await HomeCacheService.cacheLatestArticle(articles: articles);
-
-        state = state.copyWith(
-          articles: articles,
-          clearError: true,
-          isOffline: false,
-        );
-
-        logger.fine(
-          'Latest articles loaded successfully: ${articles.length} articles',
-        );
-      } catch (networkError) {
-        logger.warning('Network error, trying cache: $networkError');
-
-        // Try to load from cache
-        final cachedArticles = HomeCacheService.getCachedLatestArticle();
-
-        if (cachedArticles.isNotEmpty) {
-          state = state.copyWith(
-            status: HomeStatus.offline,
-            articles: cachedArticles,
-            error: HomeCacheService.isLatestArticleCacheValid()
-                ? null
-                : 'Articles may not be up to date. No internet connection.',
-            isOffline: true,
-          );
-
-          logger.fine(
-            'Latest articles loaded from cache: ${cachedArticles.length} articles',
-          );
-        } else {
-          state = state.copyWith(
-            status: HomeStatus.error,
-            error: 'Failed to load articles: ${networkError.toString()}',
-            isOffline: true,
-          );
-        }
+      // Jika masih null, ambil lokasi saat ini
+      if (latitude == null || longitude == null) {
+        logger.info('No location available, fetching current location...');
+        final locationData = await LocationService.getCurrentLocation();
+        latitude = locationData['lat'] as double;
+        longitude = locationData['long'] as double;
+        locationName = locationData['name'] as String;
+        localDate = locationData['date'] as String;
+        localTime = locationData['time'] as String;
       }
-    } catch (e) {
-      logger.warning('Error loading latest articles: $e');
-      state = state.copyWith(
-        status: HomeStatus.error,
-        error: 'Failed to load articles: ${e.toString()}',
-      );
     }
-  }
 
-  // Public method to refresh location and jadwal sholat
-  Future<void> refreshLocationAndJadwalSholat() async {
+    // Cek cache terlebih dahulu
+    final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
+
+    // Jika ada cache dan bukan force refresh, gunakan cache
+    if (cachedJadwal != Sholat.empty() && !forceRefresh) {
+      logger.info('Using cached jadwal sholat data');
+      state = state.copyWith(
+        status: HomeStatus.loaded,
+        jadwalSholat: cachedJadwal,
+        latitude: latitude,
+        longitude: longitude,
+        locationName: locationName,
+        localDate: localDate,
+        localTime: localTime,
+        message: 'Jadwal sholat dimuat dari cache',
+      );
+      return;
+    }
+
+    // Jika tidak ada cache atau force refresh, fetch dari network
+    state = state.copyWith(
+      status: forceRefresh ? HomeStatus.refreshing : HomeStatus.loading,
+    );
+
     try {
-      state = state.copyWith(status: HomeStatus.refreshing);
+      // 1. Fetch dari network
+      final response = await HomeService.getJadwalSholat(
+        latitude: latitude,
+        longitude: longitude,
+      );
 
-      final position = await LocationService.getCurrentLocation();
+      // 2. Parse response data ke Sholat object
+      final sholatData = response['data'] as Map<String, dynamic>?;
 
-      // Update location
+      if (sholatData == null) {
+        throw Exception('No jadwal sholat data available');
+      }
+
+      final sholatList = Sholat.fromJson(sholatData);
+
+      logger.fine('Jadwal sholat fetched from network: $sholatList');
+
+      // 3. Cache the fetched data
+      await HomeCacheService.cacheJadwalSholat(sholatList);
+
+      // 4. Update state dengan network data
       state = state.copyWith(
-        lastLocation: {
-          'latitude': position['latitude'],
-          'longitude': position['longitude'],
-        },
-        clearLocationError: true,
+        status: HomeStatus.loaded,
+        jadwalSholat: sholatList,
+        latitude: latitude,
+        longitude: longitude,
+        locationName: locationName,
+        localDate: localDate,
+        localTime: localTime,
+        message: 'Jadwal sholat berhasil diperbarui',
       );
 
-      // Refresh jadwal sholat with new location
-      await _loadJadwalSholatInternal(
-        latitude: position['latitude'],
-        longitude: position['longitude'],
-      );
-
-      state = state.copyWith(status: HomeStatus.loaded);
+      logger.info('Successfully fetched and cached jadwal sholat from network');
     } catch (e) {
-      logger.warning('Error refreshing location: $e');
-      state = state.copyWith(
-        status: HomeStatus.error,
-        error: 'Failed to refresh location: ${e.toString()}',
-      );
+      logger.severe('Error fetching jadwal sholat: $e');
+
+      // 5. Jika gagal dan ada cache, gunakan cache
+      if (cachedJadwal != Sholat.empty()) {
+        logger.info('Using cached jadwal sholat due to network error');
+        state = state.copyWith(
+          status: HomeStatus.offline,
+          jadwalSholat: cachedJadwal,
+          latitude: latitude,
+          longitude: longitude,
+          locationName: locationName,
+          localDate: localDate,
+          localTime: localTime,
+          message: 'Menggunakan data offline',
+        );
+      } else {
+        logger.warning('No cached data available');
+        state = state.copyWith(
+          status: HomeStatus.error,
+          message: 'Gagal mengambil jadwal sholat: $e',
+        );
+      }
     }
   }
 
-  // Public method to refresh latest articles
-  Future<void> refreshLatestArticles() async {
+  // ...existing code...
+  Future<void> fetchArtikelTerbaru({bool forceRefresh = false}) async {
+    // Jika sudah ada data dan bukan force refresh, skip
+    if (!forceRefresh && state.articles.isNotEmpty) {
+      logger.info('Using existing artikel terbaru data');
+      return;
+    }
+
+    state = state.copyWith(
+      status: forceRefresh ? HomeStatus.refreshing : HomeStatus.loading,
+    );
+
     try {
-      state = state.copyWith(status: HomeStatus.refreshing);
-      await _loadLatestArticlesInternal();
-      state = state.copyWith(status: HomeStatus.loaded);
-    } catch (e) {
-      logger.warning('Error refreshing latest articles: $e');
+      // 1. Try network first
+      final response = await HomeService.getLatestArticle();
+
+      final artikelList = response['data'] as List<Artikel>;
+
+      // 2. Cache the fetched data
+      await HomeCacheService.cacheArtikelTerbaru(artikelList);
+
+      // 3. Update state with network data
       state = state.copyWith(
-        status: HomeStatus.error,
-        error: 'Failed to refresh articles: ${e.toString()}',
+        status: HomeStatus.loaded,
+        articles: artikelList,
+        message: 'Artikel terbaru berhasil diperbarui',
       );
+
+      logger.info('Successfully fetched and cached artikel terbaru');
+    } catch (e) {
+      logger.severe('Error fetching artikel terbaru: $e');
+
+      // 4. Fallback to cache if network fails
+      final cachedArtikel = HomeCacheService.getCachedArtikelTerbaru();
+
+      if (cachedArtikel.isNotEmpty) {
+        logger.info('Using cached artikel terbaru due to network error');
+        state = state.copyWith(
+          status: HomeStatus.offline,
+          articles: cachedArtikel,
+          message: 'Menggunakan data offline',
+        );
+      } else {
+        logger.warning('No cached artikel data available');
+        state = state.copyWith(
+          status: HomeStatus.error,
+          message: 'Gagal mengambil artikel terbaru: $e',
+        );
+      }
     }
   }
 
-  void clearError() {
-    state = state.copyWith(clearError: true, clearLocationError: true);
+  // Ambil Detail Artikel berdasarkan ID
+  Future<void> fetchArtikelById(int id, {bool forceRefresh = false}) async {
+    // Cek apakah artikel sudah ada di state dan bukan force refresh
+    if (!forceRefresh &&
+        state.selectedArticle != null &&
+        state.selectedArticle!.id == id) {
+      logger.info('Using existing artikel detail data for id: $id');
+      return;
+    }
+
+    state = state.copyWith(
+      status: forceRefresh ? HomeStatus.refreshing : HomeStatus.loading,
+    );
+
+    try {
+      // 1. Try network first
+      final response = await ArtikelService.getArtikelById(id);
+      final artikel = Artikel.fromJson(response['data']);
+
+      // 2. Cache the fetched artikel detail
+      await HomeCacheService.cacheArtikelDetail(artikel);
+
+      // 3. Update state with network data
+      state = state.copyWith(
+        status: HomeStatus.loaded,
+        selectedArticle: artikel,
+        message: 'Detail artikel berhasil dimuat',
+      );
+
+      logger.info('Successfully fetched and cached artikel detail for id: $id');
+    } catch (e) {
+      logger.severe('Error fetching artikel by id: $e');
+
+      // 4. Fallback to cache if network fails
+      final cachedArtikel = HomeCacheService.getCachedArtikelDetail(id);
+
+      if (cachedArtikel != null) {
+        logger.info(
+          'Using cached artikel detail due to network error for id: $id',
+        );
+        state = state.copyWith(
+          status: HomeStatus.offline,
+          selectedArticle: cachedArtikel,
+          message: 'Menggunakan data offline',
+        );
+      } else {
+        logger.warning('No cached artikel detail available for id: $id');
+        state = state.copyWith(
+          status: HomeStatus.error,
+          message: 'Gagal mengambil detail artikel: $e',
+        );
+      }
+    }
   }
 
-  // Helper methods for prayer times
+  // Method untuk refresh semua data sekaligus
+  Future<void> refreshAllData({bool useCurrentLocation = false}) async {
+    state = state.copyWith(status: HomeStatus.refreshing);
+
+    await Future.wait([
+      fetchJadwalSholat(
+        forceRefresh: true,
+        useCurrentLocation: useCurrentLocation,
+      ),
+      fetchArtikelTerbaru(forceRefresh: true),
+    ]);
+  }
+
+  // ========== PRAYER TIME HELPERS (drop-in) ==========
+
+  // ========== PRAYER TIME HELPER METHODS ==========
+
+  /// Dapatkan waktu sholat yang akan datang (next prayer)
   String? getCurrentPrayerTime() {
     final sholat = state.jadwalSholat;
-    if (sholat == null) return null;
+    if (sholat == null || sholat == Sholat.empty()) return null;
 
-    final now = _getCurrentTimeForLocation();
-    final currentTime =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    final currentTime = TimeOfDay(hour: now.hour, minute: now.minute);
 
-    final prayerTimes = sholat.wajib.getAllPrayerTimes();
+    // Konversi waktu sholat ke TimeOfDay
+    final fajr = _tryParse(sholat.wajib.shubuh);
+    final dzuhr = _tryParse(sholat.wajib.dzuhur);
+    final asr = _tryParse(sholat.wajib.ashar);
+    final maghrib = _tryParse(sholat.wajib.maghrib);
+    final isha = _tryParse(sholat.wajib.isya);
 
-    for (int i = 0; i < prayerTimes.length; i++) {
-      final prayerTime = prayerTimes[i]['time']!;
-      if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
-        return prayerTime;
-      }
+    // Tentukan waktu sholat berikutnya
+    if (_isBefore(currentTime, fajr!)) {
+      return sholat.wajib.shubuh;
+    } else if (_isBefore(currentTime, dzuhr!)) {
+      return sholat.wajib.dzuhur;
+    } else if (_isBefore(currentTime, asr!)) {
+      return sholat.wajib.ashar;
+    } else if (_isBefore(currentTime, maghrib!)) {
+      return sholat.wajib.maghrib;
+    } else if (_isBefore(currentTime, isha!)) {
+      return sholat.wajib.isya;
+    } else {
+      // Setelah Isya, tampilkan waktu Subuh besok
+      return sholat.wajib.shubuh;
     }
-
-    return prayerTimes.first['time'];
   }
 
+  /// Dapatkan nama sholat yang akan datang (next prayer)
   String? getCurrentPrayerName() {
     final sholat = state.jadwalSholat;
-    if (sholat == null) return null;
+    if (sholat == null || sholat == Sholat.empty()) return null;
 
-    final now = _getCurrentTimeForLocation();
-    final currentTime =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    final currentTime = TimeOfDay(hour: now.hour, minute: now.minute);
 
-    final prayerTimes = sholat.wajib.getAllPrayerTimes();
+    // Konversi waktu sholat ke TimeOfDay
+    final fajr = _tryParse(sholat.wajib.shubuh);
+    final dzuhr = _tryParse(sholat.wajib.dzuhur);
+    final asr = _tryParse(sholat.wajib.ashar);
+    final maghrib = _tryParse(sholat.wajib.maghrib);
+    final isha = _tryParse(sholat.wajib.isya);
 
-    for (int i = 0; i < prayerTimes.length; i++) {
-      final prayerTime = prayerTimes[i]['time']!;
-      if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
-        return prayerTimes[i]['name'];
-      }
+    // Tentukan sholat berikutnya
+    if (_isBefore(currentTime, fajr!)) {
+      return 'Fajr';
+    } else if (_isBefore(currentTime, dzuhr!)) {
+      return 'Dzuhr';
+    } else if (_isBefore(currentTime, asr!)) {
+      return 'Asr';
+    } else if (_isBefore(currentTime, maghrib!)) {
+      return 'Maghrib';
+    } else if (_isBefore(currentTime, isha!)) {
+      return 'Isha';
+    } else {
+      // Setelah Isya, sholat berikutnya adalah Subuh besok
+      return 'Fajr (Tomorrow)';
     }
-
-    return prayerTimes.first['name'];
   }
 
+  /// Dapatkan nama sholat yang sedang aktif sekarang
+  String? getActivePrayerName() {
+    final sholat = state.jadwalSholat;
+    if (sholat == null || sholat == Sholat.empty()) return null;
+
+    final now = DateTime.now();
+    final currentTime = TimeOfDay(hour: now.hour, minute: now.minute);
+
+    // Konversi waktu sholat ke TimeOfDay
+    final fajr = _tryParse(sholat.wajib.shubuh);
+    final dzuhr = _tryParse(sholat.wajib.dzuhur);
+    final asr = _tryParse(sholat.wajib.ashar);
+    final maghrib = _tryParse(sholat.wajib.maghrib);
+    final isha = _tryParse(sholat.wajib.isya);
+
+    // Tentukan sholat yang sedang aktif (sudah masuk waktunya tapi belum lewat ke sholat berikutnya)
+    if (_isBefore(currentTime, fajr!)) {
+      return null; // Belum ada sholat
+    } else if (_isBefore(currentTime, dzuhr!)) {
+      return 'Fajr';
+    } else if (_isBefore(currentTime, asr!)) {
+      return 'Dzuhr';
+    } else if (_isBefore(currentTime, maghrib!)) {
+      return 'Asr';
+    } else if (_isBefore(currentTime, isha!)) {
+      return 'Maghrib';
+    } else {
+      return 'Isha';
+    }
+  }
+
+  /// Dapatkan sisa waktu hingga sholat berikutnya
   String? getTimeUntilNextPrayer() {
     final sholat = state.jadwalSholat;
-    if (sholat == null) return null;
+    if (sholat == null || sholat == Sholat.empty()) return null;
 
-    final now = _getCurrentTimeForLocation();
-    final currentTime =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    final now = DateTime.now();
+    final currentTime = TimeOfDay(hour: now.hour, minute: now.minute);
 
-    final prayerTimes = sholat.wajib.getAllPrayerTimes();
+    // Konversi waktu sholat ke TimeOfDay
+    final fajr = _tryParse(sholat.wajib.shubuh);
+    final dzuhr = _tryParse(sholat.wajib.dzuhur);
+    final asr = _tryParse(sholat.wajib.ashar);
+    final maghrib = _tryParse(sholat.wajib.maghrib);
+    final isha = _tryParse(sholat.wajib.isya);
 
-    for (int i = 0; i < prayerTimes.length; i++) {
-      final prayerTime = prayerTimes[i]['time']!;
-      if (_timeToMinutes(currentTime) < _timeToMinutes(prayerTime)) {
-        final minutesUntil =
-            _timeToMinutes(prayerTime) - _timeToMinutes(currentTime);
-        final hours = minutesUntil ~/ 60;
-        final minutes = minutesUntil % 60;
+    TimeOfDay? nextPrayer;
 
-        if (hours > 0) {
-          return '$hours hour $minutes min left';
-        } else {
-          return '$minutes min left';
-        }
-      }
+    // Tentukan waktu sholat berikutnya
+    if (_isBefore(currentTime, fajr!)) {
+      nextPrayer = fajr;
+    } else if (_isBefore(currentTime, dzuhr!)) {
+      nextPrayer = dzuhr;
+    } else if (_isBefore(currentTime, asr!)) {
+      nextPrayer = asr;
+    } else if (_isBefore(currentTime, maghrib!)) {
+      nextPrayer = maghrib;
+    } else if (_isBefore(currentTime, isha!)) {
+      nextPrayer = isha;
+    } else {
+      // Setelah Isya, hitung waktu hingga Subuh besok
+      nextPrayer = fajr;
     }
 
-    final firstPrayerTime = prayerTimes.first['time']!;
-    final minutesUntilMidnight = (24 * 60) - _timeToMinutes(currentTime);
-    final minutesFromMidnight = _timeToMinutes(firstPrayerTime);
-    final totalMinutes = minutesUntilMidnight + minutesFromMidnight;
+    // Hitung selisih waktu
+    final difference = _timeDifference(currentTime, nextPrayer);
 
-    final hours = totalMinutes ~/ 60;
-    final minutes = totalMinutes % 60;
-
-    return '$hours hour $minutes min left';
-  }
-
-  String getCurrentTimeString() {
-    final now = _getCurrentTimeForLocation();
-    return '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
-  }
-
-  String getCurrentTimezone() {
-    final location = state.lastLocation;
-    if (location == null) {
-      return 'Unknown';
+    if (difference.inHours > 0) {
+      final hours = difference.inHours;
+      final minutes = difference.inMinutes % 60;
+      final seconds = difference.inSeconds % 60;
+      return 'in ${hours}h ${minutes}m ${seconds}s';
+    } else if (difference.inMinutes > 0) {
+      final minutes = difference.inMinutes;
+      final seconds = difference.inSeconds % 60;
+      return 'in ${minutes}m ${seconds}s';
+    } else {
+      final seconds = difference.inSeconds;
+      return 'in ${seconds}s';
     }
-
-    final latitude = location['latitude'] as double;
-    final longitude = location['longitude'] as double;
-
-    return _getTimezoneFromLocation(latitude, longitude);
   }
 
-  // Cache management
-  Future<void> clearCache() async {
-    await HomeCacheService.clearAllCache();
-    logger.fine('Home cache cleared');
+  // ...existing code...
+  // ------------------ PRIVATE HELPERS ------------------
+
+  /// Parsers yang aman: null/empty → return null, invalid → null.
+  TimeOfDay? _tryParse(String? time) {
+    if (time == null || time.trim().isEmpty) return null;
+    try {
+      final sanitized = time.replaceAll(RegExp(r'[^\d:]'), '').trim();
+      final parts = sanitized.split(':');
+      if (parts.length < 2) return null;
+
+      final h = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      if (h == null || m == null) return null;
+      if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+
+      return TimeOfDay(hour: h, minute: m);
+    } catch (_) {
+      return null;
+    }
   }
 
-  Map<String, int> getCacheInfo() {
-    return HomeCacheService.getCacheInfo();
+  /// true bila a < b (sebelum).
+  bool _isBefore(TimeOfDay a, TimeOfDay b) {
+    if (a.hour != b.hour) return a.hour < b.hour;
+    return a.minute < b.minute;
   }
 
-  int _timeToMinutes(String time) {
-    final parts = time.split(':');
-    final hour = int.tryParse(parts[0]) ?? 0;
-    final minute = int.tryParse(parts[1]) ?? 0;
-    return hour * 60 + minute;
+  /// Selisih waktu dari 'from' ke 'to' (autoforward ke hari berikutnya jika perlu).
+  Duration _timeDifference(TimeOfDay from, TimeOfDay to) {
+    final now = DateTime.now();
+    final fromDate = DateTime(
+      now.year,
+      now.month,
+      now.day,
+      from.hour,
+      from.minute,
+    );
+    var toDate = DateTime(now.year, now.month, now.day, to.hour, to.minute);
+
+    if (toDate.isBefore(fromDate)) {
+      toDate = toDate.add(const Duration(days: 1));
+    }
+    return toDate.difference(fromDate);
   }
 }
 
-final homeProvider = StateNotifierProvider<HomeNotifier, HomeState>((ref) {
-  return HomeNotifier();
+final homeProvider = StateNotifierProvider<HomeProvider, HomeState>((ref) {
+  return HomeProvider(ref);
 });

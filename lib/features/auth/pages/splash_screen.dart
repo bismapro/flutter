@@ -3,6 +3,7 @@ import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/app/bootstrap.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
@@ -26,6 +27,9 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   bool _animationsDone = false;
   bool _navigated = false;
   _Target _target = _Target.unknown;
+
+  ProviderSubscription<AsyncValue<void>>? _bootSub; // <— tambahkan
+  bool _bootDone = false; // <— tambahkan
 
   late AnimationController _logoController;
   late AnimationController _textController;
@@ -68,6 +72,30 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       }
       _maybeNavigate(); // cek apakah animasi sudah selesai
     });
+
+    // 2b) Listen bootstrap selesai
+    _bootSub = ref.listenManual<AsyncValue<void>>(
+      bootstrapProvider,
+      (prev, next) {
+        next.when(
+          data: (_) {
+            _bootDone = true;
+            _maybeNavigate();
+          },
+          loading: () {},
+          error: (_, __) {
+            _bootDone = true;
+            _maybeNavigate();
+          },
+        );
+      },
+      fireImmediately: false, // biar gak langsung dipanggil saat registrasi
+    );
+
+    // Trigger bootstrap (tanpa await): mulai paralel segera
+    // dengan cara menyentuh future-nya
+    // ignore: unused_local_variable
+    final _ = ref.read(bootstrapProvider.future);
 
     // 3) Init animasi
     _logoController = AnimationController(
@@ -119,6 +147,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     if (!mounted || _navigated) return;
     if (!_animationsDone) return;
     if (_target == _Target.unknown) return;
+    if (!_bootDone) return; // <— pastikan bootstrap selesai
 
     _navigated = true;
     final page = (_target == _Target.home)
@@ -132,6 +161,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void dispose() {
     _authSub?.close();
+    _bootSub?.close();
     _logoController.dispose();
     _textController.dispose();
     _progressController.dispose();

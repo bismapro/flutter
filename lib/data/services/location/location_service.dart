@@ -41,12 +41,15 @@ class LocationService {
     final name = prefs.getString(_nameKey);
     final date = prefs.getString(_dateKey);
     final time = prefs.getString(_timeKey);
+
     if (lat == null ||
         long == null ||
         name == null ||
         date == null ||
-        time == null)
+        time == null) {
       return null;
+    }
+
     return {'lat': lat, 'long': long, 'name': name, 'date': date, 'time': time};
   }
 
@@ -83,7 +86,28 @@ class LocationService {
     }
   }
 
-  static Future<Map<String, dynamic>> getCurrentLocation() async {
+  /// Ambil lokasi: Prioritas cache, fetch jika belum ada
+  static Future<Map<String, dynamic>> getCurrentLocation({
+    bool forceRefresh = false,
+  }) async {
+    // 1. Cek cache terlebih dahulu (kecuali force refresh)
+    if (!forceRefresh) {
+      final cachedLocation = await getLocation();
+      if (cachedLocation != null) {
+        logger.info(
+          'Using cached location: ${cachedLocation['name']} '
+          '(${cachedLocation['lat']}, ${cachedLocation['long']})',
+        );
+        return cachedLocation;
+      }
+    }
+
+    // 2. Jika tidak ada cache atau force refresh, fetch dari GPS
+    return await _fetchCurrentLocation();
+  }
+
+  /// Fetch lokasi real-time dari GPS
+  static Future<Map<String, dynamic>> _fetchCurrentLocation() async {
     try {
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
       if (!serviceEnabled) {
@@ -138,7 +162,7 @@ class LocationService {
       );
 
       logger.info(
-        '📍 $locationName | $date $time '
+        '📍 Fetched and cached location: $locationName | $date $time '
         '(${position.latitude}, ${position.longitude})',
       );
 
@@ -155,8 +179,22 @@ class LocationService {
     }
   }
 
+  /// Refresh lokasi (force fetch dari GPS)
+  static Future<Map<String, dynamic>> refreshLocation() async {
+    logger.info('Force refreshing location...');
+    return await getCurrentLocation(forceRefresh: true);
+  }
+
   /// Fallback ke cache atau Jakarta
   static Future<Map<String, dynamic>> _loadFallbackOrCachedLocation() async {
+    // Coba ambil dari cache dulu
+    final cachedLocation = await getLocation();
+    if (cachedLocation != null) {
+      logger.info('Using cached location as fallback');
+      return cachedLocation;
+    }
+
+    // Jika tidak ada cache, gunakan default Jakarta
     final prefs = await SharedPreferences.getInstance();
     final lat = prefs.getDouble(_latKey) ?? -6.2088;
     final long = prefs.getDouble(_longKey) ?? 106.8456;
@@ -168,7 +206,7 @@ class LocationService {
         prefs.getString(_timeKey) ??
         '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
 
-    logger.info('Using fallback location: $name ($lat, $long)');
+    logger.info('Using default fallback location: $name ($lat, $long)');
     return {'lat': lat, 'long': long, 'name': name, 'date': date, 'time': time};
   }
 

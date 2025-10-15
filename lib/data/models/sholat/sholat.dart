@@ -13,6 +13,31 @@ class Sholat {
     );
   }
 
+  factory Sholat.empty() {
+    return Sholat(
+      tanggal: '',
+      wajib: SholatWajib(
+        shubuh: '',
+        dzuhur: '',
+        ashar: '',
+        maghrib: '',
+        isya: '',
+      ),
+      sunnah: SholatSunnah(
+        tahajud: '',
+        witir: '',
+        dhuha: '',
+        qabliyahSubuh: '',
+        qabliyahDzuhur: '',
+        baDiyahDzuhur: '',
+        qabliyahAshar: '',
+        baDiyahMaghrib: '',
+        qabliyahIsya: '',
+        baDiyahIsya: '',
+      ),
+    );
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'tanggal': tanggal,

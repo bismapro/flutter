@@ -1,4 +1,4 @@
-import 'package:test_flutter/data/models/komunitas/komunitas.dart';
+import 'package:test_flutter/data/models/artikel/artikel.dart';
 import 'package:test_flutter/data/models/sholat/sholat.dart';
 
 enum HomeStatus { initial, loading, loaded, error, refreshing, offline }
@@ -6,26 +6,42 @@ enum HomeStatus { initial, loading, loaded, error, refreshing, offline }
 class HomeState {
   final HomeStatus status;
   final Sholat? jadwalSholat;
-  final List<KomunitasPostingan> articles;
-  final String? error;
-  final String? locationError;
-  final Map<String, dynamic>? lastLocation;
+  final List<Artikel> articles;
+  final Artikel? selectedArticle;
+  final String? message;
+  final double? latitude;
+  final double? longitude;
+  final String? locationName;
+  final String? localDate;
+  final String? localTime;
   final bool isOffline;
 
   const HomeState({
     required this.status,
     this.jadwalSholat,
     this.articles = const [],
-    this.error,
-    this.locationError,
-    this.lastLocation,
-    this.isOffline = false,
+    this.selectedArticle,
+    this.message,
+    this.latitude,
+    this.longitude,
+    this.locationName,
+    this.localDate,
+    this.localTime,
+    required this.isOffline,
   });
 
   factory HomeState.initial() {
     return const HomeState(
       status: HomeStatus.initial,
       articles: [],
+      selectedArticle: null,
+      jadwalSholat: null,
+      message: null,
+      latitude: null,
+      longitude: null,
+      locationName: null,
+      localDate: null,
+      localTime: null,
       isOffline: false,
     );
   }
@@ -33,23 +49,28 @@ class HomeState {
   HomeState copyWith({
     HomeStatus? status,
     Sholat? jadwalSholat,
-    List<KomunitasPostingan>? articles,
-    String? error,
-    String? locationError,
-    Map<String, dynamic>? lastLocation,
+    List<Artikel>? articles,
+    Artikel? selectedArticle,
+    String? message,
+    double? latitude,
+    double? longitude,
+    String? locationName,
+    String? localDate,
+    String? localTime,
     bool? isOffline,
-    bool clearError = false,
-    bool clearLocationError = false,
+    bool clearmessage = false,
   }) {
     return HomeState(
       status: status ?? this.status,
       jadwalSholat: jadwalSholat ?? this.jadwalSholat,
       articles: articles ?? this.articles,
-      error: clearError ? null : (error ?? this.error),
-      locationError: clearLocationError
-          ? null
-          : (locationError ?? this.locationError),
-      lastLocation: lastLocation ?? this.lastLocation,
+      selectedArticle: selectedArticle ?? this.selectedArticle,
+      message: clearmessage ? null : (message ?? this.message),
+      latitude: latitude ?? this.latitude,
+      longitude: longitude ?? this.longitude,
+      locationName: locationName ?? this.locationName,
+      localDate: localDate ?? this.localDate,
+      localTime: localTime ?? this.localTime,
       isOffline: isOffline ?? this.isOffline,
     );
   }

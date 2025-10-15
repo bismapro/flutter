@@ -1,4 +1,3 @@
-import 'package:hijri/hijri_calendar.dart';
 import 'package:hijri_date_time/hijri_date_time.dart';
 import 'package:intl/intl.dart';
 

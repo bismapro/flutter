@@ -31,6 +31,21 @@ class Artikel {
     required this.kategori,
   });
 
+  Artikel.empty()
+    : id = 0,
+      kategoriId = 0,
+      judul = '',
+      cover = '',
+      tipe = '',
+      videoUrl = null,
+      konten = null,
+      daftarGambar = const [],
+      createdAt = DateTime.now(),
+      updatedAt = DateTime.now(),
+      excerpt = null,
+      penulis = null,
+      kategori = KategoriArtikel.empty();
+
   factory Artikel.fromJson(Map<String, dynamic> json) {
     return Artikel(
       id: json['id'] as int,

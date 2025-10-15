@@ -1,15 +1,15 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_islamic_icons/flutter_islamic_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hijri/hijri_calendar.dart';
 import 'package:hijri_date_time/hijri_date_time.dart';
-import 'package:intl/intl.dart';
+import 'package:test_flutter/app/router.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
-import 'package:test_flutter/data/models/komunitas/komunitas.dart';
+import 'package:test_flutter/data/models/artikel/artikel.dart';
 import 'package:test_flutter/data/models/sholat/sholat.dart';
-import 'package:test_flutter/data/services/location/location_service.dart';
 import 'package:test_flutter/features/home/home_provider.dart';
 import 'package:test_flutter/features/home/home_state.dart';
 import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
@@ -76,7 +76,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   double _hpad(BuildContext c) {
     if (ResponsiveHelper.isExtraLargeScreen(c)) return 48;
     if (ResponsiveHelper.isLargeScreen(c)) return 32;
-    return ResponsiveHelper.getScreenWidth(c) * 0.04; // ~16 di ponsel normal
+    return ResponsiveHelper.getScreenWidth(c) * 0.04;
   }
 
   double _contentMaxWidth(BuildContext c) {
@@ -89,6 +89,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       ResponsiveHelper.isLargeScreen(c) ||
       ResponsiveHelper.isExtraLargeScreen(c);
 
+  Timer? _timer;
+
   void _showAllFeaturesSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
@@ -98,57 +100,25 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     );
   }
 
-  String _locationName = 'Loading...';
-  String _gregorianDate = '';
-  String _hijriDate = '';
-  String _localTime = '';
-  String now = DateTime.now().toString();
-
   @override
   void initState() {
     super.initState();
     // Load all data when page loads
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(homeProvider.notifier).loadAllData();
-      _loadLocationData();
+      // Fetch jadwal sholat (akan ambil dari cache jika ada)
+      ref.read(homeProvider.notifier).fetchJadwalSholat();
+      // Fetch artikel terbaru (akan ambil dari cache jika ada)
+      ref.read(homeProvider.notifier).fetchArtikelTerbaru();
     });
-  }
 
-  Future<void> _loadLocationData() async {
-    try {
-      final locationData = await LocationService.getLocation();
-
-      if (locationData != null) {
+    // Start timer to update time every second
+    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (mounted) {
         setState(() {
-          _locationName = locationData['name'] as String;
-          _localTime = locationData['time'] as String;
-
-          // Parse tanggal
-          final dateStr = locationData['date'] as String;
-          final dateParts = dateStr.split('-');
-          final year = int.parse(dateParts[0]);
-          final month = int.parse(dateParts[1]);
-          final day = int.parse(dateParts[2]);
-          final date = DateTime(year, month, day);
-
-          // Format tanggal Gregorian
-          _gregorianDate = _formatGregorianDate(date);
-
-          // Convert ke Hijriah
-          _hijriDate = _formatHijriDate(date);
+          // This will trigger rebuild and update the time
         });
       }
-    } catch (e) {
-      logger.warning('Error loading location data: $e');
-      // Fallback ke default
-      setState(() {
-        _locationName = 'Jakarta, Indonesia';
-        _gregorianDate = _formatGregorianDate(DateTime.now());
-        _hijriDate = _formatHijriDate(DateTime.now());
-        _localTime =
-            '${DateTime.now().hour}:${DateTime.now().minute.toString().padLeft(2, '0')}';
-      });
-    }
+    });
   }
 
   String _formatGregorianDate(DateTime date) {
@@ -171,10 +141,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 
   String _formatHijriDate(DateTime date) {
     try {
-      // Konversi dari Gregorian ke Hijriah
       final hijriDate = HijriDateTime.fromGregorian(date);
-
-      // Daftar nama bulan Hijriah
       const hijriMonths = [
         'Muharram',
         'Safar',
@@ -189,15 +156,17 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
         'Zulkaidah',
         'Zulhijjah',
       ];
-
-      // Ambil nama bulan dari list (index bulan - 1)
       final monthName = hijriMonths[hijriDate.month - 1];
-
-      // Format hasil akhir seperti "9 Muharram 1446 H"
       return '${hijriDate.day} $monthName ${hijriDate.year} H';
     } catch (e) {
       return 'Tanggal Hijriah';
     }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -206,9 +175,31 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     final status = homeState.status;
     final sholat = homeState.jadwalSholat;
     final articles = homeState.articles;
-    final error = homeState.error;
-    final locationError = homeState.locationError;
+    final error = homeState.message;
     final isOffline = homeState.isOffline;
+
+    // Get location data from state
+    final locationName = homeState.locationName ?? 'Loading...';
+    final localDate = homeState.localDate;
+    final localTime = homeState.localTime ?? '';
+
+    // Format dates
+    String gregorianDate = 'Loading...';
+    String hijriDate = 'Loading...';
+
+    if (localDate != null) {
+      try {
+        final dateParts = localDate.split('-');
+        final year = int.parse(dateParts[0]);
+        final month = int.parse(dateParts[1]);
+        final day = int.parse(dateParts[2]);
+        final date = DateTime(year, month, day);
+        gregorianDate = _formatGregorianDate(date);
+        hijriDate = _formatHijriDate(date);
+      } catch (e) {
+        logger.warning('Error parsing date: $e');
+      }
+    }
 
     return Scaffold(
       backgroundColor: AppTheme.backgroundWhite,
@@ -230,7 +221,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             bottom: false,
             child: Column(
               children: [
-                // Header - UPDATE THIS SECTION
+                // Header
                 Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: _hpad(context),
@@ -245,7 +236,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           children: [
                             // Tanggal Hijriah
                             Text(
-                              _hijriDate.isNotEmpty ? _hijriDate : 'Loading...',
+                              hijriDate,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: _t(context, 16),
@@ -255,9 +246,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                             SizedBox(height: _px(context, 4)),
                             // Tanggal Gregorian
                             Text(
-                              _gregorianDate.isNotEmpty
-                                  ? _gregorianDate
-                                  : 'Loading...',
+                              gregorianDate,
                               style: TextStyle(
                                 color: Colors.white70,
                                 fontSize: _t(context, 13),
@@ -275,7 +264,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                 SizedBox(width: _px(context, 4)),
                                 Flexible(
                                   child: Text(
-                                    _locationName,
+                                    locationName,
                                     style: TextStyle(
                                       color: Colors.white70,
                                       fontSize: _t(context, 13),
@@ -291,7 +280,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                                 ),
                                 SizedBox(width: _px(context, 4)),
                                 Text(
-                                  _localTime,
+                                  localTime,
                                   style: TextStyle(
                                     color: Colors.white70,
                                     fontSize: _t(context, 13),
@@ -307,12 +296,13 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           // Refresh location button
                           GestureDetector(
                             onTap: () async {
-                              // Refresh location data
+                              // Refresh location and jadwal sholat with force refresh
                               await ref
                                   .read(homeProvider.notifier)
-                                  .refreshLocationAndJadwalSholat();
-                              // Reload location display
-                              await _loadLocationData();
+                                  .fetchJadwalSholat(
+                                    forceRefresh: true,
+                                    useCurrentLocation: true,
+                                  );
                             },
                             child: Container(
                               padding: EdgeInsets.all(_px(context, 8)),
@@ -365,7 +355,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                 SizedBox(height: _px(context, 18)),
 
                 // Current prayer time with loading state
-                _buildPrayerTimeDisplay(context, sholat, status, locationError),
+                _buildPrayerTimeDisplay(context, sholat, status),
 
                 SizedBox(height: _px(context, 28)),
 
@@ -459,7 +449,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     BuildContext context,
     Sholat? sholat,
     HomeStatus status,
-    String? locationError,
   ) {
     if (status == HomeStatus.loading) {
       return Column(
@@ -481,8 +470,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       );
     }
 
-    if (locationError != null ||
-        (sholat == null && status == HomeStatus.error)) {
+    if (status == HomeStatus.error && sholat == null) {
       return Column(
         children: [
           Icon(
@@ -494,7 +482,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: _hpad(context)),
             child: Text(
-              locationError ?? 'Failed to load prayer schedule',
+              'Failed to load prayer schedule',
               style: TextStyle(
                 color: Colors.white70,
                 fontSize: _t(context, 14),
@@ -505,7 +493,12 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           SizedBox(height: _px(context, 8)),
           TextButton(
             onPressed: () {
-              ref.read(homeProvider.notifier).refreshLocationAndJadwalSholat();
+              ref
+                  .read(homeProvider.notifier)
+                  .fetchJadwalSholat(
+                    forceRefresh: true,
+                    useCurrentLocation: true,
+                  );
             },
             child: Text(
               'Retry',
@@ -521,16 +514,23 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     }
 
     if (sholat != null) {
+      // Get current time in real-time
+      final now = DateTime.now();
+      final currentTime =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+
+      // Get current prayer name and time until next prayer
       final notifier = ref.read(homeProvider.notifier);
-      final currentPrayerTime = notifier.getCurrentPrayerTime() ?? '--:--';
       final currentPrayerName =
           notifier.getCurrentPrayerName() ?? 'Next Prayer';
+      final nextPrayerTime = notifier.getCurrentPrayerTime() ?? '--:--';
       final timeLeft = notifier.getTimeUntilNextPrayer() ?? '';
 
       return Column(
         children: [
+          // Display current local time
           Text(
-            currentPrayerTime,
+            currentTime,
             style: TextStyle(
               color: Colors.white,
               fontSize: _t(context, 56),
@@ -538,10 +538,24 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
               letterSpacing: 2,
             ),
           ),
+          SizedBox(height: _px(context, 4)),
+          // Display next prayer info
           Text(
-            '$currentPrayerName $timeLeft',
-            style: TextStyle(color: Colors.white, fontSize: _t(context, 16)),
+            '$currentPrayerName at $nextPrayerTime',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: _t(context, 16),
+              fontWeight: FontWeight.w600,
+            ),
           ),
+          if (timeLeft.isNotEmpty)
+            Text(
+              timeLeft,
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: _t(context, 14),
+              ),
+            ),
         ],
       );
     }
@@ -566,9 +580,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       );
     }
 
-    // Determine active prayer
+    // Determine active prayer (yang sedang berlangsung sekarang)
     final notifier = ref.read(homeProvider.notifier);
-    final currentPrayerName = notifier.getCurrentPrayerName();
+    final activePrayerName = notifier.getActivePrayerName();
 
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: _hpad(context)),
@@ -580,35 +594,35 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             'Fajr',
             sholat.wajib.shubuh,
             Icons.nightlight_round,
-            currentPrayerName == 'Fajr',
+            activePrayerName == 'Fajr',
           ),
           _buildPrayerTimeWidget(
             context,
             'Dzuhr',
             sholat.wajib.dzuhur,
             Icons.wb_sunny_rounded,
-            currentPrayerName == 'Dzuhr',
+            activePrayerName == 'Dzuhr',
           ),
           _buildPrayerTimeWidget(
             context,
             'Asr',
             sholat.wajib.ashar,
             Icons.wb_twilight_rounded,
-            currentPrayerName == 'Asr',
+            activePrayerName == 'Asr',
           ),
           _buildPrayerTimeWidget(
             context,
             'Maghrib',
             sholat.wajib.maghrib,
             Icons.wb_sunny_outlined,
-            currentPrayerName == 'Maghrib',
+            activePrayerName == 'Maghrib',
           ),
           _buildPrayerTimeWidget(
             context,
             'Isha',
             sholat.wajib.isya,
             Icons.dark_mode_rounded,
-            currentPrayerName == 'Isha',
+            activePrayerName == 'Isha',
           ),
         ],
       ),
@@ -631,7 +645,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           const SizedBox(width: 8),
           Expanded(
             child: Text(
-              'You are offline. Data may not be up to date.',
+              'You are offline. Showing cached data.',
               style: TextStyle(
                 color: Colors.orange.shade700,
                 fontSize: _t(context, 12),
@@ -647,7 +661,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   Widget _buildBottomSheetContent(
     BuildContext context,
     ScrollController scrollController,
-    List<KomunitasPostingan> articles,
+    List<Artikel> articles,
     HomeStatus status,
     String? error,
   ) {
@@ -808,7 +822,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             else
               IconButton(
                 onPressed: () {
-                  ref.read(homeProvider.notifier).refreshLatestArticles();
+                  ref
+                      .read(homeProvider.notifier)
+                      .fetchArtikelTerbaru(forceRefresh: true);
                 },
                 icon: Icon(
                   Icons.refresh,
@@ -830,16 +846,16 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 
   Widget _buildArticlesSection(
     BuildContext context,
-    List<KomunitasPostingan> articles,
+    List<Artikel> articles,
     HomeStatus status,
     String? error,
   ) {
-    if (status == HomeStatus.loading) {
+    if (status == HomeStatus.loading && articles.isEmpty) {
       return _buildArticlesLoadingState(context);
     }
 
-    if (error != null && articles.isEmpty) {
-      return _buildArticlesErrorState(context, error);
+    if (status == HomeStatus.error && articles.isEmpty) {
+      return _buildArticlesErrorState(context, error ?? 'Unknown error');
     }
 
     if (articles.isEmpty) {
@@ -851,10 +867,11 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     return Column(
       children: articles.take(3).map((article) {
         return _buildEnhancedArticleCard(
+          article: article,
           title: article.judul,
-          summary: article.excerpt,
-          imageUrl: article.daftarGambar.isNotEmpty
-              ? "$storageUrl/${article.daftarGambar[0]}"
+          summary: article.excerpt ?? '',
+          imageUrl: article.daftarGambar!.isNotEmpty
+              ? "$storageUrl/${article.daftarGambar![0]}"
               : 'https://picsum.photos/120/100?random=${article.id}',
           date: _formatDate(article.createdAt),
           context: context,
@@ -956,7 +973,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           SizedBox(height: _px(context, 16)),
           ElevatedButton(
             onPressed: () {
-              ref.read(homeProvider.notifier).refreshLatestArticles();
+              ref
+                  .read(homeProvider.notifier)
+                  .fetchArtikelTerbaru(forceRefresh: true);
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AppTheme.primaryBlue,
@@ -1455,6 +1474,7 @@ Widget _buildSectionHeader(
 }
 
 Widget _buildEnhancedArticleCard({
+  required Artikel article,
   required String title,
   required String summary,
   required String imageUrl,
@@ -1475,6 +1495,9 @@ Widget _buildEnhancedArticleCard({
   final imgW = px(100);
   final imgH = px(90);
 
+  // Determine if this is a video article
+  final isVideo = article.tipe.toLowerCase() == 'video';
+
   return Container(
     margin: const EdgeInsets.only(bottom: 16),
     decoration: BoxDecoration(
@@ -1494,17 +1517,8 @@ Widget _buildEnhancedArticleCard({
       onTap: () {
         Navigator.pushNamed(
           context,
-          '/article-detail',
-          arguments: {
-            'title': title,
-            'summary': summary,
-            'imageUrl': imageUrl,
-            'date': date,
-            'content': '',
-            'author': 'Tim Editorial Islamic App',
-            'readTime': '5 min',
-            'category': category,
-          },
+          AppRoutes.articleDetail,
+          arguments: article.id,
         );
       },
       borderRadius: BorderRadius.circular(18),
@@ -1512,7 +1526,7 @@ Widget _buildEnhancedArticleCard({
         padding: EdgeInsets.all(px(12)),
         child: Row(
           children: [
-            // Image
+            // Image/Thumbnail
             Container(
               width: imgW,
               height: imgH,
@@ -1530,6 +1544,7 @@ Widget _buildEnhancedArticleCard({
                 borderRadius: BorderRadius.circular(12),
                 child: Stack(
                   children: [
+                    // Image/Thumbnail
                     Image.network(
                       imageUrl,
                       width: imgW,
@@ -1541,13 +1556,39 @@ Widget _buildEnhancedArticleCard({
                           height: imgH,
                           color: Colors.grey.shade200,
                           child: Icon(
-                            Icons.image,
+                            isVideo ? Icons.video_library : Icons.image,
                             color: Colors.grey.shade400,
                             size: px(32),
                           ),
                         );
                       },
                     ),
+
+                    // Video play button overlay
+                    if (isVideo)
+                      Positioned.fill(
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.3),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Center(
+                            child: Container(
+                              padding: EdgeInsets.all(px(8)),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.play_arrow_rounded,
+                                color: AppTheme.primaryBlue,
+                                size: px(24),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+
                     // Category badge
                     Positioned(
                       top: 6,
@@ -1558,16 +1599,31 @@ Widget _buildEnhancedArticleCard({
                           vertical: px(4),
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryBlue,
+                          color: isVideo
+                              ? Colors.red.shade600
+                              : AppTheme.primaryBlue,
                           borderRadius: BorderRadius.circular(6),
                         ),
-                        child: Text(
-                          category,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: ts(10),
-                            fontWeight: FontWeight.w600,
-                          ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (isVideo) ...[
+                              Icon(
+                                Icons.videocam_rounded,
+                                color: Colors.white,
+                                size: px(12),
+                              ),
+                              SizedBox(width: px(4)),
+                            ],
+                            Text(
+                              category,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: ts(10),
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -1581,16 +1637,23 @@ Widget _buildEnhancedArticleCard({
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    title,
-                    style: TextStyle(
-                      fontSize: ts(15),
-                      fontWeight: FontWeight.bold,
-                      color: AppTheme.onSurface,
-                      height: 1.3,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  // Title with video indicator
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          title,
+                          style: TextStyle(
+                            fontSize: ts(15),
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.onSurface,
+                            height: 1.3,
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
                   ),
                   SizedBox(height: px(6)),
                   Text(
@@ -1619,11 +1682,14 @@ Widget _buildEnhancedArticleCard({
                           color: AppTheme.onSurfaceVariant,
                         ),
                       ),
+
                       const Spacer(),
                       Icon(
                         Icons.arrow_forward_ios_rounded,
                         size: px(14),
-                        color: AppTheme.primaryBlue,
+                        color: isVideo
+                            ? Colors.red.shade600
+                            : AppTheme.primaryBlue,
                       ),
                     ],
                   ),

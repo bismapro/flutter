@@ -66,7 +66,7 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
     try {
       final resp = await AuthService.getCurrentUser();
       final data = resp['data'] as Map<String, dynamic>?;
-      if (data != null) return data;
+      if (data != null) return data['user'];
       return null;
     } on DioException catch (e) {
       final code = e.response?.statusCode;
@@ -87,7 +87,7 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
           // Retry get current user
           final retry = await AuthService.getCurrentUser();
           final data2 = retry['data'] as Map<String, dynamic>?;
-          return data2;
+          return data2?['user'];
         } catch (e2) {
           logger.warning('Refresh attempt failed: $e2');
           return null; // caller will fallback to storage

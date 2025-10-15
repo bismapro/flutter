@@ -5,6 +5,8 @@ class KategoriArtikel {
 
   KategoriArtikel({required this.id, required this.nama, required this.icon});
 
+  KategoriArtikel.empty() : id = 0, nama = '', icon = '';
+
   factory KategoriArtikel.fromJson(Map<String, dynamic> json) {
     return KategoriArtikel(
       id: json['id'],
@@ -14,10 +16,6 @@ class KategoriArtikel {
   }
 
   Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'nama': nama,
-      'icon': icon,
-    };
+    return {'id': id, 'nama': nama, 'icon': icon};
   }
 }
