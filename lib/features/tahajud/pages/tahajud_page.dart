@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:test_flutter/app/router.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:intl/intl.dart';
 
@@ -13,6 +14,9 @@ class _TahajudPageState extends State<TahajudPage>
     with TickerProviderStateMixin {
   late AnimationController _progressController;
   late Animation<double> _progressAnimation;
+  // Authentication & Premium status
+  bool isAuthenticated = true; // Set to true when user is logged in
+  bool isPremium = false; // Set to true when user has premium subscription
 
   // Challenge data
   int currentStreak = 7;
@@ -21,7 +25,6 @@ class _TahajudPageState extends State<TahajudPage>
   int currentLevel = 3;
   int tahajudCount = 45;
   bool todayCompleted = false;
-  bool isPremium = true; // For demo purposes
 
   // Weekly progress (last 7 days)
   final List<bool> weeklyProgress = [
@@ -172,6 +175,14 @@ class _TahajudPageState extends State<TahajudPage>
 
   @override
   Widget build(BuildContext context) {
+    if (!isAuthenticated) {
+      return _buildLoginRequired();
+    }
+
+    // Check premium status
+    if (!isPremium) {
+      return _buildPremiumRequired();
+    }
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -330,6 +341,269 @@ class _TahajudPageState extends State<TahajudPage>
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildLoginRequired() {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppTheme.primaryBlue.withValues(alpha: 0.1), Colors.white],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      size: 80,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Login Diperlukan',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Anda harus login terlebih dahulu untuk mengakses Tahajud Challenge',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/login');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Login Sekarang',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, AppRoutes.home),
+                    child: Text(
+                      'Kembali ke Home',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppTheme.primaryBlue,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumRequired() {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.amber.withValues(alpha: 0.1), Colors.white],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.amber.withValues(alpha: 0.2),
+                          Colors.orange.withValues(alpha: 0.2),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.nightlight_round,
+                      size: 80,
+                      color: Colors.amber,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Fitur Premium',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Tahajud Challenge adalah fitur premium. Tingkatkan ibadah malam Anda dengan fitur tracking dan reward!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  _buildPremiumFeature(
+                    Icons.trending_up_rounded,
+                    'Tracking streak dan progress',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPremiumFeature(
+                    Icons.calendar_month_rounded,
+                    'Kalender tahajud lengkap',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPremiumFeature(
+                    Icons.emoji_events_rounded,
+                    'Badge dan achievement',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPremiumFeature(
+                    Icons.notifications_active_rounded,
+                    'Reminder tahajud otomatis',
+                  ),
+                  const SizedBox(height: 48),
+                  Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.amber, Colors.orange],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.amber.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/subscription');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.workspace_premium_rounded, size: 24),
+                          SizedBox(width: 12),
+                          Text(
+                            'Berlangganan Premium',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text(
+                      'Kembali',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.amber,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumFeature(IconData icon, String text) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: Colors.amber, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const Icon(Icons.check_circle, color: Colors.green, size: 20),
+      ],
     );
   }
 

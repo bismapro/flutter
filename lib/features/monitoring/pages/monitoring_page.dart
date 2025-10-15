@@ -1,21 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/app/router.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'child_detail_page.dart';
 
-class MonitoringPage extends StatefulWidget {
+class MonitoringPage extends ConsumerStatefulWidget {
   const MonitoringPage({super.key});
 
   @override
-  State<MonitoringPage> createState() => _MonitoringPageState();
+  ConsumerState<MonitoringPage> createState() => _MonitoringPageState();
 }
 
-class _MonitoringPageState extends State<MonitoringPage>
+class _MonitoringPageState extends ConsumerState<MonitoringPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  bool isPremium = true; // For demo purposes
+  // isPremium will be determined from authProvider
   String userRole = 'parent'; // 'parent' or 'child'
 
   // Sample data for children
@@ -114,6 +116,26 @@ class _MonitoringPageState extends State<MonitoringPage>
 
   @override
   Widget build(BuildContext context) {
+    // Get authentication state from authProvider
+    // TODO: Uncomment this when authProvider is ready
+    // final authState = ref.watch(authProvider);
+    // final isAuthenticated = authState.isAuthenticated;
+    // final isPremium = authState.user?.isPremium ?? false;
+
+    // For now, using hardcoded values
+    final isAuthenticated = true; // Set to true when user is logged in
+    final isPremium = false; // Set to true when user has premium subscription
+
+    // Check authentication first
+    if (!isAuthenticated) {
+      return _buildLoginRequired();
+    }
+
+    // Check premium status
+    if (!isPremium) {
+      return _buildPremiumRequired();
+    }
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -132,31 +154,292 @@ class _MonitoringPageState extends State<MonitoringPage>
             opacity: _fadeAnimation,
             child: Column(
               children: [
-                _buildHeader(),
-                if (isPremium) ...[
-                  _buildTabBar(),
-                  Expanded(
-                    child: TabBarView(
-                      controller: _tabController,
-                      children: [
-                        _buildDashboardTab(),
-                        _buildChildrenTab(),
-                        _buildNotificationsTab(),
-                      ],
-                    ),
+                _buildHeader(isPremium),
+                _buildTabBar(),
+                Expanded(
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildDashboardTab(),
+                      _buildChildrenTab(),
+                      _buildNotificationsTab(),
+                    ],
                   ),
-                ] else
-                  _buildPremiumPrompt(),
+                ),
               ],
             ),
           ),
         ),
       ),
-      floatingActionButton: isPremium ? _buildFloatingActionButton() : null,
+      floatingActionButton: _buildFloatingActionButton(),
     );
   }
 
-  Widget _buildHeader() {
+  Widget _buildLoginRequired() {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [AppTheme.primaryBlue.withValues(alpha: 0.1), Colors.white],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                      shape: BoxShape.circle,
+                    ),
+                    child: Icon(
+                      Icons.lock_outline_rounded,
+                      size: 80,
+                      color: AppTheme.primaryBlue,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Login Diperlukan',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Anda harus login terlebih dahulu untuk mengakses fitur Monitoring Keluarga',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 48),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/login');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppTheme.primaryBlue,
+                        foregroundColor: Colors.white,
+                        elevation: 2,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Login Sekarang',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, AppRoutes.home),
+                    child: Text(
+                      'Kembali ke Home',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: AppTheme.primaryBlue,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumRequired() {
+    return Scaffold(
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.amber.withValues(alpha: 0.1), Colors.white],
+          ),
+        ),
+        child: SafeArea(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(32.0),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.amber.withValues(alpha: 0.2),
+                          Colors.orange.withValues(alpha: 0.2),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.family_restroom_rounded,
+                      size: 80,
+                      color: Colors.amber,
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'Fitur Premium',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Monitoring Keluarga adalah fitur premium. Pantau aktivitas ibadah keluarga dengan fitur lengkap!',
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: AppTheme.onSurfaceVariant,
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 32),
+                  _buildPremiumFeature(
+                    Icons.family_restroom_rounded,
+                    'Monitor aktivitas semua anggota keluarga',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPremiumFeature(
+                    Icons.analytics_rounded,
+                    'Statistik dan grafik lengkap',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPremiumFeature(
+                    Icons.notifications_active_rounded,
+                    'Notifikasi real-time',
+                  ),
+                  const SizedBox(height: 16),
+                  _buildPremiumFeature(
+                    Icons.emoji_events_rounded,
+                    'Sistem reward dan achievement',
+                  ),
+                  const SizedBox(height: 48),
+                  Container(
+                    width: double.infinity,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Colors.amber, Colors.orange],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.amber.withValues(alpha: 0.3),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/subscription');
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.transparent,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.workspace_premium_rounded, size: 24),
+                          SizedBox(width: 12),
+                          Text(
+                            'Berlangganan Premium',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextButton(
+                    onPressed: () =>
+                        Navigator.pushNamed(context, AppRoutes.home),
+                    child: Text(
+                      'Kembali ke Home',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.amber,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPremiumFeature(IconData icon, String text) {
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: Colors.amber.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: Colors.amber, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppTheme.onSurface,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+        const Icon(Icons.check_circle, color: Colors.green, size: 20),
+      ],
+    );
+  }
+
+  Widget _buildHeader(bool isPremium) {
     return Container(
       padding: const EdgeInsets.all(24.0),
       child: Column(
@@ -233,7 +516,7 @@ class _MonitoringPageState extends State<MonitoringPage>
           const SizedBox(height: 20),
 
           // Stats Summary
-          if (isPremium && userRole == 'parent')
+          if (userRole == 'parent')
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
