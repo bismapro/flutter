@@ -390,7 +390,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
               // Adjust initial size based on screen height
               double initial;
               if (h < 650) {
-                initial = 0.55; // Very short screens
+                initial = 0.3; // Very short screens
               } else if (h < 700) {
                 initial = 0.52; // Short screens
               } else if (h < 800) {
@@ -402,8 +402,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
               final max = _isDesktop(context) ? 0.9 : 0.88;
 
               return DraggableScrollableSheet(
-                initialChildSize: initial,
-                minChildSize: initial,
+                initialChildSize: 0.45,
+                minChildSize: 0.45,
                 maxChildSize: max,
                 builder: (context, scrollController) {
                   return Container(

@@ -44,14 +44,14 @@ class ProgresPuasa {
 
 class ProgresPuasaWajibTahunIni {
   final int total;
-  final List<Map<String, dynamic>> detail;
+  final Map<String, dynamic> detail;
 
   ProgresPuasaWajibTahunIni({required this.total, required this.detail});
 
   factory ProgresPuasaWajibTahunIni.fromJson(Map<String, dynamic> json) {
     return ProgresPuasaWajibTahunIni(
       total: json['total'] ?? 0,
-      detail: List<Map<String, dynamic>>.from(json['detail'] ?? []),
+      detail: Map<String, dynamic>.from(json['detail'] ?? []),
     );
   }
 

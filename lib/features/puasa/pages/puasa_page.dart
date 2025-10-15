@@ -1,17 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/features/puasa/widgets/sunnah_tab.dart';
 import 'package:test_flutter/features/puasa/pages/ramadhan_detail_page.dart';
 import 'package:test_flutter/features/puasa/pages/sunnah_detail_page.dart';
+import 'package:test_flutter/features/puasa/puasa_provider.dart';
 
-class PuasaPage extends StatefulWidget {
+class PuasaPage extends ConsumerStatefulWidget {
   const PuasaPage({super.key});
 
   @override
-  State<PuasaPage> createState() => _PuasaPageState();
+  ConsumerState<PuasaPage> createState() => _PuasaPageState();
 }
 
-class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
+class _PuasaPageState extends ConsumerState<PuasaPage>
+    with TickerProviderStateMixin {
   late TabController _tabController;
 
   // Data puasa (untuk demo)
@@ -73,6 +77,13 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _initializeSampleData();
+
+    // Fetch data puasa wajib
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(puasaProvider.notifier).init();
+
+      logger.fine('Initialized PuasaPage and fetching data...${_puasaData}');
+    });
   }
 
   void _initializeSampleData() {
@@ -97,7 +108,6 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
     super.dispose();
   }
 
-  // ...existing code...
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -114,7 +124,6 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
               AppTheme.primaryBlue.withValues(alpha: 0.03),
               AppTheme.backgroundWhite,
             ],
-            // stops: const [0.0, 0.3],
           ),
         ),
         child: SafeArea(
@@ -244,7 +253,6 @@ class _PuasaPageState extends State<PuasaPage> with TickerProviderStateMixin {
               ),
 
               SizedBox(height: isTablet ? 16 : 12),
-              // ...existing code...
 
               // TabView Content
               Expanded(

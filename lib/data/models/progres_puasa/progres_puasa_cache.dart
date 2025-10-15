@@ -147,7 +147,6 @@ class ProgresPuasaWajibTahunIniCache extends HiveObject {
   @HiveField(0)
   int total;
 
-  /// Snapshot JSON dari List<Map<String, dynamic>>
   @HiveField(1)
   String detailJson;
 
@@ -175,9 +174,7 @@ class ProgresPuasaWajibTahunIniCache extends HiveObject {
     final decoded = jsonDecode(detailJson);
     return ProgresPuasaWajibTahunIni(
       total: total,
-      detail: (decoded is List)
-          ? List<Map<String, dynamic>>.from(decoded)
-          : <Map<String, dynamic>>[],
+      detail: Map<String, dynamic>.from(decoded),
     );
   }
 }
