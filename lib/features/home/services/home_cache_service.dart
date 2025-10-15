@@ -43,8 +43,8 @@ class HomeCacheService {
     return CacheService.getCachedData<Sholat>(
           key: CacheKeys.homeJadwalSholat, // -> 3. Gunakan key dari CacheKeys
           fromJson: (jsonData) {
-            if (jsonData is Sholat) {
-              return jsonData;
+            if (jsonData is Map<String, dynamic>) {
+              return Sholat.fromJson(jsonData);
             }
             return Sholat.empty();
           },

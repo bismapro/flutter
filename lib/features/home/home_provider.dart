@@ -338,7 +338,6 @@ class HomeProvider extends StateNotifier<HomeState> {
   // ========== PRAYER TIME HELPERS (drop-in) ==========
 
   // ========== PRAYER TIME HELPER METHODS ==========
-
   /// Dapatkan waktu sholat yang akan datang (next prayer)
   String? getCurrentPrayerTime() {
     final sholat = state.jadwalSholat;
@@ -354,16 +353,25 @@ class HomeProvider extends StateNotifier<HomeState> {
     final maghrib = _tryParse(sholat.wajib.maghrib);
     final isha = _tryParse(sholat.wajib.isya);
 
+    // Check if any time is null
+    if (fajr == null ||
+        dzuhr == null ||
+        asr == null ||
+        maghrib == null ||
+        isha == null) {
+      return null;
+    }
+
     // Tentukan waktu sholat berikutnya
-    if (_isBefore(currentTime, fajr!)) {
+    if (_isBefore(currentTime, fajr)) {
       return sholat.wajib.shubuh;
-    } else if (_isBefore(currentTime, dzuhr!)) {
+    } else if (_isBefore(currentTime, dzuhr)) {
       return sholat.wajib.dzuhur;
-    } else if (_isBefore(currentTime, asr!)) {
+    } else if (_isBefore(currentTime, asr)) {
       return sholat.wajib.ashar;
-    } else if (_isBefore(currentTime, maghrib!)) {
+    } else if (_isBefore(currentTime, maghrib)) {
       return sholat.wajib.maghrib;
-    } else if (_isBefore(currentTime, isha!)) {
+    } else if (_isBefore(currentTime, isha)) {
       return sholat.wajib.isya;
     } else {
       // Setelah Isya, tampilkan waktu Subuh besok
@@ -386,16 +394,26 @@ class HomeProvider extends StateNotifier<HomeState> {
     final maghrib = _tryParse(sholat.wajib.maghrib);
     final isha = _tryParse(sholat.wajib.isya);
 
+    // Check if any time is null
+    if (fajr == null ||
+        dzuhr == null ||
+        asr == null ||
+        maghrib == null ||
+        isha == null) {
+      logger.warning('Some prayer times are null or invalid');
+      return null;
+    }
+
     // Tentukan sholat berikutnya
-    if (_isBefore(currentTime, fajr!)) {
+    if (_isBefore(currentTime, fajr)) {
       return 'Fajr';
-    } else if (_isBefore(currentTime, dzuhr!)) {
+    } else if (_isBefore(currentTime, dzuhr)) {
       return 'Dzuhr';
-    } else if (_isBefore(currentTime, asr!)) {
+    } else if (_isBefore(currentTime, asr)) {
       return 'Asr';
-    } else if (_isBefore(currentTime, maghrib!)) {
+    } else if (_isBefore(currentTime, maghrib)) {
       return 'Maghrib';
-    } else if (_isBefore(currentTime, isha!)) {
+    } else if (_isBefore(currentTime, isha)) {
       return 'Isha';
     } else {
       // Setelah Isya, sholat berikutnya adalah Subuh besok
@@ -418,16 +436,25 @@ class HomeProvider extends StateNotifier<HomeState> {
     final maghrib = _tryParse(sholat.wajib.maghrib);
     final isha = _tryParse(sholat.wajib.isya);
 
-    // Tentukan sholat yang sedang aktif (sudah masuk waktunya tapi belum lewat ke sholat berikutnya)
-    if (_isBefore(currentTime, fajr!)) {
+    // Check if any time is null
+    if (fajr == null ||
+        dzuhr == null ||
+        asr == null ||
+        maghrib == null ||
+        isha == null) {
+      return null;
+    }
+
+    // Tentukan sholat yang sedang aktif
+    if (_isBefore(currentTime, fajr)) {
       return null; // Belum ada sholat
-    } else if (_isBefore(currentTime, dzuhr!)) {
+    } else if (_isBefore(currentTime, dzuhr)) {
       return 'Fajr';
-    } else if (_isBefore(currentTime, asr!)) {
+    } else if (_isBefore(currentTime, asr)) {
       return 'Dzuhr';
-    } else if (_isBefore(currentTime, maghrib!)) {
+    } else if (_isBefore(currentTime, maghrib)) {
       return 'Asr';
-    } else if (_isBefore(currentTime, isha!)) {
+    } else if (_isBefore(currentTime, isha)) {
       return 'Maghrib';
     } else {
       return 'Isha';
@@ -449,23 +476,35 @@ class HomeProvider extends StateNotifier<HomeState> {
     final maghrib = _tryParse(sholat.wajib.maghrib);
     final isha = _tryParse(sholat.wajib.isya);
 
+    // Check if any time is null
+    if (fajr == null ||
+        dzuhr == null ||
+        asr == null ||
+        maghrib == null ||
+        isha == null) {
+      return null;
+    }
+
     TimeOfDay? nextPrayer;
 
     // Tentukan waktu sholat berikutnya
-    if (_isBefore(currentTime, fajr!)) {
+    if (_isBefore(currentTime, fajr)) {
       nextPrayer = fajr;
-    } else if (_isBefore(currentTime, dzuhr!)) {
+    } else if (_isBefore(currentTime, dzuhr)) {
       nextPrayer = dzuhr;
-    } else if (_isBefore(currentTime, asr!)) {
+    } else if (_isBefore(currentTime, asr)) {
       nextPrayer = asr;
-    } else if (_isBefore(currentTime, maghrib!)) {
+    } else if (_isBefore(currentTime, maghrib)) {
       nextPrayer = maghrib;
-    } else if (_isBefore(currentTime, isha!)) {
+    } else if (_isBefore(currentTime, isha)) {
       nextPrayer = isha;
     } else {
       // Setelah Isya, hitung waktu hingga Subuh besok
       nextPrayer = fajr;
     }
+
+    // nextPrayer will never be null at this point
+    if (nextPrayer == null) return null;
 
     // Hitung selisih waktu
     final difference = _timeDifference(currentTime, nextPrayer);
@@ -484,7 +523,6 @@ class HomeProvider extends StateNotifier<HomeState> {
       return 'in ${seconds}s';
     }
   }
-
   // ...existing code...
   // ------------------ PRIVATE HELPERS ------------------
 

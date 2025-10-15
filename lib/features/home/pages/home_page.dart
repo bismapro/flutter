@@ -180,7 +180,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 
     // Get location data from state
     final locationName = homeState.locationName ?? 'Loading...';
-    final localDate = homeState.localDate;
+    final localDate = homeState.localDate ?? '';
     final localTime = homeState.localTime ?? '';
 
     // Format dates
@@ -519,12 +519,54 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       final currentTime =
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
-      // Get current prayer name and time until next prayer
+      // Get current prayer name and time until next prayer with null safety
       final notifier = ref.read(homeProvider.notifier);
-      final currentPrayerName =
-          notifier.getCurrentPrayerName() ?? 'Next Prayer';
-      final nextPrayerTime = notifier.getCurrentPrayerTime() ?? '--:--';
-      final timeLeft = notifier.getTimeUntilNextPrayer() ?? '';
+      final currentPrayerName = notifier.getCurrentPrayerName();
+      final nextPrayerTime = notifier.getCurrentPrayerTime();
+      final timeLeft = notifier.getTimeUntilNextPrayer();
+
+      // If prayer data is invalid, show error
+      if (currentPrayerName == null || nextPrayerTime == null) {
+        return Column(
+          children: [
+            Text(
+              currentTime,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: _t(context, 56),
+                fontWeight: FontWeight.bold,
+                letterSpacing: 2,
+              ),
+            ),
+            SizedBox(height: _px(context, 8)),
+            Text(
+              'Prayer times unavailable',
+              style: TextStyle(
+                color: Colors.white70,
+                fontSize: _t(context, 14),
+              ),
+            ),
+            SizedBox(height: _px(context, 8)),
+            TextButton(
+              onPressed: () {
+                ref
+                    .read(homeProvider.notifier)
+                    .fetchJadwalSholat(
+                      forceRefresh: true,
+                      useCurrentLocation: true,
+                    );
+              },
+              child: Text(
+                'Refresh',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: _t(context, 12),
+                ),
+              ),
+            ),
+          ],
+        );
+      }
 
       return Column(
         children: [
@@ -548,7 +590,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (timeLeft.isNotEmpty)
+          if (timeLeft != null && timeLeft.isNotEmpty)
             Text(
               timeLeft,
               style: TextStyle(
@@ -870,8 +912,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           article: article,
           title: article.judul,
           summary: article.excerpt ?? '',
-          imageUrl: article.daftarGambar!.isNotEmpty
-              ? "$storageUrl/${article.daftarGambar![0]}"
+          imageUrl: article.cover.isNotEmpty
+              ? '$storageUrl/${article.cover}'
               : 'https://picsum.photos/120/100?random=${article.id}',
           date: _formatDate(article.createdAt),
           context: context,
@@ -1038,7 +1080,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
   Widget _buildPrayerTimeWidget(
     BuildContext context,
     String name,
-    String time,
+    String? time, // <- boleh null
     IconData icon,
     bool isActive,
   ) {
@@ -1047,6 +1089,8 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     final nameFs = _t(context, 12);
     final timeFs = _t(context, 11);
     final gap = _px(context, 6);
+
+    final display = (time != null && time.trim().isNotEmpty) ? time : '--:--';
 
     return SizedBox(
       width: box + _px(context, 16),
@@ -1084,7 +1128,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           ),
           SizedBox(height: gap),
           Text(
-            time,
+            display, // <- aman walau null
             style: TextStyle(
               color: isActive ? Colors.white : Colors.white70,
               fontSize: timeFs,
