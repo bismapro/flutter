@@ -70,7 +70,7 @@ class ProgresSholatCacheAdapter extends TypeAdapter<ProgresSholatCache> {
 class StatistikSholatWajibCacheAdapter
     extends TypeAdapter<StatistikSholatWajibCache> {
   @override
-  final int typeId = 17;
+  final int typeId = 15;
 
   @override
   StatistikSholatWajibCache read(BinaryReader reader) {
@@ -120,7 +120,7 @@ class StatistikSholatWajibCacheAdapter
 class ProgresSholatWajibCacheAdapter
     extends TypeAdapter<ProgresSholatWajibCache> {
   @override
-  final int typeId = 15;
+  final int typeId = 13;
 
   @override
   ProgresSholatWajibCache read(BinaryReader reader) {
@@ -164,7 +164,7 @@ class ProgresSholatWajibCacheAdapter
 class StatistikSholatSunnahCacheAdapter
     extends TypeAdapter<StatistikSholatSunnahCache> {
   @override
-  final int typeId = 18;
+  final int typeId = 16;
 
   @override
   StatistikSholatSunnahCache read(BinaryReader reader) {
@@ -229,7 +229,7 @@ class StatistikSholatSunnahCacheAdapter
 class ProgresSholatSunnahCacheAdapter
     extends TypeAdapter<ProgresSholatSunnahCache> {
   @override
-  final int typeId = 16;
+  final int typeId = 14;
 
   @override
   ProgresSholatSunnahCache read(BinaryReader reader) {
@@ -272,7 +272,7 @@ class ProgresSholatSunnahCacheAdapter
 
 class RiwayatProgresCacheAdapter extends TypeAdapter<RiwayatProgresCache> {
   @override
-  final int typeId = 19;
+  final int typeId = 17;
 
   @override
   RiwayatProgresCache read(BinaryReader reader) {
