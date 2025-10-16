@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/features/quran/services/quran_audio_service.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -9,12 +10,12 @@ import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/services/cache/cache_service.dart';
 import 'package:test_flutter/data/services/location/location_service.dart';
 import 'package:test_flutter/features/sholat/services/alarm_service.dart';
-import 'package:test_flutter/data/services/audio_player_service.dart';
 
 final bootstrapProvider = FutureProvider<void>((ref) async {
   // Sinkron, cepat
   initLogger();
   ApiClient.setupInterceptors();
+  QuranAudioService.init();
 
   // Jalankan tugas berat & I/O secara paralel
   await Future.wait([
@@ -27,7 +28,6 @@ final bootstrapProvider = FutureProvider<void>((ref) async {
     // Cache & services lain
     CacheService.init(),
     AlarmService().initialize(),
-    QuranAudioService.init(),
   ]);
 
   // Lokasi: jangan block start—ambil di background

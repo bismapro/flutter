@@ -97,6 +97,75 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
         'color': AppTheme.primaryBlueDark,
       },
     ],
+    'Puasa Syawal': [
+      {
+        'title': 'Niat Puasa Syawal',
+        'content':
+            'نَوَيْتُ صَوْمَ غَدٍ عَنْ سِتَّةٍ مِنْ شَوَّالٍ سُنَّةً لِلّٰهِ تَعَالَى\n\nArtinya: "Aku berniat puasa besok dari enam hari Syawal, sunnah karena Allah Ta\'ala"',
+        'icon': Icons.favorite,
+        'color': AppTheme.primaryBlue,
+      },
+      {
+        'title': 'Keutamaan Utama',
+        'content':
+            'Rasulullah SAW bersabda: "Barangsiapa yang berpuasa Ramadhan kemudian berpuasa enam hari di bulan Syawal, maka dia berpuasa seperti setahun penuh." (HR. Muslim)',
+        'icon': Icons.star,
+        'color': AppTheme.accentGreen,
+      },
+      {
+        'title': 'Waktu Pelaksanaan',
+        'content':
+            '• Dilaksanakan selama 6 hari di bulan Syawal.\n• Boleh dilakukan berurutan atau terpisah.\n• Harus setelah menyelesaikan qadha puasa Ramadhan.',
+        'icon': Icons.rule,
+        'color': AppTheme.primaryBlueDark,
+      },
+    ],
+    'Puasa Muharram': [
+      {
+        'title': 'Niat Puasa Tasu\'a (9 Muharram)',
+        'content':
+            'نَوَيْتُ صَوْمَ تَاسُوعَاءَ سُنَّةً لِلّٰهِ تَعَالَى\n\nArtinya: "Aku berniat puasa Tasu\'a, sunnah karena Allah Ta\'ala"',
+        'icon': Icons.favorite,
+        'color': AppTheme.primaryBlue,
+      },
+      {
+        'title': 'Niat Puasa Asyura (10 Muharram)',
+        'content':
+            'نَوَيْتُ صَوْمَ عَاشُورَاءَ سُنَّةً لِلّٰهِ تَعَالَى\n\nArtinya: "Aku berniat puasa Asyura, sunnah karena Allah Ta\'ala"',
+        'icon': Icons.favorite_border,
+        'color': AppTheme.accentGreen,
+      },
+      {
+        'title': 'Keutamaan & Hikmah',
+        'content':
+            '• Puasa Asyura dapat menghapus dosa setahun yang lalu. (HR. Muslim)\n• Puasa Tasu\'a dianjurkan untuk menyelisihi kebiasaan puasa orang Yahudi.',
+        'icon': Icons.psychology_alt,
+        'color': AppTheme.primaryBlueDark,
+      },
+    ],
+    'Puasa Sya\'ban': [
+      {
+        'title': 'Niat Puasa Sya\'ban',
+        'content':
+            'نَوَيْتُ صَوْمَ شَعْبَانَ سُنَّةً لِلّٰهِ تَعَالَى\n\nArtinya: "Aku berniat puasa Sya\'ban, sunnah karena Allah Ta\'ala"',
+        'icon': Icons.favorite,
+        'color': AppTheme.primaryBlue,
+      },
+      {
+        'title': 'Bulan Diangkatnya Amal',
+        'content':
+            'Usamah bin Zaid berkata, "Wahai Rasulullah, aku tidak pernah melihat engkau berpuasa dalam satu bulan sebagaimana engkau berpuasa di bulan Sya\'ban." Beliau bersabda, "Itulah bulan yang sering dilalaikan orang... yaitu bulan diangkatnya amal kepada Rabb semesta alam, maka aku suka amalku diangkat dalam keadaan berpuasa." (HR. An-Nasa\'i)',
+        'icon': Icons.checklist,
+        'color': AppTheme.accentGreen,
+      },
+      {
+        'title': 'Larangan di Akhir Bulan',
+        'content':
+            'Tidak dianjurkan berpuasa pada pertengahan kedua bulan Sya\'ban (setelah tanggal 15) bagi yang tidak memiliki kebiasaan puasa sebelumnya, sebagai persiapan menyambut bulan Ramadhan.',
+        'icon': Icons.gpp_bad,
+        'color': AppTheme.primaryBlueDark,
+      },
+    ],
   };
 
   @override

@@ -45,7 +45,7 @@ dependencies:
   http: ^1.2.1
 
   # Audio player for Quran recitation
-  audioplayers: ^6.0.0
+  audioplayers: ^6.5.1
   flutter_dotenv: ^6.0.0
   audio_service: ^0.18.12
   just_audio: ^0.9.36
@@ -76,6 +76,8 @@ dependencies:
   hijri_date_time: ^1.1.0
   connectivity_plus: ^6.1.5
   internet_connection_checker: ^3.0.1
+  quran: ^1.4.1
+  google_fonts: ^6.3.2
 
 dev_dependencies:
   flutter_test:

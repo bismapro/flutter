@@ -25,7 +25,7 @@ class _MyAppState extends ConsumerState<MyApp> {
     );
 
     return MaterialApp(
-      title: tr('app.name'),
+      title: 'Shollover',
       locale: context.locale,
       supportedLocales: context.supportedLocales,
       localizationsDelegates: context.localizationDelegates,

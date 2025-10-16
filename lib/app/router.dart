@@ -54,7 +54,7 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const QuranPage());
       case surahDetail:
         return MaterialPageRoute(
-          builder: (_) => SurahDetailPage(surah: settings.arguments as dynamic),
+          builder: (_) => SurahDetailPage(surah: settings.arguments as dynamic, allSurahs: []),
         );
       case sholat:
         return MaterialPageRoute(builder: (_) => const SholatPage());
