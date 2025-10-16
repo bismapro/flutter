@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/features/quran/services/quran_audio_service.dart';
 
-class ModernAudioPlayer extends StatelessWidget {
+class ModernAudioPlayer extends StatefulWidget {
   final bool isLoading;
   final VoidCallback onPlayPause;
   final Function(double) onSeek;
@@ -24,6 +24,48 @@ class ModernAudioPlayer extends StatelessWidget {
     this.qariName,
     required this.surahName,
   });
+
+  @override
+  State<ModernAudioPlayer> createState() => _ModernAudioPlayerState();
+}
+
+class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
+  bool _isPlaying = false;
+  Duration _currentPosition = Duration.zero;
+  Duration _duration = Duration.zero;
+  bool _isDragging = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Listen to playing state
+    QuranAudioService.playingStream.listen((isPlaying) {
+      if (mounted) {
+        setState(() {
+          _isPlaying = isPlaying;
+        });
+      }
+    });
+
+    // Listen to position changes
+    QuranAudioService.positionStream.listen((position) {
+      if (mounted && !_isDragging) {
+        setState(() {
+          _currentPosition = position;
+        });
+      }
+    });
+
+    // Listen to duration changes
+    QuranAudioService.durationStream.listen((duration) {
+      if (mounted) {
+        setState(() {
+          _duration = duration;
+        });
+      }
+    });
+  }
 
   String _formatDuration(Duration duration) {
     String twoDigits(int n) => n.toString().padLeft(2, '0');
@@ -60,10 +102,9 @@ class ModernAudioPlayer extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         // Qari Info & Surah Name + KONTROL TOMBOL
-                        if (isDownloaded && qariName != null) ...[
+                        if (widget.isDownloaded && widget.qariName != null) ...[
                           Row(
-                            crossAxisAlignment: CrossAxisAlignment
-                                .center, // Agar semua item sejajar di tengah secara vertikal
+                            crossAxisAlignment: CrossAxisAlignment.center,
                             children: [
                               Container(
                                 padding: const EdgeInsets.all(10),
@@ -88,7 +129,7 @@ class ModernAudioPlayer extends StatelessWidget {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      surahName,
+                                      widget.surahName,
                                       style: GoogleFonts.poppins(
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
@@ -96,7 +137,7 @@ class ModernAudioPlayer extends StatelessWidget {
                                       ),
                                     ),
                                     Text(
-                                      'Recited by $qariName',
+                                      'Recited by ${widget.qariName}',
                                       style: GoogleFonts.poppins(
                                         fontSize: 12,
                                         color: AppTheme.onSurfaceVariant,
@@ -106,13 +147,10 @@ class ModernAudioPlayer extends StatelessWidget {
                                 ),
                               ),
 
-                              // --- TOMBOL-TOMBOL DIPINDAHKAN KE SINI ---
-                              const SizedBox(
-                                width: 16,
-                              ), // Jarak antara teks dan tombol
+                              const SizedBox(width: 16),
                               // Play/Pause Button
                               Container(
-                                width: 42, // Ukuran diperkecil agar pas
+                                width: 42,
                                 height: 42,
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
@@ -126,10 +164,12 @@ class ModernAudioPlayer extends StatelessWidget {
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
-                                    onTap: isLoading ? null : onPlayPause,
+                                    onTap: widget.isLoading
+                                        ? null
+                                        : widget.onPlayPause,
                                     borderRadius: BorderRadius.circular(30),
                                     child: Center(
-                                      child: isLoading
+                                      child: widget.isLoading
                                           ? const SizedBox(
                                               width: 20,
                                               height: 20,
@@ -153,7 +193,7 @@ class ModernAudioPlayer extends StatelessWidget {
                                 ),
                               ),
 
-                              const SizedBox(width: 8), // Jarak antar tombol
+                              const SizedBox(width: 8),
                               // Delete Button
                               Container(
                                 width: 42,
@@ -172,7 +212,6 @@ class ModernAudioPlayer extends StatelessWidget {
                                   tooltip: 'Delete Download',
                                 ),
                               ),
-                              // --- AKHIR DARI BLOK TOMBOL ---
                             ],
                           ),
                           const SizedBox(height: 16),
@@ -202,7 +241,13 @@ class ModernAudioPlayer extends StatelessWidget {
                                   ? position.inMilliseconds /
                                         duration.inMilliseconds
                                   : 0.0,
-                              onChanged: onSeek,
+                              onChanged: (value) {
+                                setState(() => _isDragging = true);
+                                widget.onSeek(value);
+                              },
+                              onChangeEnd: (value) {
+                                setState(() => _isDragging = false);
+                              },
                             ),
                           ),
                           Padding(
@@ -232,10 +277,10 @@ class ModernAudioPlayer extends StatelessWidget {
                           const SizedBox(height: 12),
                         ],
 
-                        // Tombol Download (HANYA MUNCUL JIKA BELUM DOWNLOAD)
-                        if (!isDownloaded)
+                        // Tombol Download
+                        if (!widget.isDownloaded)
                           ElevatedButton.icon(
-                            onPressed: onDownload,
+                            onPressed: widget.onDownload,
                             icon: const Icon(Icons.download_rounded, size: 20),
                             label: Text(
                               'Download Audio',
@@ -318,7 +363,7 @@ class ModernAudioPlayer extends StatelessWidget {
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
-              onDelete();
+              widget.onDelete();
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.red.shade400,

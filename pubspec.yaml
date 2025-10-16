@@ -47,8 +47,8 @@ dependencies:
   # Audio player for Quran recitation
   audioplayers: ^6.5.1
   flutter_dotenv: ^6.0.0
-  audio_service: ^0.18.12
-  just_audio: ^0.9.36
+  audio_service: ^0.18.18
+  just_audio: ^0.10.5
   rxdart: ^0.27.7
 
   # Local storage and alarm functionality
@@ -78,6 +78,7 @@ dependencies:
   internet_connection_checker: ^3.0.1
   quran: ^1.4.1
   google_fonts: ^6.3.2
+  just_audio_background: ^0.0.1-beta.17
 
 dev_dependencies:
   flutter_test:
