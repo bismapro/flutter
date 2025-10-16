@@ -12,7 +12,7 @@ enum PuasaStatus {
 
 class PuasaState {
   final PuasaStatus status;
-  final ProgresPuasaWajibTahunIni? progresPuasaWajibTahunIni;
+  // final ProgresPuasaWajibTahunIni? progresPuasaWajibTahunIni;
   final List<RiwayatPuasaWajib>? riwayatPuasaWajib;
   // final ProgresPuasaSunnahTahunIni? progresPuasaSunnahTahunIni;
   final RiwayatPuasaSunnah? riwayatPuasaSunnah;
@@ -21,7 +21,7 @@ class PuasaState {
 
   PuasaState({
     required this.status,
-    this.progresPuasaWajibTahunIni,
+    // this.progresPuasaWajibTahunIni,
     this.riwayatPuasaWajib,
     // this.progresPuasaSunnahTahunIni,
     this.riwayatPuasaSunnah,
@@ -32,7 +32,7 @@ class PuasaState {
   factory PuasaState.initial() {
     return PuasaState(
       status: PuasaStatus.initial,
-      progresPuasaWajibTahunIni: null,
+      // progresPuasaWajibTahunIni: null,
       riwayatPuasaWajib: [],
       // progresPuasaSunnahTahunIni: null,
       riwayatPuasaSunnah: null,
@@ -43,7 +43,7 @@ class PuasaState {
 
   PuasaState copyWith({
     PuasaStatus? status,
-    ProgresPuasaWajibTahunIni? progresPuasaWajibTahunIni,
+    // // ProgresPuasaWajibTahunIni? progresPuasaWajibTahunIni,
     List<RiwayatPuasaWajib>? riwayatPuasaWajib,
     // // ProgresPuasaSunnahTahunIni? progresPuasaSunnahTahunIni,
     RiwayatPuasaSunnah? riwayatPuasaSunnah,
@@ -52,11 +52,11 @@ class PuasaState {
   }) {
     return PuasaState(
       status: status ?? this.status,
-      progresPuasaWajibTahunIni:
-          progresPuasaWajibTahunIni ?? this.progresPuasaWajibTahunIni,
+      // progresPuasaWajibTahunIni:
+      // // progresPuasaWajibTahunIni ?? this.progresPuasaWajibTahunIni,
       riwayatPuasaWajib: riwayatPuasaWajib ?? this.riwayatPuasaWajib,
       // progresPuasaSunnahTahunIni:
-          // // progresPuasaSunnahTahunIni ?? this.progresPuasaSunnahTahunIni,
+      // // progresPuasaSunnahTahunIni ?? this.progresPuasaSunnahTahunIni,
       riwayatPuasaSunnah: riwayatPuasaSunnah ?? this.riwayatPuasaSunnah,
       message: message ?? this.message,
       isOffline: isOffline ?? this.isOffline,

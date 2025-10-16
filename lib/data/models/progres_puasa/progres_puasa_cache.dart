@@ -37,6 +37,9 @@ class ProgresPuasaWajibCache extends HiveObject {
   @HiveField(6)
   DateTime cachedAt;
 
+  @HiveField(7)
+  int? tanggalRamadhan;
+
   ProgresPuasaWajibCache({
     required this.id,
     required this.userId,
@@ -45,6 +48,7 @@ class ProgresPuasaWajibCache extends HiveObject {
     required this.createdAt,
     required this.updatedAt,
     required this.cachedAt,
+    this.tanggalRamadhan,
   });
 
   factory ProgresPuasaWajibCache.fromModel(ProgresPuasa model) {
@@ -58,6 +62,7 @@ class ProgresPuasaWajibCache extends HiveObject {
       createdAt: created,
       updatedAt: updated,
       cachedAt: DateTime.now(),
+      tanggalRamadhan: model.tanggalRamadhan,
     );
   }
 
@@ -69,6 +74,7 @@ class ProgresPuasaWajibCache extends HiveObject {
       tahunHijriah: tahunHijriah,
       createdAt: createdAt,
       updatedAt: updatedAt,
+      tanggalRamadhan: tanggalRamadhan,
     );
   }
 }

@@ -109,7 +109,6 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
     if (_hasInitializedWajib) return;
 
     try {
-      await ref.read(puasaProvider.notifier).fetchProgresPuasaWajibTahunIni();
       await ref.read(puasaProvider.notifier).fetchRiwayatPuasaWajib();
       _hasInitializedWajib = true;
     } catch (e) {

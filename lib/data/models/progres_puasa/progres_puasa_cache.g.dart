@@ -25,13 +25,14 @@ class ProgresPuasaWajibCacheAdapter
       createdAt: fields[4] as DateTime,
       updatedAt: fields[5] as DateTime,
       cachedAt: fields[6] as DateTime,
+      tanggalRamadhan: fields[7] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ProgresPuasaWajibCache obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -45,7 +46,9 @@ class ProgresPuasaWajibCacheAdapter
       ..writeByte(5)
       ..write(obj.updatedAt)
       ..writeByte(6)
-      ..write(obj.cachedAt);
+      ..write(obj.cachedAt)
+      ..writeByte(7)
+      ..write(obj.tanggalRamadhan);
   }
 
   @override

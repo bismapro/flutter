@@ -3,6 +3,7 @@ class ProgresPuasa {
   final int userId;
   final String jenis;
   final int tahunHijriah;
+  final int? tanggalRamadhan;
   final DateTime? createdAt;
   final DateTime? updatedAt;
 
@@ -11,6 +12,7 @@ class ProgresPuasa {
     required this.userId,
     required this.jenis,
     required this.tahunHijriah,
+    this.tanggalRamadhan,
     this.createdAt,
     this.updatedAt,
   });
@@ -21,6 +23,7 @@ class ProgresPuasa {
       userId: json['user_id'] ?? 0,
       jenis: json['jenis'] ?? '',
       tahunHijriah: json['tahun_hijriah'] ?? 0,
+      tanggalRamadhan: json['tanggal_ramadhan'] ?? 0,
       createdAt: json['created_at'] != null
           ? DateTime.parse(json['created_at'])
           : null,
@@ -36,6 +39,7 @@ class ProgresPuasa {
       'user_id': userId,
       'jenis': jenis,
       'tahun_hijriah': tahunHijriah,
+      'tanggal_ramadhan': tanggalRamadhan,
       'created_at': createdAt?.toIso8601String(),
       'updated_at': updatedAt?.toIso8601String(),
     };

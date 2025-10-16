@@ -9,31 +9,30 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
 
   // Init
   Future<void> init() async {
-    await fetchProgresPuasaWajibTahunIni();
     await fetchRiwayatPuasaWajib();
   }
 
   // Fetch Progres Puasa Wajib Tahun Ini
-  Future<void> fetchProgresPuasaWajibTahunIni() async {
-    try {
-      state = state.copyWith(status: PuasaStatus.loading, message: null);
-      final result = await PuasaService.getProgresPuasaWajibTahunIni();
+  // Future<void> fetchProgresPuasaWajibTahunIni() async {
+  //   try {
+  //     state = state.copyWith(status: PuasaStatus.loading, message: null);
+  //     final result = await PuasaService.getProgresPuasaWajibTahunIni();
 
-      final dataJson = result['data'] as Map<String, dynamic>?;
+  //     final dataJson = result['data'] as Map<String, dynamic>?;
 
-      final progres = (dataJson == null)
-          ? null
-          : ProgresPuasaWajibTahunIni.fromJson(dataJson);
+  //     final progres = (dataJson == null)
+  //         ? null
+  //         : ProgresPuasaWajibTahunIni.fromJson(dataJson);
 
-      state = state.copyWith(
-        status: PuasaStatus.loaded,
-        progresPuasaWajibTahunIni: progres,
-        message: result['message'],
-      );
-    } catch (e) {
-      state = state.copyWith(status: PuasaStatus.error, message: e.toString());
-    }
-  }
+  //     state = state.copyWith(
+  //       status: PuasaStatus.loaded,
+  //       progresPuasaWajibTahunIni: progres,
+  //       message: result['message'],
+  //     );
+  //   } catch (e) {
+  //     state = state.copyWith(status: PuasaStatus.error, message: e.toString());
+  //   }
+  // }
 
   // Fetch Riwayat Puasa Wajib
   Future<void> fetchRiwayatPuasaWajib() async {
@@ -68,7 +67,6 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
       final message = result['message'] as String;
       if (status) {
         state = state.copyWith(status: PuasaStatus.success, message: message);
-        await fetchProgresPuasaWajibTahunIni();
         await fetchRiwayatPuasaWajib();
       } else {
         state = state.copyWith(status: PuasaStatus.error, message: message);
@@ -87,7 +85,6 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
       final message = result['message'] as String;
       if (status) {
         state = state.copyWith(status: PuasaStatus.success, message: message);
-        await fetchProgresPuasaWajibTahunIni();
         await fetchRiwayatPuasaWajib();
       } else {
         state = state.copyWith(status: PuasaStatus.error, message: message);
@@ -124,22 +121,13 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
   // Fetch Riwayat Puasa Sunnah
   Future<void> fetchRiwayatPuasaSunnah({required String jenis}) async {
     try {
-      logger.fine('=== PROVIDER: fetchRiwayatPuasaSunnah ===');
-      logger.fine('Jenis: $jenis');
-
       state = state.copyWith(status: PuasaStatus.loading, message: null);
 
       final result = await PuasaService.getRiwayatPuasaSunnah(jenis: jenis);
 
-      logger.fine('Service result: $result');
-
       final status = result['status'] as bool? ?? false;
       final message = result['message'] as String? ?? 'Unknown error';
       final data = result['data'] as Map<String, dynamic>? ?? {};
-
-      logger.fine('Parsed - Status: $status');
-      logger.fine('Parsed - Message: $message');
-      logger.fine('Parsed - Data: $data');
 
       if (status) {
         // Check if data is empty
@@ -153,12 +141,7 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
             message: message,
           );
         } else {
-          logger.fine('Parsing RiwayatPuasaSunnah from data');
           final riwayat = RiwayatPuasaSunnah.fromJson(data);
-
-          logger.fine('Parsed riwayat: $riwayat');
-          logger.fine('Total: ${riwayat.total}');
-          logger.fine('Detail count: ${riwayat.detail?.length}');
 
           state = state.copyWith(
             status: PuasaStatus.loaded,
@@ -166,9 +149,6 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
             message: message,
           );
         }
-
-        logger.fine('State updated successfully');
-        logger.fine('New state riwayat: ${state.riwayatPuasaSunnah}');
       } else {
         logger.warning('Status false, setting error state');
         state = state.copyWith(status: PuasaStatus.error, message: message);
