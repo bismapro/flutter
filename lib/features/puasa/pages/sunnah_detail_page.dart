@@ -1,21 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/core/utils/connection/connection_provider.dart';
+import 'package:test_flutter/core/utils/logger.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
+import 'package:test_flutter/features/auth/auth_provider.dart';
+import 'package:test_flutter/features/puasa/puasa_provider.dart';
+import 'package:test_flutter/features/puasa/puasa_state.dart';
 
-class SunnahDetailPage extends StatefulWidget {
+class SunnahDetailPage extends ConsumerStatefulWidget {
   final Map<String, dynamic> puasaData;
 
   const SunnahDetailPage({super.key, required this.puasaData});
 
   @override
-  State<SunnahDetailPage> createState() => _SunnahDetailPageState();
+  ConsumerState<SunnahDetailPage> createState() => _SunnahDetailPageState();
 }
 
-class _SunnahDetailPageState extends State<SunnahDetailPage>
+class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
+  late String _jenisPuasa;
 
-  // Sample tracking data based on puasa type
-  Map<DateTime, Map<String, dynamic>> _trackingData = {};
+  final GlobalKey<RefreshIndicatorState> _refreshKeyTracking =
+      GlobalKey<RefreshIndicatorState>();
 
   final Map<String, List<Map<String, dynamic>>> _puasaGuides = {
     'Puasa Senin Kamis': [
@@ -92,40 +100,35 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
-    _initializeTrackingData();
+    _tabController = TabController(length: 2, vsync: this);
+    _jenisPuasa = widget.puasaData['type']!;
+    logger.fine('Jenis Puasa: $_jenisPuasa');
+
+    // Fetch initial data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchData();
+    });
   }
 
-  void _initializeTrackingData() {
-    final now = DateTime.now();
-    final puasaName = widget.puasaData['name'];
+  Future<void> _fetchData() async {
+    await ref
+        .read(puasaProvider.notifier)
+        .fetchProgresPuasaSunnahTahunIni(jenis: _jenisPuasa);
+    await ref
+        .read(puasaProvider.notifier)
+        .fetchRiwayatPuasaSunnah(jenis: _jenisPuasa);
+  }
 
-    // Generate sample data based on puasa type
-    if (puasaName == 'Puasa Senin Kamis') {
-      for (int i = 0; i < 60; i++) {
-        final date = now.subtract(Duration(days: i));
-        if (date.weekday == DateTime.monday ||
-            date.weekday == DateTime.thursday) {
-          _trackingData[DateTime(date.year, date.month, date.day)] = {
-            'status': i < 20 ? 'completed' : (i < 40 ? 'planned' : 'skipped'),
-            'notes': i < 20 ? 'Alhamdulillah lancar' : '',
-          };
-        }
-      }
-    } else if (puasaName == 'Puasa Ayyamul Bidh') {
-      // Generate for 13, 14, 15 of each month
-      for (int month = 1; month <= 12; month++) {
-        for (int day = 13; day <= 15; day++) {
-          final date = DateTime(now.year, month, day);
-          if (!date.isAfter(now)) {
-            _trackingData[DateTime(date.year, date.month, date.day)] = {
-              'status': date.isBefore(now.subtract(const Duration(days: 30)))
-                  ? 'completed'
-                  : 'planned',
-              'notes': 'Ayyamul Bidh bulan $month',
-            };
-          }
-        }
+  Future<void> _onRefresh() async {
+    try {
+      await _fetchData();
+    } catch (e) {
+      if (mounted) {
+        showMessageToast(
+          context,
+          message: 'Gagal memuat ulang. Coba lagi.',
+          type: ToastType.error,
+        );
       }
     }
   }
@@ -136,11 +139,114 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
     super.dispose();
   }
 
+  int _getCompletedCount() {
+    final puasaState = ref.watch(puasaProvider);
+    return puasaState.progresPuasaSunnahTahunIni?.total ?? 0;
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isDesktop = screenWidth > 1024;
+    final connectionState = ref.watch(connectionProvider);
+    final isOffline = !connectionState.isOnline;
+    final puasaState = ref.watch(puasaProvider);
+    final completedCount = _getCompletedCount();
+
+    // Listen to connection state
+    ref.listen(connectionProvider, (prev, next) {
+      final wasOffline = prev?.isOnline == false;
+      final nowOnline = next.isOnline == true;
+
+      if (wasOffline && nowOnline && mounted) {
+        showMessageToast(
+          context,
+          message: 'Koneksi kembali online. Tarik untuk memuat ulang.',
+          type: ToastType.info,
+        );
+      }
+    });
+
+    // Show loading while fetching data
+    if (puasaState.status == PuasaStatus.loading &&
+        puasaState.progresPuasaSunnahTahunIni == null) {
+      return Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                AppTheme.primaryBlue.withValues(alpha: 0.03),
+                AppTheme.backgroundWhite,
+              ],
+              stops: const [0.0, 0.3],
+            ),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    AppTheme.primaryBlue,
+                  ),
+                ),
+                SizedBox(height: 16),
+                Text(
+                  'Memuat data...',
+                  style: TextStyle(
+                    fontSize: isTablet ? 16 : 14,
+                    color: AppTheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Listen to auth state
+    ref.listen(authProvider, (previous, next) {
+      if (previous?['status'] != next['status']) {
+        if (next['status'] != AuthState.authenticated && mounted) {
+          showMessageToast(
+            context,
+            message: 'Sesi berakhir. Silakan login kembali.',
+            type: ToastType.warning,
+          );
+        }
+      }
+    });
+
+    // Listen to puasa state
+    ref.listen(puasaProvider, (previous, next) {
+      // Handle success state
+      if (next.status == PuasaStatus.success &&
+          previous?.status == PuasaStatus.loading) {
+        if (mounted && next.message != null) {
+          showMessageToast(
+            context,
+            message: next.message!,
+            type: ToastType.success,
+          );
+        }
+      }
+
+      // Handle error state
+      if (next.status == PuasaStatus.error &&
+          previous?.status == PuasaStatus.loading) {
+        if (mounted && next.message != null) {
+          showMessageToast(
+            context,
+            message: next.message!,
+            type: ToastType.error,
+          );
+        }
+      }
+    });
 
     return Scaffold(
       body: Container(
@@ -221,11 +327,43 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
                         ],
                       ),
                     ),
+                    // Offline Badge
+                    if (isOffline)
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: isTablet ? 12 : 10,
+                          vertical: isTablet ? 6 : 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.red.shade200),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.wifi_off_rounded,
+                              color: Colors.red.shade700,
+                              size: isTablet ? 16 : 14,
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Offline',
+                              style: TextStyle(
+                                color: Colors.red.shade700,
+                                fontSize: isTablet ? 12 : 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
 
-              // Progress Summary - Only Completed
+              // Progress Summary
               Container(
                 margin: EdgeInsets.symmetric(
                   horizontal: isDesktop
@@ -235,7 +373,7 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
                       : 24.0,
                 ),
                 child: _buildProgressCard(
-                  _getCompletedCount().toString(),
+                  completedCount.toString(),
                   'Puasa Diselesaikan',
                   AppTheme.accentGreen,
                   Icons.check_circle_rounded,
@@ -245,7 +383,7 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
 
               SizedBox(height: isTablet ? 16 : 12),
 
-              // Tab Bar - New Style
+              // Tab Bar
               Container(
                 margin: EdgeInsets.symmetric(
                   horizontal: isDesktop
@@ -287,7 +425,6 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
                   tabs: const [
                     Tab(text: 'Tracking'),
                     Tab(text: 'Panduan'),
-                    // Tab(text: 'Statistik'),
                   ],
                 ),
               ),
@@ -298,11 +435,7 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: [
-                    _buildTrackingTab(),
-                    _buildGuideTab(),
-                    _buildStatisticsTab(),
-                  ],
+                  children: [_buildTrackingTab(), _buildGuideTab()],
                 ),
               ),
             ],
@@ -383,96 +516,119 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isDesktop = screenWidth > 1024;
+    final puasaState = ref.watch(puasaProvider);
+    final riwayat = puasaState.riwayatPuasaSunnah != null
+        ? puasaState.riwayatPuasaSunnah?.detail
+        : [];
 
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop
-            ? 32.0
-            : isTablet
-            ? 28.0
-            : 24.0,
-      ),
-      child: Column(
-        children: [
-          // Recent Activity
-          Container(
-            padding: EdgeInsets.all(isTablet ? 24 : 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(isTablet ? 22 : 20),
-              border: Border.all(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                  spreadRadius: -5,
+    return RefreshIndicator.adaptive(
+      key: _refreshKeyTracking,
+      onRefresh: _onRefresh,
+      child: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(
+          horizontal: isDesktop
+              ? 32.0
+              : isTablet
+              ? 28.0
+              : 24.0,
+        ),
+        child: Column(
+          children: [
+            // Recent Activity
+            Container(
+              padding: EdgeInsets.all(isTablet ? 24 : 20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(isTablet ? 22 : 20),
+                border: Border.all(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                 ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.history,
-                      color: AppTheme.primaryBlue,
-                      size: isTablet ? 24 : 22,
-                    ),
-                    SizedBox(width: isTablet ? 12 : 8),
-                    Text(
-                      'Aktivitas Terbaru',
-                      style: TextStyle(
-                        fontSize: isDesktop
-                            ? 20
-                            : isTablet
-                            ? 18
-                            : 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.onSurface,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                    spreadRadius: -5,
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.history,
+                        color: AppTheme.primaryBlue,
+                        size: isTablet ? 24 : 22,
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: isTablet ? 20 : 16),
-                ..._getRecentActivities()
-                    .map((activity) => _buildActivityItem(activity, isTablet))
-                    .toList(),
-              ],
-            ),
-          ),
-
-          SizedBox(height: isTablet ? 24 : 20),
-
-          // Quick Action Button
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: () => _markTodayFasting(),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: widget.puasaData['color'],
-                foregroundColor: Colors.white,
-                padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(isTablet ? 16 : 14),
-                ),
-                elevation: 0,
-                shadowColor: Colors.transparent,
+                      SizedBox(width: isTablet ? 12 : 8),
+                      Text(
+                        'Aktivitas Terbaru',
+                        style: TextStyle(
+                          fontSize: isDesktop
+                              ? 20
+                              : isTablet
+                              ? 18
+                              : 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: isTablet ? 20 : 16),
+                  if (riwayat == null || riwayat.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(isTablet ? 24 : 20),
+                        child: Text(
+                          'Belum ada riwayat puasa',
+                          style: TextStyle(
+                            fontSize: isTablet ? 14 : 13,
+                            color: AppTheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    ...riwayat
+                        .take(5)
+                        .map((item) => _buildActivityItem(item, isTablet)),
+                ],
               ),
-              icon: Icon(Icons.add_task, size: isTablet ? 20 : 18),
-              label: Text(
-                'Tandai Puasa Hari Ini',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  fontSize: isTablet ? 16 : 15,
+            ),
+
+            SizedBox(height: isTablet ? 24 : 20),
+
+            // Quick Action Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () => _markTodayFasting(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: widget.puasaData['color'],
+                  foregroundColor: Colors.white,
+                  padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(isTablet ? 16 : 14),
+                  ),
+                  elevation: 0,
+                  shadowColor: Colors.transparent,
+                ),
+                icon: Icon(Icons.add_task, size: isTablet ? 20 : 18),
+                label: Text(
+                  'Tandai Puasa Hari Ini',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: isTablet ? 16 : 15,
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -576,200 +732,25 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
     );
   }
 
-  Widget _buildStatisticsTab() {
-    final screenWidth = MediaQuery.of(context).size.width;
-    final isTablet = screenWidth > 600;
-    final isDesktop = screenWidth > 1024;
-
-    return SingleChildScrollView(
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop
-            ? 32.0
-            : isTablet
-            ? 28.0
-            : 24.0,
-      ),
-      child: Column(
-        children: [
-          // Monthly Progress Chart
-          Container(
-            padding: EdgeInsets.all(isTablet ? 24 : 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(isTablet ? 22 : 20),
-              border: Border.all(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                  spreadRadius: -5,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Progress Bulanan',
-                  style: TextStyle(
-                    fontSize: isDesktop
-                        ? 20
-                        : isTablet
-                        ? 18
-                        : 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.onSurface,
-                  ),
-                ),
-                SizedBox(height: isTablet ? 20 : 16),
-                Row(
-                  children: [
-                    _buildMonthlyBar(
-                      'Jan',
-                      0.8,
-                      AppTheme.accentGreen,
-                      isTablet,
-                    ),
-                    SizedBox(width: isTablet ? 8 : 6),
-                    _buildMonthlyBar(
-                      'Feb',
-                      0.6,
-                      AppTheme.primaryBlue,
-                      isTablet,
-                    ),
-                    SizedBox(width: isTablet ? 8 : 6),
-                    _buildMonthlyBar(
-                      'Mar',
-                      0.9,
-                      AppTheme.accentGreen,
-                      isTablet,
-                    ),
-                    SizedBox(width: isTablet ? 8 : 6),
-                    _buildMonthlyBar(
-                      'Apr',
-                      0.7,
-                      AppTheme.primaryBlue,
-                      isTablet,
-                    ),
-                    SizedBox(width: isTablet ? 8 : 6),
-                    _buildMonthlyBar(
-                      'Mei',
-                      0.5,
-                      AppTheme.primaryBlueDark,
-                      isTablet,
-                    ),
-                    SizedBox(width: isTablet ? 8 : 6),
-                    _buildMonthlyBar(
-                      'Jun',
-                      0.3,
-                      AppTheme.onSurfaceVariant,
-                      isTablet,
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          SizedBox(height: isTablet ? 24 : 20),
-
-          // Achievement Summary
-          Container(
-            padding: EdgeInsets.all(isTablet ? 24 : 20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(isTablet ? 22 : 20),
-              border: Border.all(
-                color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                  blurRadius: 20,
-                  offset: const Offset(0, 4),
-                  spreadRadius: -5,
-                ),
-              ],
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Pencapaian',
-                  style: TextStyle(
-                    fontSize: isDesktop
-                        ? 20
-                        : isTablet
-                        ? 18
-                        : 16,
-                    fontWeight: FontWeight.bold,
-                    color: AppTheme.onSurface,
-                  ),
-                ),
-                SizedBox(height: isTablet ? 16 : 12),
-                _buildAchievement(
-                  'Konsisten 7 Hari',
-                  'Puasa ${widget.puasaData['name']} berturut-turut',
-                  Icons.star,
-                  AppTheme.accentGreen,
-                  true,
-                  isTablet,
-                ),
-                SizedBox(height: isTablet ? 12 : 8),
-                _buildAchievement(
-                  'Bulan Sempurna',
-                  'Menyelesaikan target puasa dalam sebulan',
-                  Icons.diamond,
-                  AppTheme.primaryBlue,
-                  false,
-                  isTablet,
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActivityItem(Map<String, dynamic> activity, bool isTablet) {
+  Widget _buildActivityItem(dynamic item, bool isTablet) {
     return Container(
       margin: EdgeInsets.only(bottom: isTablet ? 12 : 8),
       padding: EdgeInsets.all(isTablet ? 12 : 10),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
-            (activity['status'] == 'completed'
-                    ? AppTheme.accentGreen
-                    : AppTheme.primaryBlue)
-                .withValues(alpha: 0.05),
-            (activity['status'] == 'completed'
-                    ? AppTheme.accentGreen
-                    : AppTheme.primaryBlue)
-                .withValues(alpha: 0.02),
+            AppTheme.accentGreen.withValues(alpha: 0.05),
+            AppTheme.accentGreen.withValues(alpha: 0.02),
           ],
         ),
         borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
-        border: Border.all(
-          color:
-              (activity['status'] == 'completed'
-                      ? AppTheme.accentGreen
-                      : AppTheme.primaryBlue)
-                  .withValues(alpha: 0.1),
-        ),
+        border: Border.all(color: AppTheme.accentGreen.withValues(alpha: 0.1)),
       ),
       child: Row(
         children: [
           Icon(
-            activity['status'] == 'completed'
-                ? Icons.check_circle
-                : Icons.schedule,
-            color: activity['status'] == 'completed'
-                ? AppTheme.accentGreen
-                : AppTheme.primaryBlue,
+            Icons.check_circle,
+            color: AppTheme.accentGreen,
             size: isTablet ? 20 : 18,
           ),
           SizedBox(width: isTablet ? 12 : 8),
@@ -778,202 +759,94 @@ class _SunnahDetailPageState extends State<SunnahDetailPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  activity['date'],
+                  item.tanggal,
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 13,
                     fontWeight: FontWeight.w600,
                     color: AppTheme.onSurface,
                   ),
                 ),
-                if (activity['notes'].isNotEmpty) ...[
-                  SizedBox(height: 2),
-                  Text(
-                    activity['notes'],
-                    style: TextStyle(
-                      fontSize: isTablet ? 12 : 11,
-                      color: AppTheme.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMonthlyBar(
-    String label,
-    double progress,
-    Color color,
-    bool isTablet,
-  ) {
-    return Expanded(
-      child: Column(
-        children: [
-          Container(
-            height: isTablet ? 80 : 60,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(isTablet ? 6 : 4),
-            ),
-            child: Align(
-              alignment: Alignment.bottomCenter,
-              child: Container(
-                height: (isTablet ? 80 : 60) * progress,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [color.withValues(alpha: 0.8), color],
-                  ),
-                  borderRadius: BorderRadius.circular(isTablet ? 6 : 4),
-                ),
-              ),
-            ),
-          ),
-          SizedBox(height: isTablet ? 8 : 6),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: isTablet ? 11 : 10,
-              color: AppTheme.onSurfaceVariant,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAchievement(
-    String title,
-    String description,
-    IconData icon,
-    Color color,
-    bool isUnlocked,
-    bool isTablet,
-  ) {
-    return Container(
-      padding: EdgeInsets.all(isTablet ? 16 : 14),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: isUnlocked
-              ? [color.withValues(alpha: 0.1), color.withValues(alpha: 0.05)]
-              : [
-                  AppTheme.onSurfaceVariant.withValues(alpha: 0.05),
-                  AppTheme.onSurfaceVariant.withValues(alpha: 0.02),
-                ],
-        ),
-        borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
-        border: Border.all(
-          color: isUnlocked
-              ? color.withValues(alpha: 0.2)
-              : AppTheme.onSurfaceVariant.withValues(alpha: 0.1),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: EdgeInsets.all(isTablet ? 12 : 10),
-            decoration: BoxDecoration(
-              color: isUnlocked
-                  ? color.withValues(alpha: 0.15)
-                  : AppTheme.onSurfaceVariant.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(isTablet ? 10 : 8),
-            ),
-            child: Icon(
-              icon,
-              color: isUnlocked ? color : AppTheme.onSurfaceVariant,
-              size: isTablet ? 24 : 22,
-            ),
-          ),
-          SizedBox(width: isTablet ? 16 : 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
+                SizedBox(height: 2),
                 Text(
-                  title,
+                  'Puasa ${widget.puasaData['name']}',
                   style: TextStyle(
-                    fontSize: isTablet ? 15 : 14,
-                    fontWeight: FontWeight.bold,
-                    color: isUnlocked
-                        ? AppTheme.onSurface
-                        : AppTheme.onSurfaceVariant,
-                  ),
-                ),
-                Text(
-                  description,
-                  style: TextStyle(
-                    fontSize: isTablet ? 13 : 12,
+                    fontSize: isTablet ? 12 : 11,
                     color: AppTheme.onSurfaceVariant,
                   ),
                 ),
               ],
             ),
           ),
-          if (isUnlocked)
-            Icon(Icons.check_circle, color: color, size: isTablet ? 24 : 22),
         ],
       ),
     );
   }
 
-  int _getCompletedCount() {
-    return _trackingData.values
-        .where((data) => data['status'] == 'completed')
-        .length;
-  }
+  void _markTodayFasting() async {
+    final authState = ref.read(authProvider);
+    final connectionState = ref.read(connectionProvider);
 
-  int _getPlannedCount() {
-    return _trackingData.values
-        .where((data) => data['status'] == 'planned')
-        .length;
-  }
-
-  int _getCompletionRate() {
-    final completed = _getCompletedCount();
-    final total = _trackingData.length;
-    return total > 0 ? ((completed / total) * 100).round() : 0;
-  }
-
-  List<Map<String, dynamic>> _getRecentActivities() {
-    final activities = <Map<String, dynamic>>[];
-    final sortedEntries = _trackingData.entries.toList()
-      ..sort((a, b) => b.key.compareTo(a.key));
-
-    for (var entry in sortedEntries.take(5)) {
-      activities.add({
-        'date': '${entry.key.day}/${entry.key.month}/${entry.key.year}',
-        'status': entry.value['status'],
-        'notes': entry.value['notes'] ?? '',
-      });
+    if (authState['status'] != AuthState.authenticated) {
+      showMessageToast(
+        context,
+        message: 'Anda harus login terlebih dahulu',
+        type: ToastType.error,
+      );
+      return;
     }
 
-    return activities;
-  }
+    if (!connectionState.isOnline) {
+      showMessageToast(
+        context,
+        message: 'Tidak dapat menambah progress saat offline',
+        type: ToastType.error,
+      );
+      return;
+    }
 
-  void _markTodayFasting() {
-    final today = DateTime.now();
-    final dateKey = DateTime(today.year, today.month, today.day);
-
-    setState(() {
-      _trackingData[dateKey] = {
-        'status': 'completed',
-        'notes': 'Alhamdulillah puasa hari ini',
-      };
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Alhamdulillah! ${widget.puasaData['name']} hari ini telah ditandai 🤲',
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Menyimpan progress...',
+                style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
+              ),
+            ],
+          ),
         ),
-        backgroundColor: AppTheme.accentGreen,
-        duration: const Duration(seconds: 3),
       ),
     );
+
+    try {
+      // Call the API to add progress
+      await ref
+          .read(puasaProvider.notifier)
+          .addProgresPuasaSunnah(jenis: _jenisPuasa);
+
+      // Close loading dialog
+      if (mounted) {
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      // Close loading dialog if still open
+      if (mounted && Navigator.canPop(context)) {
+        Navigator.pop(context);
+      }
+    }
   }
 }

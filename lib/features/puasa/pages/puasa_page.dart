@@ -17,9 +17,8 @@ class PuasaPage extends ConsumerStatefulWidget {
 class _PuasaPageState extends ConsumerState<PuasaPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
-
-  // Data puasa (untuk demo)
-  Map<DateTime, Map<String, dynamic>> _puasaData = {};
+  bool _hasInitializedWajib = false;
+  bool _hasInitializedSunnah = false;
 
   final List<Map<String, dynamic>> _puasaSunnah = [
     {
@@ -29,6 +28,7 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
       'period': 'Setiap minggu',
       'color': AppTheme.primaryBlue,
       'icon': Icons.calendar_today,
+      'type': 'senin_kamis',
     },
     {
       'name': 'Puasa Ayyamul Bidh',
@@ -37,6 +37,7 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
       'period': 'Setiap bulan',
       'color': AppTheme.primaryBlueDark,
       'icon': Icons.brightness_3,
+      'type': 'ayyamul_bidh',
     },
     {
       'name': 'Puasa Daud',
@@ -45,6 +46,7 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
       'period': 'Kontinyu',
       'color': AppTheme.primaryBlueLight,
       'icon': Icons.swap_horiz,
+      'type': 'daud',
     },
     {
       'name': 'Puasa 6 Syawal',
@@ -53,6 +55,7 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
       'period': 'Syawal',
       'color': AppTheme.accentGreenDark,
       'icon': Icons.star,
+      'type': 'syawal',
     },
     {
       'name': 'Puasa Muharram',
@@ -61,6 +64,7 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
       'period': 'Muharram',
       'color': AppTheme.errorColor,
       'icon': Icons.event_note,
+      'type': 'muharram',
     },
     {
       'name': 'Puasa Syaban',
@@ -69,6 +73,7 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
       'period': 'Syaban',
       'color': AppTheme.accentGreen,
       'icon': Icons.nightlight_round,
+      'type': 'syaban',
     },
   ];
 
@@ -76,34 +81,64 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    _initializeSampleData();
 
-    // Fetch data puasa wajib
+    // Listen to tab changes
+    _tabController.addListener(_handleTabChange);
+
+    // Fetch data puasa wajib (default tab)
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(puasaProvider.notifier).init();
-
-      logger.fine('Initialized PuasaPage and fetching data...${_puasaData}');
+      _initPuasaWajib();
     });
   }
 
-  void _initializeSampleData() {
-    // Inisialisasi data sample untuk demo
-    final now = DateTime.now();
-    for (int i = 0; i < 30; i++) {
-      final date = now.subtract(Duration(days: i));
-      if (date.weekday == DateTime.monday ||
-          date.weekday == DateTime.thursday) {
-        _puasaData[DateTime(date.year, date.month, date.day)] = {
-          'type': 'Senin Kamis',
-          'status': i < 10 ? 'completed' : 'planned',
-          'notes': 'Puasa Senin Kamis',
-        };
-      }
+  void _handleTabChange() {
+    if (!_tabController.indexIsChanging) return;
+
+    final currentIndex = _tabController.index;
+
+    if (currentIndex == 0 && !_hasInitializedWajib) {
+      // Tab Puasa Wajib
+      _initPuasaWajib();
+    } else if (currentIndex == 1 && !_hasInitializedSunnah) {
+      // Tab Puasa Sunnah
+      _initPuasaSunnah();
+    }
+  }
+
+  Future<void> _initPuasaWajib() async {
+    if (_hasInitializedWajib) return;
+
+    try {
+      await ref.read(puasaProvider.notifier).fetchProgresPuasaWajibTahunIni();
+      await ref.read(puasaProvider.notifier).fetchRiwayatPuasaWajib();
+      _hasInitializedWajib = true;
+    } catch (e) {
+      // Handle error if needed
+      logger.fine('Error initializing puasa wajib: $e');
+    }
+  }
+
+  Future<void> _initPuasaSunnah() async {
+    if (_hasInitializedSunnah) return;
+
+    try {
+      await ref
+          .read(puasaProvider.notifier)
+          .fetchProgresPuasaSunnahTahunIni(jenis: 'senin_kamis');
+      await ref
+          .read(puasaProvider.notifier)
+          .fetchRiwayatPuasaSunnah(jenis: 'senin_kamis');
+
+      _hasInitializedSunnah = true;
+    } catch (e) {
+      // Handle error if needed
+      logger.fine('Error initializing puasa sunnah: $e');
     }
   }
 
   @override
   void dispose() {
+    _tabController.removeListener(_handleTabChange);
     _tabController.dispose();
     super.dispose();
   }
@@ -259,11 +294,7 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
                 child: TabBarView(
                   controller: _tabController,
                   children: [
-                    RamadhanDetailPage(
-                      puasaData: _puasaData,
-                      onMarkFasting: _markFasting,
-                      isEmbedded: true,
-                    ),
+                    RamadhanDetailPage(isEmbedded: true),
                     SunnahTab(
                       puasaSunnah: _puasaSunnah,
                       onPuasaTap: _showPuasaDetail,
@@ -283,25 +314,6 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
       context,
       MaterialPageRoute(
         builder: (context) => SunnahDetailPage(puasaData: puasa),
-      ),
-    );
-  }
-
-  void _markFasting(DateTime date) {
-    setState(() {
-      final dateKey = DateTime(date.year, date.month, date.day);
-      _puasaData[dateKey] = {
-        'type': 'Puasa Sunnah',
-        'status': 'completed',
-        'notes': 'Puasa sunnah',
-      };
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Alhamdulillah! Puasa telah ditandai 🤲'),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 3),
       ),
     );
   }

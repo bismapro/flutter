@@ -95,6 +95,98 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
       state = state.copyWith(status: PuasaStatus.error, message: e.toString());
     }
   }
+
+  // Fetch Progres Puasa Sunnah Tahun Ini
+  Future<void> fetchProgresPuasaSunnahTahunIni({required String jenis}) async {
+    try {
+      state = state.copyWith(status: PuasaStatus.loading, message: null);
+      final result = await PuasaService.getProgresPuasaSunnahTahunIni(
+        jenis: jenis,
+      );
+
+      final dataJson = result['data'];
+
+      final progres = (dataJson == null)
+          ? null
+          : ProgresPuasaSunnahTahunIni.fromJson(dataJson);
+
+      state = state.copyWith(
+        status: PuasaStatus.loaded,
+        progresPuasaSunnahTahunIni: progres,
+        message: result['message'],
+      );
+    } catch (e) {
+      state = state.copyWith(status: PuasaStatus.error, message: e.toString());
+    }
+  }
+
+  // Fetch Riwayat Puasa Sunnah
+  Future<void> fetchRiwayatPuasaSunnah({required String jenis}) async {
+    try {
+      state = state.copyWith(status: PuasaStatus.loading, message: null);
+      final result = await PuasaService.getRiwayatPuasaSunnah(jenis: jenis);
+      final status = result['status'] as bool;
+      final message = result['message'] as String;
+      if (status) {
+        final riwayat = RiwayatPuasaSunnah.fromJson(result['data']);
+        state = state.copyWith(
+          status: PuasaStatus.loaded,
+          riwayatPuasaSunnah: riwayat,
+          message: message,
+        );
+      } else {
+        state = state.copyWith(status: PuasaStatus.error, message: message);
+      }
+    } catch (e) {
+      state = state.copyWith(status: PuasaStatus.error, message: e.toString());
+    }
+  }
+
+  // Add Progres Puasa Sunnah
+  Future<void> addProgresPuasaSunnah({required String jenis}) async {
+    try {
+      state = state.copyWith(status: PuasaStatus.loading, message: null);
+      final result = await PuasaService.addProgresPuasaSunnah(jenis: jenis);
+      final status = result['status'] as bool;
+      final message = result['message'] as String;
+      final data = result['data'];
+      if (status) {
+        state = state.copyWith(
+          status: PuasaStatus.success,
+          message: message,
+          progresPuasaSunnahTahunIni: data,
+        );
+        await fetchProgresPuasaSunnahTahunIni(jenis: jenis);
+        await fetchRiwayatPuasaSunnah(jenis: jenis);
+      } else {
+        state = state.copyWith(status: PuasaStatus.error, message: message);
+      }
+    } catch (e) {
+      state = state.copyWith(status: PuasaStatus.error, message: e.toString());
+    }
+  }
+
+  // Delete Progres Puasa Sunnah
+  Future<void> deleteProgresPuasaSunnah({
+    required String id,
+    required String jenis,
+  }) async {
+    try {
+      state = state.copyWith(status: PuasaStatus.loading, message: null);
+      final result = await PuasaService.deleteProgresPuasaSunnah(id: id);
+      final status = result['status'] as bool;
+      final message = result['message'] as String;
+      if (status) {
+        state = state.copyWith(status: PuasaStatus.success, message: message);
+        await fetchProgresPuasaSunnahTahunIni(jenis: jenis);
+        await fetchRiwayatPuasaSunnah(jenis: jenis);
+      } else {
+        state = state.copyWith(status: PuasaStatus.error, message: message);
+      }
+    } catch (e) {
+      state = state.copyWith(status: PuasaStatus.error, message: e.toString());
+    }
+  }
 }
 
 final puasaProvider = StateNotifierProvider<PuasaNotifier, PuasaState>(

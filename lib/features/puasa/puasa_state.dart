@@ -14,14 +14,18 @@ class PuasaState {
   final PuasaStatus status;
   final ProgresPuasaWajibTahunIni? progresPuasaWajibTahunIni;
   final List<RiwayatPuasaWajib>? riwayatPuasaWajib;
+  final ProgresPuasaSunnahTahunIni? progresPuasaSunnahTahunIni;
+  final RiwayatPuasaSunnah? riwayatPuasaSunnah;
   final String? message;
   final bool isOffline;
 
   PuasaState({
     required this.status,
     this.progresPuasaWajibTahunIni,
-    this.message,
     this.riwayatPuasaWajib,
+    this.progresPuasaSunnahTahunIni,
+    this.riwayatPuasaSunnah,
+    this.message,
     required this.isOffline,
   });
 
@@ -30,6 +34,8 @@ class PuasaState {
       status: PuasaStatus.initial,
       progresPuasaWajibTahunIni: null,
       riwayatPuasaWajib: [],
+      progresPuasaSunnahTahunIni: null,
+      riwayatPuasaSunnah: null,
       message: null,
       isOffline: false,
     );
@@ -39,6 +45,8 @@ class PuasaState {
     PuasaStatus? status,
     ProgresPuasaWajibTahunIni? progresPuasaWajibTahunIni,
     List<RiwayatPuasaWajib>? riwayatPuasaWajib,
+    ProgresPuasaSunnahTahunIni? progresPuasaSunnahTahunIni,
+    RiwayatPuasaSunnah? riwayatPuasaSunnah,
     String? message,
     bool? isOffline,
   }) {
@@ -47,6 +55,9 @@ class PuasaState {
       progresPuasaWajibTahunIni:
           progresPuasaWajibTahunIni ?? this.progresPuasaWajibTahunIni,
       riwayatPuasaWajib: riwayatPuasaWajib ?? this.riwayatPuasaWajib,
+      progresPuasaSunnahTahunIni:
+          progresPuasaSunnahTahunIni ?? this.progresPuasaSunnahTahunIni,
+      riwayatPuasaSunnah: riwayatPuasaSunnah ?? this.riwayatPuasaSunnah,
       message: message ?? this.message,
       isOffline: isOffline ?? this.isOffline,
     );
