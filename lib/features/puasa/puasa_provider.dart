@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/legacy.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/data/models/progres_puasa/progres_puasa.dart';
 import 'package:test_flutter/features/puasa/puasa_state.dart';
 import 'package:test_flutter/features/puasa/services/puasa_service.dart';
@@ -97,47 +98,86 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
   }
 
   // Fetch Progres Puasa Sunnah Tahun Ini
-  Future<void> fetchProgresPuasaSunnahTahunIni({required String jenis}) async {
-    try {
-      state = state.copyWith(status: PuasaStatus.loading, message: null);
-      final result = await PuasaService.getProgresPuasaSunnahTahunIni(
-        jenis: jenis,
-      );
+  // Future<void> fetchProgresPuasaSunnahTahunIni({required String jenis}) async {
+  //   try {
+  //     state = state.copyWith(status: PuasaStatus.loading, message: null);
+  // final result = await PuasaService.getProgresPuasaSunnahTahunIni(
+  //       jenis: jenis,
+  //     );
 
-      final dataJson = result['data'];
+  //     final dataJson = result['data'];
 
-      final progres = (dataJson == null)
-          ? null
-          : ProgresPuasaSunnahTahunIni.fromJson(dataJson);
+  //     final progres = (dataJson == null)
+  //         ? null
+  //         : ProgresPuasaSunnahTahunIni.fromJson(dataJson);
 
-      state = state.copyWith(
-        status: PuasaStatus.loaded,
-        progresPuasaSunnahTahunIni: progres,
-        message: result['message'],
-      );
-    } catch (e) {
-      state = state.copyWith(status: PuasaStatus.error, message: e.toString());
-    }
-  }
+  //     state = state.copyWith(
+  //       status: PuasaStatus.loaded,
+  //       progresPuasaSunnahTahunIni: progres,
+  //       message: result['message'],
+  //     );
+  //   } catch (e) {
+  //     state = state.copyWith(status: PuasaStatus.error, message: e.toString());
+  //   }
+  // }
 
   // Fetch Riwayat Puasa Sunnah
   Future<void> fetchRiwayatPuasaSunnah({required String jenis}) async {
     try {
+      logger.fine('=== PROVIDER: fetchRiwayatPuasaSunnah ===');
+      logger.fine('Jenis: $jenis');
+
       state = state.copyWith(status: PuasaStatus.loading, message: null);
+
       final result = await PuasaService.getRiwayatPuasaSunnah(jenis: jenis);
-      final status = result['status'] as bool;
-      final message = result['message'] as String;
+
+      logger.fine('Service result: $result');
+
+      final status = result['status'] as bool? ?? false;
+      final message = result['message'] as String? ?? 'Unknown error';
+      final data = result['data'] as Map<String, dynamic>? ?? {};
+
+      logger.fine('Parsed - Status: $status');
+      logger.fine('Parsed - Message: $message');
+      logger.fine('Parsed - Data: $data');
+
       if (status) {
-        final riwayat = RiwayatPuasaSunnah.fromJson(result['data']);
-        state = state.copyWith(
-          status: PuasaStatus.loaded,
-          riwayatPuasaSunnah: riwayat,
-          message: message,
-        );
+        // Check if data is empty
+        if (data.isEmpty) {
+          logger.warning('Data is empty, creating empty RiwayatPuasaSunnah');
+          final emptyRiwayat = RiwayatPuasaSunnah(total: 0, detail: []);
+
+          state = state.copyWith(
+            status: PuasaStatus.loaded,
+            riwayatPuasaSunnah: emptyRiwayat,
+            message: message,
+          );
+        } else {
+          logger.fine('Parsing RiwayatPuasaSunnah from data');
+          final riwayat = RiwayatPuasaSunnah.fromJson(data);
+
+          logger.fine('Parsed riwayat: $riwayat');
+          logger.fine('Total: ${riwayat.total}');
+          logger.fine('Detail count: ${riwayat.detail?.length}');
+
+          state = state.copyWith(
+            status: PuasaStatus.loaded,
+            riwayatPuasaSunnah: riwayat,
+            message: message,
+          );
+        }
+
+        logger.fine('State updated successfully');
+        logger.fine('New state riwayat: ${state.riwayatPuasaSunnah}');
       } else {
+        logger.warning('Status false, setting error state');
         state = state.copyWith(status: PuasaStatus.error, message: message);
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      logger.severe('=== PROVIDER ERROR: fetchRiwayatPuasaSunnah ===');
+      logger.severe('Error: $e');
+      logger.severe('StackTrace: $stackTrace');
+
       state = state.copyWith(status: PuasaStatus.error, message: e.toString());
     }
   }
@@ -147,20 +187,9 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
     try {
       state = state.copyWith(status: PuasaStatus.loading, message: null);
       final result = await PuasaService.addProgresPuasaSunnah(jenis: jenis);
-      final status = result['status'] as bool;
       final message = result['message'] as String;
-      final data = result['data'];
-      if (status) {
-        state = state.copyWith(
-          status: PuasaStatus.success,
-          message: message,
-          progresPuasaSunnahTahunIni: data,
-        );
-        await fetchProgresPuasaSunnahTahunIni(jenis: jenis);
-        await fetchRiwayatPuasaSunnah(jenis: jenis);
-      } else {
-        state = state.copyWith(status: PuasaStatus.error, message: message);
-      }
+      state = state.copyWith(status: PuasaStatus.success, message: message);
+      await fetchRiwayatPuasaSunnah(jenis: jenis);
     } catch (e) {
       state = state.copyWith(status: PuasaStatus.error, message: e.toString());
     }
@@ -178,7 +207,6 @@ class PuasaNotifier extends StateNotifier<PuasaState> {
       final message = result['message'] as String;
       if (status) {
         state = state.copyWith(status: PuasaStatus.success, message: message);
-        await fetchProgresPuasaSunnahTahunIni(jenis: jenis);
         await fetchRiwayatPuasaSunnah(jenis: jenis);
       } else {
         state = state.copyWith(status: PuasaStatus.error, message: message);

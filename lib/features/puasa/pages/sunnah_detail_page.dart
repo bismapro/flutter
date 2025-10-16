@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/connection/connection_provider.dart';
 import 'package:test_flutter/core/utils/logger.dart';
@@ -21,6 +22,7 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     with TickerProviderStateMixin {
   late TabController _tabController;
   late String _jenisPuasa;
+  bool _isInitialized = false;
 
   final GlobalKey<RefreshIndicatorState> _refreshKeyTracking =
       GlobalKey<RefreshIndicatorState>();
@@ -102,21 +104,58 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _jenisPuasa = widget.puasaData['type']!;
+    logger.fine('=== INIT SunnahDetailPage ===');
     logger.fine('Jenis Puasa: $_jenisPuasa');
+    logger.fine('Puasa Data: ${widget.puasaData}');
 
     // Fetch initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      logger.fine('=== POST FRAME CALLBACK TRIGGERED ===');
       _fetchData();
     });
   }
 
   Future<void> _fetchData() async {
-    await ref
-        .read(puasaProvider.notifier)
-        .fetchProgresPuasaSunnahTahunIni(jenis: _jenisPuasa);
-    await ref
-        .read(puasaProvider.notifier)
-        .fetchRiwayatPuasaSunnah(jenis: _jenisPuasa);
+    logger.fine('=== FETCHING DATA ===');
+    logger.fine('Jenis: $_jenisPuasa');
+
+    try {
+      // Clear previous state to avoid confusion
+      logger.fine(
+        'Current state before fetch: ${ref.read(puasaProvider).riwayatPuasaSunnah}',
+      );
+
+      await ref
+          .read(puasaProvider.notifier)
+          .fetchRiwayatPuasaSunnah(jenis: _jenisPuasa);
+
+      logger.fine('=== FETCH COMPLETED ===');
+
+      // Log the state after fetch
+      final state = ref.read(puasaProvider);
+      logger.fine('Status: ${state.status}');
+      logger.fine('Riwayat Puasa Sunnah: ${state.riwayatPuasaSunnah}');
+      logger.fine('Total: ${state.riwayatPuasaSunnah?.total}');
+      logger.fine('Detail count: ${state.riwayatPuasaSunnah?.detail.length}');
+      logger.fine('Detail: ${state.riwayatPuasaSunnah?.detail}');
+      logger.fine('Message: ${state.message}');
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    } catch (e, stackTrace) {
+      logger.severe('=== ERROR FETCHING DATA ===');
+      logger.severe('Error: $e');
+      logger.severe('StackTrace: $stackTrace');
+
+      if (mounted) {
+        setState(() {
+          _isInitialized = true;
+        });
+      }
+    }
   }
 
   Future<void> _onRefresh() async {
@@ -141,7 +180,57 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
 
   int _getCompletedCount() {
     final puasaState = ref.watch(puasaProvider);
-    return puasaState.progresPuasaSunnahTahunIni?.total ?? 0;
+    return puasaState.riwayatPuasaSunnah?.total ?? 0;
+  }
+
+  // Check if today already has fasting record
+  bool _isTodayMarked() {
+    final puasaState = ref.watch(puasaProvider);
+    final riwayat = puasaState.riwayatPuasaSunnah?.detail ?? [];
+
+    if (riwayat.isEmpty) return false;
+
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    for (var item in riwayat) {
+      final itemDate = DateTime(
+        item.createdAt!.year,
+        item.createdAt!.month,
+        item.createdAt!.day,
+      );
+
+      if (itemDate.isAtSameMomentAs(todayDate)) {
+        return true;
+      }
+    }
+
+    return false;
+  }
+
+  // Get today's fasting record ID
+  String? _getTodayRecordId() {
+    final puasaState = ref.watch(puasaProvider);
+    final riwayat = puasaState.riwayatPuasaSunnah?.detail ?? [];
+
+    if (riwayat.isEmpty) return null;
+
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+
+    for (var item in riwayat) {
+      final itemDate = DateTime(
+        item.createdAt!.year,
+        item.createdAt!.month,
+        item.createdAt!.day,
+      );
+
+      if (itemDate.isAtSameMomentAs(todayDate)) {
+        return item.id.toString();
+      }
+    }
+
+    return null;
   }
 
   @override
@@ -154,12 +243,22 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     final puasaState = ref.watch(puasaProvider);
     final completedCount = _getCompletedCount();
 
+    // Deep logging for debugging
+    logger.fine('=== BUILD METHOD ===');
+    logger.fine('Is Initialized: $_isInitialized');
+    logger.fine('Status: ${puasaState.status}');
+    logger.fine(
+      'Has riwayatPuasaSunnah: ${puasaState.riwayatPuasaSunnah != null}',
+    );
+    logger.fine('Completed Count: $completedCount');
+
     // Listen to connection state
     ref.listen(connectionProvider, (prev, next) {
       final wasOffline = prev?.isOnline == false;
       final nowOnline = next.isOnline == true;
 
       if (wasOffline && nowOnline && mounted) {
+        logger.fine('=== CONNECTION RESTORED ===');
         showMessageToast(
           context,
           message: 'Koneksi kembali online. Tarik untuk memuat ulang.',
@@ -169,8 +268,8 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     });
 
     // Show loading while fetching data
-    if (puasaState.status == PuasaStatus.loading &&
-        puasaState.progresPuasaSunnahTahunIni == null) {
+    if (!_isInitialized && puasaState.riwayatPuasaSunnah == null) {
+      logger.fine('=== SHOWING LOADING STATE ===');
       return Scaffold(
         body: Container(
           decoration: BoxDecoration(
@@ -195,7 +294,7 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
                 ),
                 SizedBox(height: 16),
                 Text(
-                  'Memuat data...',
+                  'Memuat data $_jenisPuasa...',
                   style: TextStyle(
                     fontSize: isTablet ? 16 : 14,
                     color: AppTheme.onSurfaceVariant,
@@ -210,6 +309,10 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
 
     // Listen to auth state
     ref.listen(authProvider, (previous, next) {
+      logger.fine('=== AUTH STATE CHANGED ===');
+      logger.fine('Previous: ${previous?['status']}');
+      logger.fine('Next: ${next['status']}');
+
       if (previous?['status'] != next['status']) {
         if (next['status'] != AuthState.authenticated && mounted) {
           showMessageToast(
@@ -223,9 +326,16 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
 
     // Listen to puasa state
     ref.listen(puasaProvider, (previous, next) {
+      logger.fine('=== PUASA STATE CHANGED ===');
+      logger.fine('Previous Status: ${previous?.status}');
+      logger.fine('Next Status: ${next.status}');
+      logger.fine('Next Message: ${next.message}');
+      logger.fine('Next Riwayat: ${next.riwayatPuasaSunnah}');
+
       // Handle success state
       if (next.status == PuasaStatus.success &&
           previous?.status == PuasaStatus.loading) {
+        logger.fine('=== SUCCESS STATE ===');
         if (mounted && next.message != null) {
           showMessageToast(
             context,
@@ -235,10 +345,22 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
         }
       }
 
+      // Handle loaded data
+      if (next.status == PuasaStatus.loaded) {
+        logger.fine('=== LOADED STATE ===');
+        logger.fine('Data loaded: ${next.riwayatPuasaSunnah}');
+        logger.fine('Total: ${next.riwayatPuasaSunnah?.total}');
+        logger.fine('Detail: ${next.riwayatPuasaSunnah?.detail}');
+      }
+
       // Handle error state
-      if (next.status == PuasaStatus.error &&
-          previous?.status == PuasaStatus.loading) {
-        if (mounted && next.message != null) {
+      if (next.status == PuasaStatus.error) {
+        logger.severe('=== ERROR STATE ===');
+        logger.severe('Error message: ${next.message}');
+
+        if (previous?.status == PuasaStatus.loading &&
+            mounted &&
+            next.message != null) {
           showMessageToast(
             context,
             message: next.message!,
@@ -517,119 +639,232 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     final isTablet = screenWidth > 600;
     final isDesktop = screenWidth > 1024;
     final puasaState = ref.watch(puasaProvider);
-    final riwayat = puasaState.riwayatPuasaSunnah != null
-        ? puasaState.riwayatPuasaSunnah?.detail
-        : [];
+    final isTodayMarked = _isTodayMarked();
+    final isLoading = puasaState.status == PuasaStatus.loading;
 
-    return RefreshIndicator.adaptive(
-      key: _refreshKeyTracking,
-      onRefresh: _onRefresh,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.symmetric(
-          horizontal: isDesktop
-              ? 32.0
-              : isTablet
-              ? 28.0
-              : 24.0,
-        ),
-        child: Column(
-          children: [
-            // Recent Activity
-            Container(
-              padding: EdgeInsets.all(isTablet ? 24 : 20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(isTablet ? 22 : 20),
-                border: Border.all(
-                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.08),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
-                    spreadRadius: -5,
-                  ),
-                ],
+    logger.fine('=== BUILD TRACKING TAB ===');
+    logger.fine('Puasa State Status: ${puasaState.status}');
+    logger.fine(
+      'Has riwayatPuasaSunnah: ${puasaState.riwayatPuasaSunnah != null}',
+    );
+    logger.fine('Riwayat: ${puasaState.riwayatPuasaSunnah}');
+    logger.fine('Is Today Marked: $isTodayMarked');
+
+    final riwayat = puasaState.riwayatPuasaSunnah?.detail ?? [];
+
+    logger.fine('Riwayat length: ${riwayat.length}');
+    logger.fine('Riwayat items: $riwayat');
+
+    return Column(
+      children: [
+        // Scrollable Content
+        Expanded(
+          child: RefreshIndicator.adaptive(
+            key: _refreshKeyTracking,
+            onRefresh: _onRefresh,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: EdgeInsets.only(
+                left: isDesktop
+                    ? 32.0
+                    : isTablet
+                    ? 28.0
+                    : 24.0,
+                right: isDesktop
+                    ? 32.0
+                    : isTablet
+                    ? 28.0
+                    : 24.0,
+                bottom: isTablet ? 24 : 20,
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.history,
-                        color: AppTheme.primaryBlue,
-                        size: isTablet ? 24 : 22,
+                  // Recent Activity
+                  Container(
+                    padding: EdgeInsets.all(isTablet ? 24 : 20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(isTablet ? 22 : 20),
+                      border: Border.all(
+                        color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                       ),
-                      SizedBox(width: isTablet ? 12 : 8),
-                      Text(
-                        'Aktivitas Terbaru',
-                        style: TextStyle(
-                          fontSize: isDesktop
-                              ? 20
-                              : isTablet
-                              ? 18
-                              : 16,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.onSurface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryBlue.withValues(alpha: 0.08),
+                          blurRadius: 20,
+                          offset: const Offset(0, 4),
+                          spreadRadius: -5,
                         ),
-                      ),
-                    ],
-                  ),
-                  SizedBox(height: isTablet ? 20 : 16),
-                  if (riwayat == null || riwayat.isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(isTablet ? 24 : 20),
-                        child: Text(
-                          'Belum ada riwayat puasa',
-                          style: TextStyle(
-                            fontSize: isTablet ? 14 : 13,
-                            color: AppTheme.onSurfaceVariant,
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.history,
+                              color: AppTheme.primaryBlue,
+                              size: isTablet ? 24 : 22,
+                            ),
+                            SizedBox(width: isTablet ? 12 : 8),
+                            Text(
+                              'Aktivitas Terbaru',
+                              style: TextStyle(
+                                fontSize: isDesktop
+                                    ? 20
+                                    : isTablet
+                                    ? 18
+                                    : 16,
+                                fontWeight: FontWeight.bold,
+                                color: AppTheme.onSurface,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: isTablet ? 20 : 16),
+
+                        // Loading widget
+                        if (isLoading)
+                          Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(isTablet ? 24 : 20),
+                              child: Column(
+                                children: [
+                                  CircularProgressIndicator(
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      AppTheme.primaryBlue,
+                                    ),
+                                  ),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'Memuat riwayat...',
+                                    style: TextStyle(
+                                      fontSize: isTablet ? 14 : 13,
+                                      color: AppTheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )
+                        else if (riwayat.isEmpty)
+                          Center(
+                            child: Padding(
+                              padding: EdgeInsets.all(isTablet ? 24 : 20),
+                              child: Column(
+                                children: [
+                                  Icon(
+                                    Icons.inbox_outlined,
+                                    size: 48,
+                                    color: AppTheme.onSurfaceVariant.withValues(
+                                      alpha: 0.5,
+                                    ),
+                                  ),
+                                  SizedBox(height: 12),
+                                  Text(
+                                    'Belum ada riwayat puasa',
+                                    style: TextStyle(
+                                      fontSize: isTablet ? 14 : 13,
+                                      color: AppTheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                                  SizedBox(height: 4),
+                                ],
+                              ),
+                            ),
+                          )
+                        else
+                          ...riwayat.map(
+                            (item) => _buildActivityItem(item, isTablet),
                           ),
-                        ),
-                      ),
-                    )
-                  else
-                    ...riwayat
-                        .take(5)
-                        .map((item) => _buildActivityItem(item, isTablet)),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
+          ),
+        ),
 
-            SizedBox(height: isTablet ? 24 : 20),
-
-            // Quick Action Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () => _markTodayFasting(),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: widget.puasaData['color'],
-                  foregroundColor: Colors.white,
-                  padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(isTablet ? 16 : 14),
-                  ),
-                  elevation: 0,
-                  shadowColor: Colors.transparent,
+        // Fixed Button at Bottom
+        Container(
+          padding: EdgeInsets.only(
+            left: isDesktop
+                ? 32.0
+                : isTablet
+                ? 28.0
+                : 24.0,
+            right: isDesktop
+                ? 32.0
+                : isTablet
+                ? 28.0
+                : 24.0,
+            bottom: isTablet ? 24 : 20,
+            top: isTablet ? 16 : 12,
+          ),
+          decoration: BoxDecoration(
+            color: AppTheme.backgroundWhite,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, -2),
+              ),
+            ],
+          ),
+          child: SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: isLoading
+                  ? null
+                  : () {
+                      if (isTodayMarked) {
+                        _deleteTodayFasting();
+                      } else {
+                        _markTodayFasting();
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: isTodayMarked
+                    ? Colors.red.shade400
+                    : widget.puasaData['color'],
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                disabledForegroundColor: Colors.grey.shade600,
+                padding: EdgeInsets.symmetric(vertical: isTablet ? 16 : 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(isTablet ? 16 : 14),
                 ),
-                icon: Icon(Icons.add_task, size: isTablet ? 20 : 18),
-                label: Text(
-                  'Tandai Puasa Hari Ini',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: isTablet ? 16 : 15,
-                  ),
+                elevation: 0,
+                shadowColor: Colors.transparent,
+              ),
+              icon: isLoading
+                  ? SizedBox(
+                      width: isTablet ? 20 : 18,
+                      height: isTablet ? 20 : 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : Icon(
+                      isTodayMarked ? Icons.delete_outline : Icons.add_task,
+                      size: isTablet ? 20 : 18,
+                    ),
+              label: Text(
+                isTodayMarked
+                    ? 'Hapus Tandai Puasa Hari Ini'
+                    : 'Tandai Puasa Hari Ini',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  fontSize: isTablet ? 16 : 15,
                 ),
               ),
             ),
-          ],
+          ),
         ),
-      ),
+      ],
     );
   }
 
@@ -759,7 +994,7 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  item.tanggal,
+                  DateFormat.yMMMd().format(item.createdAt),
                   style: TextStyle(
                     fontSize: isTablet ? 14 : 13,
                     fontWeight: FontWeight.w600,
@@ -768,7 +1003,7 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
                 ),
                 SizedBox(height: 2),
                 Text(
-                  'Puasa ${widget.puasaData['name']}',
+                  '${widget.puasaData['name']}',
                   style: TextStyle(
                     fontSize: isTablet ? 12 : 11,
                     color: AppTheme.onSurfaceVariant,
@@ -786,7 +1021,12 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     final authState = ref.read(authProvider);
     final connectionState = ref.read(connectionProvider);
 
+    logger.fine('=== MARK TODAY FASTING ===');
+    logger.fine('Auth Status: ${authState['status']}');
+    logger.fine('Connection: ${connectionState.isOnline}');
+
     if (authState['status'] != AuthState.authenticated) {
+      logger.warning('User not authenticated');
       showMessageToast(
         context,
         message: 'Anda harus login terlebih dahulu',
@@ -796,6 +1036,7 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     }
 
     if (!connectionState.isOnline) {
+      logger.warning('Device is offline');
       showMessageToast(
         context,
         message: 'Tidak dapat menambah progress saat offline',
@@ -804,49 +1045,115 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
       return;
     }
 
-    // Show loading indicator
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Center(
-        child: Container(
-          padding: EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppTheme.primaryBlue),
-              ),
-              SizedBox(height: 16),
-              Text(
-                'Menyimpan progress...',
-                style: TextStyle(color: AppTheme.onSurface, fontSize: 14),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-
     try {
+      logger.fine('Calling addProgresPuasaSunnah with jenis: $_jenisPuasa');
+
       // Call the API to add progress
       await ref
           .read(puasaProvider.notifier)
           .addProgresPuasaSunnah(jenis: _jenisPuasa);
 
-      // Close loading dialog
-      if (mounted) {
-        Navigator.pop(context);
-      }
-    } catch (e) {
-      // Close loading dialog if still open
-      if (mounted && Navigator.canPop(context)) {
-        Navigator.pop(context);
-      }
+      logger.fine('=== PROGRESS ADDED SUCCESSFULLY ===');
+    } catch (e, stackTrace) {
+      logger.severe('=== ERROR ADDING PROGRESS ===');
+      logger.severe('Error: $e');
+      logger.severe('StackTrace: $stackTrace');
+    }
+  }
+
+  void _deleteTodayFasting() async {
+    final authState = ref.read(authProvider);
+    final connectionState = ref.read(connectionProvider);
+    final todayRecordId = _getTodayRecordId();
+
+    logger.fine('=== DELETE TODAY FASTING ===');
+    logger.fine('Auth Status: ${authState['status']}');
+    logger.fine('Connection: ${connectionState.isOnline}');
+    logger.fine('Today Record ID: $todayRecordId');
+
+    if (todayRecordId == null) {
+      logger.warning('No record found for today');
+      showMessageToast(
+        context,
+        message: 'Tidak ada data untuk dihapus',
+        type: ToastType.error,
+      );
+      return;
+    }
+
+    if (authState['status'] != AuthState.authenticated) {
+      logger.warning('User not authenticated');
+      showMessageToast(
+        context,
+        message: 'Anda harus login terlebih dahulu',
+        type: ToastType.error,
+      );
+      return;
+    }
+
+    if (!connectionState.isOnline) {
+      logger.warning('Device is offline');
+      showMessageToast(
+        context,
+        message: 'Tidak dapat menghapus progress saat offline',
+        type: ToastType.error,
+      );
+      return;
+    }
+
+    // Show confirmation dialog
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(
+          'Hapus Tandai Puasa',
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: AppTheme.onSurface,
+          ),
+        ),
+        content: Text(
+          'Apakah Anda yakin ingin menghapus tandai puasa hari ini?',
+          style: TextStyle(color: AppTheme.onSurfaceVariant),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Batal'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            child: Text('Hapus'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    try {
+      logger.fine(
+        'Calling deleteProgresPuasaSunnah with id: $todayRecordId, jenis: $_jenisPuasa',
+      );
+
+      // Call the API to delete progress
+      await ref
+          .read(puasaProvider.notifier)
+          .deleteProgresPuasaSunnah(id: todayRecordId, jenis: _jenisPuasa);
+
+      logger.fine('=== PROGRESS DELETED SUCCESSFULLY ===');
+    } catch (e, stackTrace) {
+      logger.severe('=== ERROR DELETING PROGRESS ===');
+      logger.severe('Error: $e');
+      logger.severe('StackTrace: $stackTrace');
     }
   }
 }

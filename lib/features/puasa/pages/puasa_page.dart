@@ -124,11 +124,9 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
     try {
       await ref
           .read(puasaProvider.notifier)
-          .fetchProgresPuasaSunnahTahunIni(jenis: 'senin_kamis');
-      await ref
-          .read(puasaProvider.notifier)
           .fetchRiwayatPuasaSunnah(jenis: 'senin_kamis');
 
+      logger.fine('Fetched riwayat puasa sunnah for senin_kamis');
       _hasInitializedSunnah = true;
     } catch (e) {
       // Handle error if needed
