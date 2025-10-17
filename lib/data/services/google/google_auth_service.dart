@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
 import 'package:test_flutter/core/utils/logger.dart';
@@ -130,20 +131,57 @@ class GoogleAuthService {
         }
 
         logger.fine(
-          'Access token obtained: ${accessToken.substring(0, 20)}...',
+          'Access token obtained: $accessToken...',
         );
 
         // Send to your Laravel API
-        final response = await ApiClient.dio.post(
-          '/login-google',
-          data: {'token': accessToken},
-        );
+        try {
+          final response = await ApiClient.dio.post(
+            '/login-google',
+            data: {'token': accessToken},
+          );
 
-        if (response.statusCode == 200) {
-          logger.fine('Laravel API response successful');
-          return response.data;
-        } else {
-          throw Exception(response.data['message'] ?? 'Authentication failed');
+          if (response.statusCode == 200) {
+            logger.fine('Laravel API response successful');
+            logger.fine('Response data: ${response.data}');
+            return response.data;
+          } else {
+            logger.severe('Laravel API error: ${response.statusCode}');
+            logger.severe('Response data: ${response.data}');
+            throw Exception(
+              response.data['message'] ?? 'Authentication failed',
+            );
+          }
+        } on DioException catch (e) {
+          logger.severe('DioException: ${e.type}');
+          logger.severe('Status code: ${e.response?.statusCode}');
+          logger.severe('Response data: ${e.response?.data}');
+
+          // Extract error message from Laravel response
+          String errorMessage = 'Authentication failed';
+
+          if (e.response?.data != null) {
+            final data = e.response!.data;
+            if (data is Map) {
+              errorMessage =
+                  data['message'] ?? data['error'] ?? 'Server error occurred';
+
+              // Log detailed error for debugging
+              if (data['errors'] != null) {
+                logger.severe('Validation errors: ${data['errors']}');
+              }
+              if (data['trace'] != null && data['trace'] is String) {
+                // Log first line of trace for debugging
+                final trace = data['trace'] as String;
+                final firstLine = trace.split('\n').first;
+                logger.severe('Error trace: $firstLine');
+              }
+            } else if (data is String) {
+              errorMessage = data;
+            }
+          }
+
+          throw Exception(errorMessage);
         }
       } catch (e) {
         subscription.cancel();

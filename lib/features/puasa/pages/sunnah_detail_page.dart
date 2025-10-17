@@ -1,9 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/connection/connection_provider.dart';
-import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/puasa/puasa_provider.dart';
@@ -173,41 +173,20 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _jenisPuasa = widget.puasaData['type']!;
-    logger.fine('=== INIT SunnahDetailPage ===');
-    logger.fine('Jenis Puasa: $_jenisPuasa');
-    logger.fine('Puasa Data: ${widget.puasaData}');
 
     // Fetch initial data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      logger.fine('=== POST FRAME CALLBACK TRIGGERED ===');
       _fetchData();
     });
   }
 
   Future<void> _fetchData() async {
-    logger.fine('=== FETCHING DATA ===');
-    logger.fine('Jenis: $_jenisPuasa');
-
     try {
       // Clear previous state to avoid confusion
-      logger.fine(
-        'Current state before fetch: ${ref.read(puasaProvider).riwayatPuasaSunnah}',
-      );
 
       await ref
           .read(puasaProvider.notifier)
           .fetchRiwayatPuasaSunnah(jenis: _jenisPuasa);
-
-      logger.fine('=== FETCH COMPLETED ===');
-
-      // Log the state after fetch
-      final state = ref.read(puasaProvider);
-      logger.fine('Status: ${state.status}');
-      logger.fine('Riwayat Puasa Sunnah: ${state.riwayatPuasaSunnah}');
-      logger.fine('Total: ${state.riwayatPuasaSunnah?.total}');
-      logger.fine('Detail count: ${state.riwayatPuasaSunnah?.detail.length}');
-      logger.fine('Detail: ${state.riwayatPuasaSunnah?.detail}');
-      logger.fine('Message: ${state.message}');
 
       if (mounted) {
         setState(() {
@@ -215,10 +194,10 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
         });
       }
     } catch (e, stackTrace) {
-      logger.severe('=== ERROR FETCHING DATA ===');
-      logger.severe('Error: $e');
-      logger.severe('StackTrace: $stackTrace');
-
+      if (kDebugMode) {
+        print('Error fetching Sunnah fasting data: $e');
+        print(stackTrace);
+      }
       if (mounted) {
         setState(() {
           _isInitialized = true;
@@ -313,13 +292,6 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     final completedCount = _getCompletedCount();
 
     // Deep logging for debugging
-    logger.fine('=== BUILD METHOD ===');
-    logger.fine('Is Initialized: $_isInitialized');
-    logger.fine('Status: ${puasaState.status}');
-    logger.fine(
-      'Has riwayatPuasaSunnah: ${puasaState.riwayatPuasaSunnah != null}',
-    );
-    logger.fine('Completed Count: $completedCount');
 
     // Listen to connection state
     ref.listen(connectionProvider, (prev, next) {
@@ -327,7 +299,6 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
       final nowOnline = next.isOnline == true;
 
       if (wasOffline && nowOnline && mounted) {
-        logger.fine('=== CONNECTION RESTORED ===');
         showMessageToast(
           context,
           message: 'Koneksi kembali online. Tarik untuk memuat ulang.',
@@ -338,7 +309,6 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
 
     // Show loading while fetching data
     if (!_isInitialized && puasaState.riwayatPuasaSunnah == null) {
-      logger.fine('=== SHOWING LOADING STATE ===');
       return Scaffold(
         body: Container(
           decoration: BoxDecoration(
@@ -378,10 +348,6 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
 
     // Listen to auth state
     ref.listen(authProvider, (previous, next) {
-      logger.fine('=== AUTH STATE CHANGED ===');
-      logger.fine('Previous: ${previous?['status']}');
-      logger.fine('Next: ${next['status']}');
-
       if (previous?['status'] != next['status']) {
         if (next['status'] != AuthState.authenticated && mounted) {
           showMessageToast(
@@ -395,16 +361,9 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
 
     // Listen to puasa state
     ref.listen(puasaProvider, (previous, next) {
-      logger.fine('=== PUASA STATE CHANGED ===');
-      logger.fine('Previous Status: ${previous?.status}');
-      logger.fine('Next Status: ${next.status}');
-      logger.fine('Next Message: ${next.message}');
-      logger.fine('Next Riwayat: ${next.riwayatPuasaSunnah}');
-
       // Handle success state
       if (next.status == PuasaStatus.success &&
           previous?.status == PuasaStatus.loading) {
-        logger.fine('=== SUCCESS STATE ===');
         if (mounted && next.message != null) {
           showMessageToast(
             context,
@@ -415,18 +374,10 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
       }
 
       // Handle loaded data
-      if (next.status == PuasaStatus.loaded) {
-        logger.fine('=== LOADED STATE ===');
-        logger.fine('Data loaded: ${next.riwayatPuasaSunnah}');
-        logger.fine('Total: ${next.riwayatPuasaSunnah?.total}');
-        logger.fine('Detail: ${next.riwayatPuasaSunnah?.detail}');
-      }
+      if (next.status == PuasaStatus.loaded) {}
 
       // Handle error state
       if (next.status == PuasaStatus.error) {
-        logger.severe('=== ERROR STATE ===');
-        logger.severe('Error message: ${next.message}');
-
         if (previous?.status == PuasaStatus.loading &&
             mounted &&
             next.message != null) {
@@ -711,18 +662,7 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     final isTodayMarked = _isTodayMarked();
     final isLoading = puasaState.status == PuasaStatus.loading;
 
-    logger.fine('=== BUILD TRACKING TAB ===');
-    logger.fine('Puasa State Status: ${puasaState.status}');
-    logger.fine(
-      'Has riwayatPuasaSunnah: ${puasaState.riwayatPuasaSunnah != null}',
-    );
-    logger.fine('Riwayat: ${puasaState.riwayatPuasaSunnah}');
-    logger.fine('Is Today Marked: $isTodayMarked');
-
     final riwayat = puasaState.riwayatPuasaSunnah?.detail ?? [];
-
-    logger.fine('Riwayat length: ${riwayat.length}');
-    logger.fine('Riwayat items: $riwayat');
 
     return Column(
       children: [
@@ -1090,12 +1030,7 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     final authState = ref.read(authProvider);
     final connectionState = ref.read(connectionProvider);
 
-    logger.fine('=== MARK TODAY FASTING ===');
-    logger.fine('Auth Status: ${authState['status']}');
-    logger.fine('Connection: ${connectionState.isOnline}');
-
     if (authState['status'] != AuthState.authenticated) {
-      logger.warning('User not authenticated');
       showMessageToast(
         context,
         message: 'Anda harus login terlebih dahulu',
@@ -1105,7 +1040,6 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     }
 
     if (!connectionState.isOnline) {
-      logger.warning('Device is offline');
       showMessageToast(
         context,
         message: 'Tidak dapat menambah progress saat offline',
@@ -1115,18 +1049,15 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     }
 
     try {
-      logger.fine('Calling addProgresPuasaSunnah with jenis: $_jenisPuasa');
-
       // Call the API to add progress
       await ref
           .read(puasaProvider.notifier)
           .addProgresPuasaSunnah(jenis: _jenisPuasa);
-
-      logger.fine('=== PROGRESS ADDED SUCCESSFULLY ===');
     } catch (e, stackTrace) {
-      logger.severe('=== ERROR ADDING PROGRESS ===');
-      logger.severe('Error: $e');
-      logger.severe('StackTrace: $stackTrace');
+      if (kDebugMode) {
+        print('Error marking today fasting: $e');
+        print(stackTrace);
+      }
     }
   }
 
@@ -1135,13 +1066,7 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     final connectionState = ref.read(connectionProvider);
     final todayRecordId = _getTodayRecordId();
 
-    logger.fine('=== DELETE TODAY FASTING ===');
-    logger.fine('Auth Status: ${authState['status']}');
-    logger.fine('Connection: ${connectionState.isOnline}');
-    logger.fine('Today Record ID: $todayRecordId');
-
     if (todayRecordId == null) {
-      logger.warning('No record found for today');
       showMessageToast(
         context,
         message: 'Tidak ada data untuk dihapus',
@@ -1151,7 +1076,6 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     }
 
     if (authState['status'] != AuthState.authenticated) {
-      logger.warning('User not authenticated');
       showMessageToast(
         context,
         message: 'Anda harus login terlebih dahulu',
@@ -1161,7 +1085,6 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     }
 
     if (!connectionState.isOnline) {
-      logger.warning('Device is offline');
       showMessageToast(
         context,
         message: 'Tidak dapat menghapus progress saat offline',
@@ -1209,20 +1132,15 @@ class _SunnahDetailPageState extends ConsumerState<SunnahDetailPage>
     if (confirmed != true) return;
 
     try {
-      logger.fine(
-        'Calling deleteProgresPuasaSunnah with id: $todayRecordId, jenis: $_jenisPuasa',
-      );
-
       // Call the API to delete progress
       await ref
           .read(puasaProvider.notifier)
           .deleteProgresPuasaSunnah(id: todayRecordId, jenis: _jenisPuasa);
-
-      logger.fine('=== PROGRESS DELETED SUCCESSFULLY ===');
     } catch (e, stackTrace) {
-      logger.severe('=== ERROR DELETING PROGRESS ===');
-      logger.severe('Error: $e');
-      logger.severe('StackTrace: $stackTrace');
+      if (kDebugMode) {
+        print('Error deleting today fasting: $e');
+        print(stackTrace);
+      }
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/connection/connection_provider.dart';
+import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/puasa/widgets/sunnah_tab.dart';
 import 'package:test_flutter/features/puasa/pages/ramadhan_detail_page.dart';
 import 'package:test_flutter/features/puasa/pages/sunnah_detail_page.dart';
@@ -86,14 +87,6 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
     // Listen to tab changes
     _tabController.addListener(_handleTabChange);
 
-    // Saat online kembali → fetch ulang
-    ref.listen(connectionProvider, (previous, next) {
-      if (previous?.isOnline == false && next.isOnline) {
-        if (!_hasInitializedWajib) _initPuasaWajib();
-        if (!_hasInitializedSunnah) _initPuasaSunnah();
-      }
-    });
-
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initPuasaWajib();
     });
@@ -120,6 +113,13 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
     final isOffline = !connectionState.isOnline;
 
     if (isOffline) {
+      return;
+    }
+
+    final authState = ref.read(authProvider);
+    final isLoggedIn = authState['status'] == AuthState.authenticated;
+
+    if (!isLoggedIn) {
       return;
     }
 
@@ -165,6 +165,14 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
 
   @override
   Widget build(BuildContext context) {
+    // Saat online kembali → fetch ulang
+    ref.listen(connectionProvider, (previous, next) {
+      if (previous?.isOnline == false && next.isOnline) {
+        if (!_hasInitializedWajib) _initPuasaWajib();
+        if (!_hasInitializedSunnah) _initPuasaSunnah();
+      }
+    });
+
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isDesktop = screenWidth > 1024;

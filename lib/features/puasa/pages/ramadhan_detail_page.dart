@@ -1,9 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hijri/hijri_calendar.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/connection/connection_provider.dart';
-import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/data/models/progres_puasa/progres_puasa.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
@@ -72,9 +72,6 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _initializeHijriYear();
-
-    logger.fine('=== INIT RamadhanDetailPage ===');
-    logger.fine('Current Hijri Year: $_currentHijriYear');
   }
 
   Future<void> _onRefresh() async {
@@ -134,7 +131,6 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     final riwayat = puasaState.riwayatPuasaWajib;
 
     if (riwayat == null || riwayat.isEmpty) {
-      logger.fine('No riwayat data available');
       return null;
     }
 
@@ -143,9 +139,6 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
       (item) => item.tahun == _currentHijriYear,
       orElse: () => RiwayatPuasaWajib(tahun: _currentHijriYear, data: []),
     );
-
-    logger.fine('Current year data: ${currentYearData.tahun}');
-    logger.fine('Data count: ${currentYearData.data.length}');
 
     return {
       'tahun': currentYearData.tahun,
@@ -201,18 +194,12 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     final puasaState = ref.watch(puasaProvider);
     final completedDays = _getCompletedDays();
 
-    logger.fine('=== BUILD RamadhanDetailPage ===');
-    logger.fine('Status: ${puasaState.status}');
-    logger.fine('Completed Days: $completedDays');
-    logger.fine('Current Hijri Year: $_currentHijriYear');
-
     // Listen to connection state
     ref.listen(connectionProvider, (prev, next) {
       final wasOffline = prev?.isOnline == false;
       final nowOnline = next.isOnline == true;
 
       if (wasOffline && nowOnline && mounted) {
-        logger.fine('=== CONNECTION RESTORED ===');
         showMessageToast(
           context,
           message:
@@ -225,7 +212,6 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     // Show loading while fetching data
     if (puasaState.status == PuasaStatus.loading &&
         puasaState.riwayatPuasaWajib == null) {
-      logger.fine('=== SHOWING LOADING STATE ===');
       return Scaffold(
         body: Container(
           decoration: BoxDecoration(
@@ -265,10 +251,6 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
 
     // Listen to auth state
     ref.listen(authProvider, (previous, next) {
-      logger.fine('=== AUTH STATE CHANGED ===');
-      logger.fine('Previous: ${previous?['status']}');
-      logger.fine('Next: ${next['status']}');
-
       if (previous?['status'] != next['status']) {
         if (next['status'] != AuthState.authenticated && mounted) {
           showMessageToast(
@@ -282,15 +264,9 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
 
     // Listen to puasa state
     ref.listen(puasaProvider, (previous, next) {
-      logger.fine('=== PUASA STATE CHANGED ===');
-      logger.fine('Previous Status: ${previous?.status}');
-      logger.fine('Next Status: ${next.status}');
-      logger.fine('Next Message: ${next.message}');
-
       // Handle success state
       if (next.status == PuasaStatus.success &&
           previous?.status == PuasaStatus.loading) {
-        logger.fine('=== SUCCESS STATE ===');
         if (mounted && next.message != null) {
           showMessageToast(
             context,
@@ -301,17 +277,10 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
       }
 
       // Handle loaded data
-      if (next.status == PuasaStatus.loaded) {
-        logger.fine('=== LOADED STATE ===');
-        logger.fine('Riwayat Puasa Wajib: ${next.riwayatPuasaWajib}');
-        logger.fine('Total completed: $_getCompletedDays()');
-      }
+      if (next.status == PuasaStatus.loaded) {}
 
       // Handle error state
       if (next.status == PuasaStatus.error) {
-        logger.severe('=== ERROR STATE ===');
-        logger.severe('Error message: ${next.message}');
-
         if (previous?.status == PuasaStatus.loading &&
             mounted &&
             next.message != null) {
@@ -1251,13 +1220,7 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     final authState = ref.read(authProvider);
     final connectionState = ref.read(connectionProvider);
 
-    logger.fine('=== MARK RAMADHAN FASTING ===');
-    logger.fine('Day: $day');
-    logger.fine('Auth Status: ${authState['status']}');
-    logger.fine('Connection: ${connectionState.isOnline}');
-
     if (authState['status'] != AuthState.authenticated) {
-      logger.warning('User not authenticated');
       showMessageToast(
         context,
         message: 'Anda harus login terlebih dahulu',
@@ -1267,7 +1230,6 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     }
 
     if (!connectionState.isOnline) {
-      logger.warning('Device is offline');
       showMessageToast(
         context,
         message: 'Tidak dapat menambah progress saat offline',
@@ -1277,18 +1239,15 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     }
 
     try {
-      logger.fine('Calling addProgresPuasaWajib with day: $day');
-
       // Call the API to add progress
       await ref
           .read(puasaProvider.notifier)
           .addProgresPuasaWajib(tanggalRamadhan: day.toString());
-
-      logger.fine('=== PROGRESS ADDED SUCCESSFULLY ===');
     } catch (e, stackTrace) {
-      logger.severe('=== ERROR ADDING PROGRESS ===');
-      logger.severe('Error: $e');
-      logger.severe('StackTrace: $stackTrace');
+      if (kDebugMode) {
+        print('Error marking Ramadhan fasting: $e');
+        print(stackTrace);
+      }
     }
   }
 
@@ -1297,14 +1256,7 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     final connectionState = ref.read(connectionProvider);
     final recordId = _getDayRecordId(day);
 
-    logger.fine('=== DELETE RAMADHAN FASTING ===');
-    logger.fine('Day: $day');
-    logger.fine('Record ID: $recordId');
-    logger.fine('Auth Status: ${authState['status']}');
-    logger.fine('Connection: ${connectionState.isOnline}');
-
     if (recordId == null) {
-      logger.warning('No record found for day $day');
       showMessageToast(
         context,
         message: 'Tidak ada data untuk dihapus',
@@ -1314,7 +1266,6 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     }
 
     if (authState['status'] != AuthState.authenticated) {
-      logger.warning('User not authenticated');
       showMessageToast(
         context,
         message: 'Anda harus login terlebih dahulu',
@@ -1324,7 +1275,6 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     }
 
     if (!connectionState.isOnline) {
-      logger.warning('Device is offline');
       showMessageToast(
         context,
         message: 'Tidak dapat menghapus progress saat offline',
@@ -1372,18 +1322,15 @@ class _RamadhanDetailPageState extends ConsumerState<RamadhanDetailPage>
     if (confirmed != true) return;
 
     try {
-      logger.fine('Calling deleteProgresPuasaWajib with id: $recordId');
-
       // Call the API to delete progress
       await ref
           .read(puasaProvider.notifier)
           .deleteProgresPuasaWajib(id: recordId.toString());
-
-      logger.fine('=== PROGRESS DELETED SUCCESSFULLY ===');
     } catch (e, stackTrace) {
-      logger.severe('=== ERROR DELETING PROGRESS ===');
-      logger.severe('Error: $e');
-      logger.severe('StackTrace: $stackTrace');
+      if (kDebugMode) {
+        print('Error deleting Ramadhan fasting: $e');
+        print(stackTrace);
+      }
     }
   }
 }
