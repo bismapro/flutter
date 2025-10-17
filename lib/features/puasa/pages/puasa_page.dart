@@ -1,7 +1,8 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/theme.dart';
-import 'package:test_flutter/core/utils/logger.dart';
+import 'package:test_flutter/core/utils/connection/connection_provider.dart';
 import 'package:test_flutter/features/puasa/widgets/sunnah_tab.dart';
 import 'package:test_flutter/features/puasa/pages/ramadhan_detail_page.dart';
 import 'package:test_flutter/features/puasa/pages/sunnah_detail_page.dart';
@@ -85,7 +86,14 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
     // Listen to tab changes
     _tabController.addListener(_handleTabChange);
 
-    // Fetch data puasa wajib (default tab)
+    // Saat online kembali → fetch ulang
+    ref.listen(connectionProvider, (previous, next) {
+      if (previous?.isOnline == false && next.isOnline) {
+        if (!_hasInitializedWajib) _initPuasaWajib();
+        if (!_hasInitializedSunnah) _initPuasaSunnah();
+      }
+    });
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _initPuasaWajib();
     });
@@ -108,28 +116,43 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
   Future<void> _initPuasaWajib() async {
     if (_hasInitializedWajib) return;
 
+    final connectionState = ref.read(connectionProvider);
+    final isOffline = !connectionState.isOnline;
+
+    if (isOffline) {
+      return;
+    }
+
     try {
       await ref.read(puasaProvider.notifier).fetchRiwayatPuasaWajib();
       _hasInitializedWajib = true;
     } catch (e) {
-      // Handle error if needed
-      logger.fine('Error initializing puasa wajib: $e');
+      if (kDebugMode) {
+        print('Error fetching Puasa Wajib: $e');
+      }
     }
   }
 
   Future<void> _initPuasaSunnah() async {
     if (_hasInitializedSunnah) return;
 
+    final connectionState = ref.read(connectionProvider);
+    final isOffline = !connectionState.isOnline;
+
+    if (isOffline) {
+      return;
+    }
+
     try {
       await ref
           .read(puasaProvider.notifier)
           .fetchRiwayatPuasaSunnah(jenis: 'senin_kamis');
 
-      logger.fine('Fetched riwayat puasa sunnah for senin_kamis');
       _hasInitializedSunnah = true;
     } catch (e) {
-      // Handle error if needed
-      logger.fine('Error initializing puasa sunnah: $e');
+      if (kDebugMode) {
+        print('Error fetching Puasa Sunnah: $e');
+      }
     }
   }
 
@@ -145,6 +168,8 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
     final screenWidth = MediaQuery.of(context).size.width;
     final isTablet = screenWidth > 600;
     final isDesktop = screenWidth > 1024;
+    final connectionState = ref.watch(connectionProvider);
+    final isOffline = !connectionState.isOnline;
 
     return Scaffold(
       body: Container(
@@ -227,6 +252,40 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
                                   color: AppTheme.onSurfaceVariant,
                                 ),
                               ),
+
+                              if (isOffline)
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: isTablet ? 12 : 10,
+                                    vertical: isTablet ? 6 : 4,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red.shade50,
+                                    borderRadius: BorderRadius.circular(8),
+                                    border: Border.all(
+                                      color: Colors.red.shade200,
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.wifi_off_rounded,
+                                        color: Colors.red.shade700,
+                                        size: isTablet ? 16 : 14,
+                                      ),
+                                      SizedBox(width: 4),
+                                      Text(
+                                        'Offline',
+                                        style: TextStyle(
+                                          color: Colors.red.shade700,
+                                          fontSize: isTablet ? 12 : 11,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                             ],
                           ),
                         ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:isolate';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/data/services/google/google_auth_service.dart';
 import 'package:test_flutter/features/quran/services/quran_audio_service.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:intl/date_symbol_data_local.dart';
@@ -16,6 +17,8 @@ final bootstrapProvider = FutureProvider<void>((ref) async {
   initLogger();
   ApiClient.setupInterceptors();
   QuranAudioService.init();
+  // Google Sign-In
+  await GoogleAuthService.initialize();
 
   // Jalankan tugas berat & I/O secara paralel
   await Future.wait([

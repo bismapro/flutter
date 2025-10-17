@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/utils/storage_helper.dart';
+import 'package:test_flutter/data/services/google/google_auth_service.dart';
 import 'package:test_flutter/features/auth/auth_service.dart';
 
 enum AuthState {
@@ -180,6 +181,74 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       }
 
       // Update state with formatted error
+      state = {'status': AuthState.error, 'user': null, 'error': errorMessage};
+    }
+  }
+
+  // Login
+  Future<void> loginWithGoogle() async {
+    try {
+      state = {...state, 'status': AuthState.loading, 'error': null};
+
+      // Call Google Sign-In service
+      final response = await GoogleAuthService.signInWithGoogle();
+      final data = response['data'];
+
+      logger.fine('Google login response: $data');
+
+      if (data == null) {
+        throw Exception('Invalid response from server');
+      }
+
+      // Save token
+      final tokenStr = _normalizeToken(data['token'] ?? data['access_token']);
+      if (tokenStr == null || tokenStr.isEmpty) {
+        throw Exception('No token received from server');
+      }
+      await StorageHelper.saveToken(tokenStr);
+      logger.fine('Access Token saved: $tokenStr');
+
+      // Save user data
+      if (data['user'] != null) {
+        final user = data['user'];
+        await StorageHelper.saveUser({
+          "id": user['id']?.toString() ?? '',
+          "name": user['name']?.toString() ?? '',
+          "email": user['email']?.toString() ?? '',
+          "role": user['role']?.toString() ?? '',
+          "phone": user['phone']?.toString() ?? '',
+        });
+
+        logger.fine(
+          'User data saved - ID: ${user['id']}, Name: ${user['name']}, '
+          'Email: ${user['email']}, Role: ${user['role']}',
+        );
+      }
+
+      // Check if onboarding is required
+      final requiresOnboarding = response['requires_onboarding'] ?? false;
+      final message = response['message'] ?? 'Login successful';
+
+      // Update state to authenticated
+      state = {
+        'status': AuthState.authenticated,
+        'user': data['user'],
+        'error': null,
+        'message': message,
+        'requires_onboarding': requiresOnboarding,
+      };
+
+      logger.fine('Authentication state set to authenticated');
+    } catch (e) {
+      logger.fine('Google login error: ${e.toString()}');
+
+      String errorMessage;
+      if (e is Exception) {
+        errorMessage = e.toString().replaceFirst('Exception: ', '');
+      } else {
+        errorMessage = e.toString();
+      }
+
       state = {'status': AuthState.error, 'user': null, 'error': errorMessage};
     }
   }

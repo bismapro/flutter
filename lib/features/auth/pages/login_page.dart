@@ -580,9 +580,26 @@ class _LoginPageState extends ConsumerState<LoginPage>
                             width: double.infinity,
                             height: _fieldHeight(context),
                             child: OutlinedButton(
-                              onPressed: () {
-                                // TODO: Google OAuth
-                              },
+                              onPressed: isLoading
+                                  ? null
+                                  : () async {
+                                      try {
+                                        await ref
+                                            .read(authProvider.notifier)
+                                            .loginWithGoogle();
+                                      } catch (e) {
+                                        if (mounted) {
+                                          showMessageToast(
+                                            context,
+                                            message: e.toString().replaceFirst(
+                                              'Exception: ',
+                                              '',
+                                            ),
+                                            type: ToastType.error,
+                                          );
+                                        }
+                                      }
+                                    },
                               style: OutlinedButton.styleFrom(
                                 side: BorderSide(
                                   color: Colors.grey[300]!,
@@ -594,30 +611,44 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                 ),
                                 backgroundColor: Colors.white,
+                                disabledBackgroundColor: Colors.grey[100],
                               ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.g_mobiledata_rounded,
-                                    size: isSmall ? 26 : 28,
-                                    color: AppTheme.onSurface,
-                                  ),
-                                  SizedBox(width: 8),
-                                  Text(
-                                    tr('login.button_google'),
-                                    style: TextStyle(
-                                      fontSize:
-                                          ResponsiveHelper.adaptiveTextSize(
-                                            context,
-                                            16,
+                              child: isLoading
+                                  ? const SizedBox(
+                                      width: 24,
+                                      height: 24,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2.5,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.black54,
+                                            ),
+                                      ),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.g_mobiledata_rounded,
+                                          size: isSmall ? 26 : 28,
+                                          color: AppTheme.onSurface,
+                                        ),
+                                        SizedBox(width: 8),
+                                        Text(
+                                          tr('login.button_google'),
+                                          style: TextStyle(
+                                            fontSize:
+                                                ResponsiveHelper.adaptiveTextSize(
+                                                  context,
+                                                  16,
+                                                ),
+                                            fontWeight: FontWeight.w600,
+                                            color: AppTheme.onSurface,
                                           ),
-                                      fontWeight: FontWeight.w600,
-                                      color: AppTheme.onSurface,
+                                        ),
+                                      ],
                                     ),
-                                  ),
-                                ],
-                              ),
                             ),
                           ),
                         ],
