@@ -254,11 +254,16 @@ class _SurahTabState extends State<SurahTab> {
     return GestureDetector(
       onTap: () {
         // Use cached data - NO delay!
+        print('📖 Opening Surah: ${surah.nomor} - $latinName');
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => SurahDetailPage(
-              surah: surah.copyWith(namaLatin: latinName, arti: meaning),
+              surah: surah.copyWith(
+                namaLatin: latinName,
+                arti: meaning,
+                nomor: surah.nomor,
+              ),
               allSurahs: _cachedUpdatedSurahs ?? [], // ← Use cache
             ),
           ),

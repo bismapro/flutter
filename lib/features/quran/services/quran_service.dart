@@ -3,6 +3,14 @@ import 'package:test_flutter/data/models/quran/juz.dart';
 import 'package:test_flutter/data/models/quran/surah.dart';
 
 class QuranService {
+  static Surah? getSurahById(int id) {
+    try {
+      return getAllSurahs().firstWhere((surah) => surah.nomor == id);
+    } catch (e) {
+      return null;
+    }
+  }
+
   // Get all surahs
   static List<Surah> getAllSurahs() {
     List<Surah> surahs = [];

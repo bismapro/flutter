@@ -69,8 +69,8 @@ class ProgresBacaQuran {
   Map<String, dynamic> toJson() {
     return {
       'id': id,
-      'userId': userId,
-      'suratId': suratId,
+      'user_id': userId,
+      'surat_id': suratId,
       'ayat': ayat,
       'createdAt': createdAt,
       'surat': surat,

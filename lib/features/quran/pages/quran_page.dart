@@ -1,23 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/features/quran/widgets/juz_tab.dart';
 import 'package:test_flutter/features/quran/widgets/surah_tab.dart';
+import 'package:test_flutter/features/quran/widgets/bookmark_tab.dart';
+import 'package:test_flutter/features/quran/quran_provider.dart';
 
-class QuranPage extends StatefulWidget {
+class QuranPage extends ConsumerStatefulWidget {
   const QuranPage({super.key});
 
   @override
-  State<QuranPage> createState() => _QuranPageState();
+  ConsumerState<QuranPage> createState() => _QuranPageState();
 }
 
-class _QuranPageState extends State<QuranPage>
+class _QuranPageState extends ConsumerState<QuranPage>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this); // ← Changed to 3
+
+    // Initialize and fetch progress
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(quranProvider.notifier).init();
+    });
   }
 
   @override
@@ -128,7 +136,7 @@ class _QuranPageState extends State<QuranPage>
                       ? 28.0
                       : 24.0,
                 ),
-                padding: EdgeInsets.all(4),
+                padding: const EdgeInsets.all(4),
                 decoration: BoxDecoration(
                   color: Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(12),
@@ -161,6 +169,7 @@ class _QuranPageState extends State<QuranPage>
                   tabs: const [
                     Tab(text: 'Surah'),
                     Tab(text: 'Juz'),
+                    Tab(text: 'Bookmark'), // ← New tab
                   ],
                 ),
               ),
@@ -171,7 +180,11 @@ class _QuranPageState extends State<QuranPage>
               Expanded(
                 child: TabBarView(
                   controller: _tabController,
-                  children: const [SurahTab(), JuzTab()],
+                  children: const [
+                    SurahTab(),
+                    JuzTab(),
+                    BookmarkTab(), // ← New tab content
+                  ],
                 ),
               ),
             ],

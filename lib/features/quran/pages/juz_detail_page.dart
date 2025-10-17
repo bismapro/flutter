@@ -1,21 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/quran/juz.dart';
 import 'package:test_flutter/features/quran/widgets/ayah_card.dart';
 
-class JuzDetailPage extends StatefulWidget {
+class JuzDetailPage extends ConsumerStatefulWidget {
   final Juz juz;
   final List<Juz> allJuz;
 
   const JuzDetailPage({super.key, required this.juz, this.allJuz = const []});
 
   @override
-  State<JuzDetailPage> createState() => _JuzDetailPageState();
+  ConsumerState<JuzDetailPage> createState() => _JuzDetailPageState();
 }
 
-class _JuzDetailPageState extends State<JuzDetailPage>
+class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
     with SingleTickerProviderStateMixin {
   int _currentJuzIndex = 0;
 
@@ -431,17 +432,22 @@ class _JuzDetailPageState extends State<JuzDetailPage>
               final verseEndSymbol = quran.getVerseEndSymbol(verseNumber);
 
               return AyahCard(
+                surahNumber:
+                    surahNumber, // ← Fixed: Use actual surahNumber from juz data
                 key: _verseKeys[verseKey],
                 verseNumber: verseNumber,
                 arabicText: arabicText,
                 translation: translation,
                 verseEndSymbol: verseEndSymbol,
-                onPlayVerse: () {},
+                onPlayVerse: () {
+                  // TODO: Implement audio playback for specific verse in juz
+                  print('🎵 Play Surah $surahNumber, Ayah $verseNumber');
+                },
                 isTablet: isTablet,
                 isDesktop: isDesktop,
                 isPlaying: false,
               );
-            }).toList(),
+            }),
           ],
         );
       },

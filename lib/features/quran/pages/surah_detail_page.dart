@@ -592,6 +592,7 @@ class _SurahDetailPageState extends State<SurahDetailPage>
         final isCurrentlyPlaying = _currentPlayingVerse == verseNumber;
 
         return AyahCard(
+          surahNumber: surah.nomor,
           key: _verseKeys[verseNumber],
           verseNumber: verseNumber,
           arabicText: arabicText,
