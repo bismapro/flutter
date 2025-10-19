@@ -7,11 +7,13 @@ class SholatService {
   static Future<Map<String, dynamic>> getJadwalSholat({
     required double latitude,
     required double longitude,
+    DateTime? startDate,
+    DateTime? endDate,
   }) async {
     try {
       final now = DateTime.now();
-      final startDate = now.subtract(const Duration(days: 7));
-      final endDate = now.add(const Duration(days: 21));
+      startDate ??= now;
+      endDate ??= now.add(const Duration(days: 3));
 
       final response = await ApiClient.dio.get(
         '/sholat/jadwal',

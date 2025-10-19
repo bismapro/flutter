@@ -20,51 +20,63 @@ class SholatProvider extends StateNotifier<SholatState> {
 
   /// Load cached data saat inisialisasi
   Future<void> _loadCachedData() async {
-    final cachedJadwal = SholatCacheService.getCachedJadwalSholat();
-    final cachedLocation = await LocationService.getLocation();
-    final cachedProgressWajibHariIni =
-        SholatCacheService.getCachedProgressSholatWajibHariIni();
-    final cachedProgressSunnahHariIni =
-        SholatCacheService.getCachedProgressSholatSunnahHariIni();
-    final cachedProgressWajibRiwayat =
-        SholatCacheService.getCachedProgressSholatWajibRiwayat();
-    final cachedProgressSunnahRiwayat =
-        SholatCacheService.getCachedProgressSholatSunnahRiwayat();
+    try {
+      final cachedJadwal = SholatCacheService.getCachedJadwalSholat();
+      final cachedLocation = await LocationService.getLocation();
+      final cachedProgressWajibHariIni =
+          SholatCacheService.getCachedProgressSholatWajibHariIni();
+      final cachedProgressSunnahHariIni =
+          SholatCacheService.getCachedProgressSholatSunnahHariIni();
+      final cachedProgressWajibRiwayat =
+          SholatCacheService.getCachedProgressSholatWajibRiwayat();
+      final cachedProgressSunnahRiwayat =
+          SholatCacheService.getCachedProgressSholatSunnahRiwayat();
 
-    if (cachedJadwal.isNotEmpty) {
-      logger.info('Loaded ${cachedJadwal.length} cached jadwal sholat');
+      logger.info('Loading cached sholat data...');
+      logger.info('Cached jadwal: ${cachedJadwal.length} items');
+      logger.info('Cached location: ${cachedLocation != null}');
 
-      // Update state dengan jadwal dan lokasi dari cache
-      state = state.copyWith(
-        sholatList: cachedJadwal,
-        latitude: cachedLocation?['lat'] as double?,
-        longitude: cachedLocation?['long'] as double?,
-        locationName: cachedLocation?['name'] as String?,
-        localDate: cachedLocation?['date'] as String?,
-        localTime: cachedLocation?['time'] as String?,
-        progressWajibHariIni: cachedProgressWajibHariIni,
-        progressSunnahHariIni: cachedProgressSunnahHariIni,
-        progressWajibRiwayat: cachedProgressWajibRiwayat,
-        progressSunnahRiwayat: cachedProgressSunnahRiwayat,
-        isOffline: false,
-      );
-    } else if (cachedLocation != null) {
-      // Jika ada lokasi tapi belum ada jadwal, set lokasi saja
-      state = state.copyWith(
-        latitude: cachedLocation['lat'] as double?,
-        longitude: cachedLocation['long'] as double?,
-        locationName: cachedLocation['name'] as String?,
-        localDate: cachedLocation['date'] as String?,
-        localTime: cachedLocation['time'] as String?,
-        progressWajibHariIni: cachedProgressWajibHariIni,
-        progressSunnahHariIni: cachedProgressSunnahHariIni,
-        progressWajibRiwayat: cachedProgressWajibRiwayat,
-        progressSunnahRiwayat: cachedProgressSunnahRiwayat,
-      );
+      if (cachedJadwal.isNotEmpty) {
+        logger.info('Loaded ${cachedJadwal.length} cached jadwal sholat');
+
+        // Update state dengan jadwal dan lokasi dari cache
+        state = state.copyWith(
+          status: SholatStatus.loaded,
+          sholatList: cachedJadwal,
+          latitude: cachedLocation?['lat'] as double?,
+          longitude: cachedLocation?['long'] as double?,
+          locationName: cachedLocation?['name'] as String?,
+          localDate: cachedLocation?['date'] as String?,
+          localTime: cachedLocation?['time'] as String?,
+          progressWajibHariIni: cachedProgressWajibHariIni,
+          progressSunnahHariIni: cachedProgressSunnahHariIni,
+          progressWajibRiwayat: cachedProgressWajibRiwayat,
+          progressSunnahRiwayat: cachedProgressSunnahRiwayat,
+          isOffline: false,
+        );
+      } else if (cachedLocation != null) {
+        // Jika ada lokasi tapi belum ada jadwal, set lokasi saja
+        state = state.copyWith(
+          latitude: cachedLocation['lat'] as double?,
+          longitude: cachedLocation['long'] as double?,
+          locationName: cachedLocation['name'] as String?,
+          localDate: cachedLocation['date'] as String?,
+          localTime: cachedLocation['time'] as String?,
+          progressWajibHariIni: cachedProgressWajibHariIni,
+          progressSunnahHariIni: cachedProgressSunnahHariIni,
+          progressWajibRiwayat: cachedProgressWajibRiwayat,
+          progressSunnahRiwayat: cachedProgressSunnahRiwayat,
+        );
+        logger.info('Loaded cached location, no jadwal available');
+      } else {
+        logger.warning('No cached data available');
+      }
+    } catch (e) {
+      logger.severe('Error loading cached data: $e');
     }
   }
 
-  /// Fetch jadwal sholat dengan strategi network-first-then-cache
+  /// Fetch jadwal sholat dengan strategi cache-first-then-network
   Future<void> fetchJadwalSholat({
     double? latitude,
     double? longitude,
@@ -74,105 +86,244 @@ class SholatProvider extends StateNotifier<SholatState> {
     bool forceRefresh = false,
     bool useCurrentLocation = false,
   }) async {
-    // Jika useCurrentLocation = true, ambil lokasi real-time
-    if (useCurrentLocation) {
-      logger.info('Fetching current location...');
-      state = state.copyWith(status: SholatStatus.loading);
+    try {
+      // Jika useCurrentLocation = true, ambil lokasi real-time
+      if (useCurrentLocation) {
+        logger.info('Fetching current location...');
+        state = state.copyWith(status: SholatStatus.loading);
 
-      final locationData = await LocationService.getCurrentLocation();
-      latitude = locationData['lat'] as double;
-      longitude = locationData['long'] as double;
-      locationName = locationData['name'] as String;
-      localDate = locationData['date'] as String;
-      localTime = locationData['time'] as String;
+        try {
+          final locationData = await LocationService.getCurrentLocation(
+            forceRefresh: forceRefresh,
+          );
+          latitude = locationData['lat'] as double?;
+          longitude = locationData['long'] as double?;
+          locationName = locationData['name'] as String?;
+          localDate = locationData['date'] as String?;
+          localTime = locationData['time'] as String?;
 
-      logger.info(
-        'Location obtained: $locationName ($latitude, $longitude) | $localDate $localTime',
-      );
-    } else {
-      // Jika tidak ada parameter, gunakan dari state atau cache
-      latitude ??= state.latitude;
-      longitude ??= state.longitude;
-      locationName ??= state.locationName;
-      localDate ??= state.localDate;
-      localTime ??= state.localTime;
+          logger.info(
+            'Location obtained: $locationName ($latitude, $longitude) | $localDate $localTime',
+          );
+        } catch (e) {
+          logger.warning('Failed to get current location: $e');
 
-      // Jika masih null, ambil dari cache
-      if (latitude == null || longitude == null) {
-        final cachedLocation = await LocationService.getLocation();
-        if (cachedLocation != null) {
-          latitude = cachedLocation['lat'] as double;
-          longitude = cachedLocation['long'] as double;
-          locationName = cachedLocation['name'] as String;
-          localDate = cachedLocation['date'] as String;
-          localTime = cachedLocation['time'] as String;
+          // Fallback ke cache location
+          final cachedLocation = await LocationService.getLocation();
+          if (cachedLocation != null && cachedLocation.isNotEmpty) {
+            latitude = cachedLocation['lat'] as double?;
+            longitude = cachedLocation['long'] as double?;
+            locationName = cachedLocation['name'] as String?;
+            localDate = cachedLocation['date'] as String?;
+            localTime = cachedLocation['time'] as String?;
+            logger.info('Using cached location due to error');
+          } else {
+            // Jika tidak ada lokasi sama sekali, gunakan cache jadwal yang ada
+            final cachedJadwal = SholatCacheService.getCachedJadwalSholat();
+            if (cachedJadwal.isNotEmpty) {
+              state = state.copyWith(
+                status: SholatStatus.offline,
+                sholatList: cachedJadwal,
+                isOffline: true,
+                message: 'Menggunakan data offline',
+              );
+              return;
+            }
+            throw Exception('No location data available');
+          }
+        }
+      } else {
+        // Jika tidak ada parameter, gunakan dari state atau cache
+        latitude ??= state.latitude;
+        longitude ??= state.longitude;
+        locationName ??= state.locationName;
+        localDate ??= state.localDate;
+        localTime ??= state.localTime;
+
+        // Jika masih null, ambil dari cache
+        if (latitude == null || longitude == null) {
+          final cachedLocation = await LocationService.getLocation();
+          if (cachedLocation != null && cachedLocation.isNotEmpty) {
+            latitude = cachedLocation['lat'] as double?;
+            longitude = cachedLocation['long'] as double?;
+            locationName = cachedLocation['name'] as String?;
+            localDate = cachedLocation['date'] as String?;
+            localTime = cachedLocation['time'] as String?;
+            logger.info('Using cached location');
+          }
+        }
+
+        // Jika masih null, ambil lokasi saat ini
+        if (latitude == null || longitude == null) {
+          logger.info('No location available, fetching current location...');
+          try {
+            final locationData = await LocationService.getCurrentLocation();
+            latitude = locationData['lat'] as double?;
+            longitude = locationData['long'] as double?;
+            locationName = locationData['name'] as String?;
+            localDate = locationData['date'] as String?;
+            localTime = locationData['time'] as String?;
+          } catch (e) {
+            logger.severe('Failed to get any location: $e');
+
+            // Jika gagal total, gunakan data cache yang ada
+            final cachedJadwal = SholatCacheService.getCachedJadwalSholat();
+            if (cachedJadwal.isNotEmpty) {
+              state = state.copyWith(
+                status: SholatStatus.offline,
+                sholatList: cachedJadwal,
+                isOffline: true,
+                message: 'Menggunakan data offline',
+              );
+              return;
+            }
+            throw Exception('No location or cached data available');
+          }
         }
       }
 
-      // Jika masih null, ambil lokasi saat ini
+      // Validasi bahwa kita punya koordinat
       if (latitude == null || longitude == null) {
-        logger.info('No location available, fetching current location...');
-        final locationData = await LocationService.getCurrentLocation();
-        latitude = locationData['lat'] as double;
-        longitude = locationData['long'] as double;
-        locationName = locationData['name'] as String;
-        localDate = locationData['date'] as String;
-        localTime = locationData['time'] as String;
+        throw Exception('Location coordinates not available');
       }
-    }
 
-    // Jika sudah ada data dan bukan force refresh, skip
-    if (!forceRefresh && state.sholatList.isNotEmpty && !useCurrentLocation) {
-      logger.info('Using existing jadwal sholat data');
-      return;
-    }
-
-    state = state.copyWith(
-      status: forceRefresh ? SholatStatus.refreshing : SholatStatus.loading,
-    );
-
-    try {
-      // 1. Try network first
-      final response = await SholatService.getJadwalSholat(
-        latitude: latitude,
-        longitude: longitude,
-      );
-
-      final sholatList = response['data'] as List<Sholat>;
-
-      // 2. Cache the fetched data
-      await SholatCacheService.cacheJadwalSholat(sholatList);
-
-      // 3. Update state with network data
-      state = state.copyWith(
-        status: SholatStatus.loaded,
-        sholatList: sholatList,
-        latitude: latitude,
-        longitude: longitude,
-        locationName: locationName,
-        localDate: localDate,
-        localTime: localTime,
-        isOffline: false,
-        message: 'Jadwal sholat berhasil diperbarui',
-      );
-
-      logger.info('Successfully fetched and cached jadwal sholat');
-    } catch (e) {
-      logger.severe('Error fetching jadwal sholat: $e');
-
-      // 4. Fallback to cache if network fails
+      // Cek cache terlebih dahulu jika tidak force refresh
       final cachedJadwal = SholatCacheService.getCachedJadwalSholat();
-
-      if (cachedJadwal.isNotEmpty) {
-        logger.info('Using cached jadwal sholat due to network error');
+      if (!forceRefresh && cachedJadwal.isNotEmpty) {
+        logger.info(
+          'Using cached jadwal sholat (${cachedJadwal.length} items)',
+        );
         state = state.copyWith(
-          status: SholatStatus.offline,
+          status: SholatStatus.loaded,
           sholatList: cachedJadwal,
           latitude: latitude,
           longitude: longitude,
           locationName: locationName,
           localDate: localDate,
           localTime: localTime,
+          isOffline: false,
+          message: 'Data dimuat dari cache',
+        );
+        return;
+      }
+
+      // Set loading state
+      state = state.copyWith(
+        status: forceRefresh ? SholatStatus.refreshing : SholatStatus.loading,
+      );
+
+      try {
+        // Fetch dari network
+        final response = await SholatService.getJadwalSholat(
+          latitude: latitude,
+          longitude: longitude,
+        );
+
+        final sholatList = response['data'] as List<Sholat>;
+
+        // Gabungkan dengan cache yang sudah ada (jika ada)
+        List<Sholat> mergedList = [];
+        if (cachedJadwal.isNotEmpty) {
+          // Buat map untuk efisiensi lookup
+          final newJadwalMap = {
+            for (var item in sholatList) item.tanggal: item,
+          };
+
+          // Gabungkan: prioritaskan data baru, tapi simpan data lama jika tidak ada data baru
+          mergedList = [...sholatList];
+
+          // Tambahkan data cache yang tidak ada di data baru
+          for (var cached in cachedJadwal) {
+            if (!newJadwalMap.containsKey(cached.tanggal)) {
+              mergedList.add(cached);
+            }
+          }
+
+          // Sort by date
+          mergedList.sort((a, b) {
+            final dateA = DateTime.parse(
+              a.tanggal.split('-').reversed.join('-'),
+            );
+            final dateB = DateTime.parse(
+              b.tanggal.split('-').reversed.join('-'),
+            );
+            return dateA.compareTo(dateB);
+          });
+        } else {
+          mergedList = sholatList;
+        }
+
+        // Cache the merged data
+        await SholatCacheService.cacheJadwalSholat(mergedList);
+
+        // Update state with network data
+        state = state.copyWith(
+          status: SholatStatus.loaded,
+          sholatList: mergedList,
+          latitude: latitude,
+          longitude: longitude,
+          locationName: locationName,
+          localDate: localDate,
+          localTime: localTime,
+          isOffline: false,
+          message: 'Jadwal sholat berhasil diperbarui',
+        );
+
+        logger.info(
+          'Successfully fetched and cached ${mergedList.length} jadwal sholat',
+        );
+      } catch (networkError) {
+        logger.warning(
+          'Network error, trying to fetch missing data: $networkError',
+        );
+
+        // Jika network error dan ada cache, coba fetch data yang missing
+        if (cachedJadwal.isNotEmpty) {
+          logger.info('Using cached data with ${cachedJadwal.length} items');
+          state = state.copyWith(
+            status: SholatStatus.offline,
+            sholatList: cachedJadwal,
+            latitude: latitude,
+            longitude: longitude,
+            locationName: locationName,
+            localDate: localDate,
+            localTime: localTime,
+            isOffline: true,
+            message: 'Menggunakan data offline',
+          );
+        } else {
+          throw networkError; // Re-throw jika tidak ada cache sama sekali
+        }
+      }
+    } catch (e) {
+      logger.severe('Error fetching jadwal sholat: $e');
+
+      // Final fallback to cache
+      final cachedJadwal = SholatCacheService.getCachedJadwalSholat();
+      final cachedLocation = await LocationService.getLocation();
+
+      if (cachedJadwal.isNotEmpty ||
+          (cachedLocation != null && cachedLocation.isNotEmpty)) {
+        logger.info('Using cached data due to error');
+
+        state = state.copyWith(
+          status: SholatStatus.offline,
+          sholatList: cachedJadwal,
+          latitude: cachedLocation != null
+              ? (cachedLocation['lat'] as double?)
+              : state.latitude,
+          longitude: cachedLocation != null
+              ? (cachedLocation['long'] as double?)
+              : state.longitude,
+          locationName: cachedLocation != null
+              ? (cachedLocation['name'] as String?)
+              : state.locationName ?? 'Unknown Location',
+          localDate: cachedLocation != null
+              ? (cachedLocation['date'] as String?)
+              : state.localDate,
+          localTime: cachedLocation != null
+              ? (cachedLocation['time'] as String?)
+              : state.localTime,
           isOffline: true,
           message: 'Menggunakan data offline',
         );
@@ -180,10 +331,157 @@ class SholatProvider extends StateNotifier<SholatState> {
         logger.warning('No cached data available');
         state = state.copyWith(
           status: SholatStatus.error,
-          message: 'Gagal mengambil jadwal sholat: $e',
+          locationName: state.locationName ?? 'Unknown Location',
           isOffline: true,
+          message: 'Gagal mengambil jadwal sholat: $e',
         );
       }
+    }
+  }
+
+  /// Get jadwal untuk tanggal tertentu
+  Sholat? getJadwalByDate(DateTime date) {
+    final formatter = DateFormat('dd-MM-yyyy');
+    final dateString = formatter.format(date);
+
+    try {
+      return state.sholatList.firstWhere(
+        (jadwal) => jadwal.tanggal == dateString,
+      );
+    } catch (e) {
+      logger.warning('Jadwal not found for date: $dateString');
+
+      // Coba fetch dari database jika tidak ada di cache
+      if (state.status != SholatStatus.loading &&
+          state.status != SholatStatus.refreshing) {
+        // Trigger background fetch without blocking UI
+        Future.microtask(() => _fetchMissingJadwal(date));
+      }
+
+      return null;
+    }
+  }
+
+  /// Fetch jadwal yang missing di background
+  Future<void> _fetchMissingJadwal(DateTime targetDate) async {
+    try {
+      logger.info('Fetching missing jadwal for date: $targetDate');
+
+      // Jangan fetch jika sudah loading
+      if (state.status == SholatStatus.loading ||
+          state.status == SholatStatus.refreshing) {
+        return;
+      }
+
+      // Ambil location yang sudah ada
+      final latitude = state.latitude;
+      final longitude = state.longitude;
+
+      if (latitude == null || longitude == null) {
+        logger.warning('No location available for fetching missing jadwal');
+        return;
+      }
+
+      // Fetch data dari server
+      final response = await SholatService.getJadwalSholat(
+        latitude: latitude,
+        longitude: longitude,
+        startDate: targetDate,
+        endDate: targetDate,
+      );
+
+      final newJadwal = response['data'] as List<Sholat>;
+
+      // Gabungkan dengan data yang sudah ada
+      final existingJadwal = state.sholatList;
+      final Map<String, Sholat> jadwalMap = {
+        for (var item in existingJadwal) item.tanggal: item,
+      };
+
+      // Update dengan data baru
+      for (var item in newJadwal) {
+        jadwalMap[item.tanggal] = item;
+      }
+
+      final mergedList = jadwalMap.values.toList();
+
+      // Sort by date
+      mergedList.sort((a, b) {
+        final dateA = DateTime.parse(a.tanggal.split('-').reversed.join('-'));
+        final dateB = DateTime.parse(b.tanggal.split('-').reversed.join('-'));
+        return dateA.compareTo(dateB);
+      });
+
+      // Update cache dan state
+      await SholatCacheService.cacheJadwalSholat(mergedList);
+
+      state = state.copyWith(
+        sholatList: mergedList,
+        status: SholatStatus.loaded,
+        message: 'Data updated',
+      );
+
+      logger.info('Successfully merged ${mergedList.length} jadwal items');
+    } catch (e) {
+      logger.warning('Failed to fetch missing jadwal: $e');
+      // Tidak perlu throw error, ini background process
+    }
+  }
+
+  /// Get progress untuk tanggal tertentu (UPDATED)
+  Future<Map<String, dynamic>> getProgressForDate(
+    DateTime date,
+    String jenis,
+  ) async {
+    final now = DateTime.now();
+    final isToday =
+        date.year == now.year && date.month == now.month && date.day == now.day;
+
+    if (isToday) {
+      // Ambil dari progress hari ini
+      final progressData = jenis == 'wajib'
+          ? state.progressWajibHariIni
+          : state.progressSunnahHariIni;
+
+      // Jika cache kosong, fetch dari network
+      if (progressData.isEmpty) {
+        if (jenis == 'wajib') {
+          await fetchProgressSholatWajibHariIni(forceRefresh: true);
+        } else {
+          await fetchProgressSholatSunnahHariIni(forceRefresh: true);
+        }
+        // Return updated data
+        return jenis == 'wajib'
+            ? state.progressWajibHariIni
+            : state.progressSunnahHariIni;
+      }
+
+      return progressData;
+    } else {
+      // Ambil dari riwayat berdasarkan tanggal
+      final formatter = DateFormat('yyyy-MM-dd');
+      final dateKey = formatter.format(date);
+
+      final riwayat = jenis == 'wajib'
+          ? state.progressWajibRiwayat
+          : state.progressSunnahRiwayat;
+
+      // Jika cache kosong, fetch dari network
+      if (riwayat.isEmpty) {
+        if (jenis == 'wajib') {
+          await fetchProgressSholatWajibRiwayat(forceRefresh: true);
+        } else {
+          await fetchProgressSholatSunnahRiwayat(forceRefresh: true);
+        }
+        // Return updated data
+        final updatedRiwayat = jenis == 'wajib'
+            ? state.progressWajibRiwayat
+            : state.progressSunnahRiwayat;
+        return (updatedRiwayat[dateKey] as Map<String, dynamic>?) ?? {};
+      }
+
+      // Riwayat berstruktur: { 'date': { 'subuh': {...}, 'dzuhur': {...} } }
+      return (riwayat[dateKey] as Map<String, dynamic>?) ?? {};
     }
   }
 
@@ -220,7 +518,7 @@ class SholatProvider extends StateNotifier<SholatState> {
       return response;
     } catch (e) {
       logger.severe('Error adding progress sholat: $e');
-      return null;
+      rethrow;
     }
   }
 
@@ -265,7 +563,6 @@ class SholatProvider extends StateNotifier<SholatState> {
       // 3. Update state with network data
       state = state.copyWith(
         progressWajibHariIni: progressData,
-        isOffline: false,
       );
 
       logger.info('Successfully fetched progress wajib hari ini');
@@ -486,21 +783,6 @@ class SholatProvider extends StateNotifier<SholatState> {
   /// Gunakan lokasi saat ini
   Future<void> useCurrentLocation() async {
     await fetchJadwalSholat(useCurrentLocation: true);
-  }
-
-  /// Get jadwal untuk tanggal tertentu
-  Sholat? getJadwalByDate(DateTime date) {
-    final formatter = DateFormat('dd-MM-yyyy');
-    final dateString = formatter.format(date);
-
-    try {
-      return state.sholatList.firstWhere(
-        (jadwal) => jadwal.tanggal == dateString,
-      );
-    } catch (e) {
-      logger.warning('Jadwal not found for date: $dateString');
-      return null;
-    }
   }
 
   /// Clear all cache

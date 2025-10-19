@@ -4,7 +4,9 @@ import 'package:test_flutter/data/models/sholat/sholat.dart';
 import 'package:test_flutter/data/services/cache/cache_service.dart';
 
 class SholatCacheService {
-  static const Duration _cacheDuration = Duration(hours: 12); // 14 hari
+  // Cache hanya untuk 1 hari (akan refresh otomatis setiap hari)
+  static const Duration _jadwalCacheDuration = Duration(hours: 24);
+  static const Duration _progressCacheDuration = Duration(hours: 12);
 
   // CACHE JADWAL SHOLAT
   static Future<void> cacheJadwalSholat(List<Sholat> jadwal) async {
@@ -12,7 +14,7 @@ class SholatCacheService {
       key: CacheKeys.jadwalSholat,
       data: jadwal,
       dataType: 'jadwal_sholat',
-      customExpiryDuration: _cacheDuration, // -> 4. Kirim sebagai Duration
+      customExpiryDuration: _jadwalCacheDuration,
     );
   }
 
@@ -24,7 +26,7 @@ class SholatCacheService {
       key: CacheKeys.progressSholatWajibHariIni,
       data: progress,
       dataType: 'progress_sholat_wajib_hari_ini',
-      customExpiryDuration: _cacheDuration,
+      customExpiryDuration: _progressCacheDuration,
     );
   }
 
@@ -36,7 +38,7 @@ class SholatCacheService {
       key: CacheKeys.progressSholatWajibRiwayat,
       data: progress,
       dataType: 'progress_sholat_wajib_riwayat',
-      customExpiryDuration: _cacheDuration,
+      customExpiryDuration: _progressCacheDuration,
     );
   }
 
@@ -47,8 +49,8 @@ class SholatCacheService {
     await CacheService.cacheData(
       key: CacheKeys.progressSholatSunnahRiwayat,
       data: progress,
-      dataType: 'progress_sholat_wajib_riwayat',
-      customExpiryDuration: _cacheDuration,
+      dataType: 'progress_sholat_sunnah_riwayat',
+      customExpiryDuration: _progressCacheDuration,
     );
   }
 
@@ -60,14 +62,14 @@ class SholatCacheService {
       key: CacheKeys.progressSholatSunnahHariIni,
       data: progress,
       dataType: 'progress_sholat_sunnah_hari_ini',
-      customExpiryDuration: _cacheDuration,
+      customExpiryDuration: _progressCacheDuration,
     );
   }
 
   // GET JADWAL SHOLAT DARI CACHE
   static List<Sholat> getCachedJadwalSholat() {
     return CacheService.getCachedData<List<Sholat>>(
-          key: CacheKeys.jadwalSholat, // -> 3. Gunakan key dari CacheKeys
+          key: CacheKeys.jadwalSholat,
           fromJson: (jsonData) {
             if (jsonData is List) {
               return jsonData
@@ -77,7 +79,7 @@ class SholatCacheService {
             return [];
           },
         ) ??
-        []; // Kembalikan list kosong jika null
+        [];
   }
 
   // GET PROGRESS SHOLAT WAJIB HARI INI DARI CACHE

@@ -501,20 +501,20 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           crossAxisSpacing: _px(context, 16),
           childAspectRatio: _getChildAspectRatio(context),
           children: [
-            _buildEnhancedFeatureButton(
-              context,
-              FlutterIslamicIcons.quran2,
-              'Al-Quran',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/quran'),
-            ),
-            _buildEnhancedFeatureButton(
-              context,
-              FlutterIslamicIcons.prayingPerson,
-              'Sholat',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/sholat'),
-            ),
+            // _buildEnhancedFeatureButton(
+            //   context,
+            //   FlutterIslamicIcons.quran2,
+            //   'Al-Quran',
+            //   AppTheme.accentGreen,
+            //   onTap: () => Navigator.pushNamed(context, '/quran'),
+            // ),
+            // _buildEnhancedFeatureButton(
+            //   context,
+            //   FlutterIslamicIcons.prayingPerson,
+            //   'Sholat',
+            //   AppTheme.accentGreen,
+            //   onTap: () => Navigator.pushNamed(context, '/sholat'),
+            // ),
             _buildEnhancedFeatureButton(
               context,
               FlutterIslamicIcons.ramadan,
@@ -536,13 +536,13 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
               AppTheme.accentGreen,
               onTap: () => Navigator.pushNamed(context, '/zakat'),
             ),
-            _buildEnhancedFeatureButton(
-              context,
-              FlutterIslamicIcons.family,
-              'Monitoring',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/monitoring'),
-            ),
+            // _buildEnhancedFeatureButton(
+            //   context,
+            //   FlutterIslamicIcons.family,
+            //   'Monitoring',
+            //   AppTheme.accentGreen,
+            //   onTap: () => Navigator.pushNamed(context, '/monitoring'),
+            // ),
             _buildEnhancedFeatureButton(
               context,
               FlutterIslamicIcons.prayer,

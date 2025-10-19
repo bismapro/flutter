@@ -1,7 +1,9 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
@@ -11,6 +13,8 @@ import 'package:test_flutter/features/auth/auth_provider.dart';
 import 'package:test_flutter/features/sholat/services/alarm_service.dart';
 import 'package:test_flutter/features/sholat/sholat_provider.dart';
 import 'package:test_flutter/features/sholat/sholat_state.dart';
+import 'package:test_flutter/features/sholat/widgets/sholat_card.dart';
+import 'package:test_flutter/features/sholat/widgets/sholat_header.dart';
 
 class SholatPage extends ConsumerStatefulWidget {
   const SholatPage({super.key});
@@ -21,370 +25,65 @@ class SholatPage extends ConsumerStatefulWidget {
 
 class _SholatPageState extends ConsumerState<SholatPage>
     with TickerProviderStateMixin {
+  // Controllers
   late TabController _tabController;
   late AnimationController _headerAnimationController;
   late Animation<Color?> _headerColorAnimation;
-  DateTime selectedDate = DateTime.now();
-  Timer? _timeUpdateTimer;
 
+  // State
+  DateTime _selectedDate = DateTime.now();
+  bool _isInitialized = false;
+  bool _isLoadingProgress = false; // TAMBAH INI
+  bool _isSavingProgress = false;
+
+  // Services
   final AlarmService _alarmService = AlarmService();
 
-  Map<String, bool> _wajibCompleted = {
-    'Shubuh': false,
+  // Alarm states
+  final Map<String, bool> _wajibAlarms = {
+    'Subuh': false,
     'Dzuhur': false,
     'Ashar': false,
     'Maghrib': false,
     'Isya': false,
   };
 
-  Map<String, bool> _sunnahCompleted = {
-    'Tahajud': false,
-    'Witir': false,
-    'Dhuha': false,
-    'Qabliyah Subuh': false,
-    'Qabliyah Dzuhur': false,
-    'Ba\'diyah Dzuhur': false,
-    'Qabliyah Ashar': false,
-    'Ba\'diyah Maghrib': false,
-    'Qabliyah Isya': false,
-    'Ba\'diyah Isya': false,
-  };
-
-  Map<String, bool> _wajibAlarms = {
-    'Subuh': true,
-    'Dzuhur': true,
-    'Ashar': true,
-    'Maghrib': true,
-    'Isya': true,
-  };
-
-  Map<String, bool> _sunnahAlarms = {
-    'Tahajud': false,
-    'Witir': false,
-    'Dhuha': false,
-    'Qabliyah Subuh': false,
-    'Qabliyah Dzuhur': false,
-    'Ba\'diyah Dzuhur': false,
-    'Qabliyah Ashar': false,
-    'Ba\'diyah Maghrib': false,
-    'Qabliyah Isya': false,
-    'Ba\'diyah Isya': false,
-  };
-
-  // Tambahkan helper method untuk mendapatkan sholat saat ini dan berikutnya
-  String _getCurrentPrayerName(dynamic jadwal) {
-    if (jadwal == null) return 'Memuat...';
-
-    final now = DateTime.now();
-    final currentTime = TimeOfDay(hour: now.hour, minute: now.minute);
-
-    if (isWajibTab) {
-      // Parse waktu sholat wajib
-      final shubuh = _parseTime(jadwal.wajib.shubuh);
-      final dzuhur = _parseTime(jadwal.wajib.dzuhur);
-      final ashar = _parseTime(jadwal.wajib.ashar);
-      final maghrib = _parseTime(jadwal.wajib.maghrib);
-      final isya = _parseTime(jadwal.wajib.isya);
-
-      if (_isTimeBefore(currentTime, shubuh)) {
-        return 'Shubuh';
-      } else if (_isTimeBefore(currentTime, dzuhur)) {
-        return 'Dzuhur';
-      } else if (_isTimeBefore(currentTime, ashar)) {
-        return 'Ashar';
-      } else if (_isTimeBefore(currentTime, maghrib)) {
-        return 'Maghrib';
-      } else if (_isTimeBefore(currentTime, isya)) {
-        return 'Isya';
-      } else {
-        return 'Shubuh'; // Setelah Isya, berikutnya Shubuh besok
-      }
-    } else {
-      // Parse waktu sholat sunnah
-      final tahajud = _parseTime(jadwal.sunnah.tahajud ?? '03:00');
-      final witir = _parseTime(jadwal.sunnah.witir ?? '23:00');
-      final dhuha = _parseTime(jadwal.sunnah.dhuha ?? '07:00');
-
-      // Logika untuk sunnah (simplified)
-      if (_isTimeBefore(currentTime, TimeOfDay(hour: 3, minute: 0))) {
-        return 'Tahajud';
-      } else if (_isTimeBefore(currentTime, TimeOfDay(hour: 7, minute: 0))) {
-        return 'Dhuha';
-      } else if (_isTimeBefore(currentTime, TimeOfDay(hour: 11, minute: 0))) {
-        return 'Qabliyah Dzuhur';
-      } else if (_isTimeBefore(currentTime, TimeOfDay(hour: 14, minute: 0))) {
-        return 'Ba\'diyah Dzuhur';
-      } else if (_isTimeBefore(currentTime, TimeOfDay(hour: 15, minute: 30))) {
-        return 'Qabliyah Ashar';
-      } else if (_isTimeBefore(currentTime, TimeOfDay(hour: 18, minute: 0))) {
-        return 'Ba\'diyah Maghrib';
-      } else if (_isTimeBefore(currentTime, TimeOfDay(hour: 19, minute: 30))) {
-        return 'Qabliyah Isya';
-      } else if (_isTimeBefore(currentTime, TimeOfDay(hour: 21, minute: 0))) {
-        return 'Ba\'diyah Isya';
-      } else {
-        return 'Witir';
-      }
-    }
-  }
-
-  String _getCurrentPrayerTime(dynamic jadwal) {
-    if (jadwal == null) return '--:--';
-
-    final prayerName = _getCurrentPrayerName(jadwal);
-
-    if (isWajibTab) {
-      switch (prayerName) {
-        case 'Shubuh':
-          return jadwal.wajib.shubuh ?? '--:--';
-        case 'Dzuhur':
-          return jadwal.wajib.dzuhur ?? '--:--';
-        case 'Ashar':
-          return jadwal.wajib.ashar ?? '--:--';
-        case 'Maghrib':
-          return jadwal.wajib.maghrib ?? '--:--';
-        case 'Isya':
-          return jadwal.wajib.isya ?? '--:--';
-        default:
-          return '--:--';
-      }
-    } else {
-      switch (prayerName) {
-        case 'Tahajud':
-          return jadwal.sunnah.tahajud ?? 'Sepertiga malam';
-        case 'Witir':
-          return jadwal.sunnah.witir ?? 'Setelah Isya';
-        case 'Dhuha':
-          return jadwal.sunnah.dhuha ?? 'Pagi hari';
-        case 'Qabliyah Subuh':
-          return jadwal.sunnah.qabliyahSubuh ?? 'Sebelum Subuh';
-        case 'Qabliyah Dzuhur':
-          return jadwal.sunnah.qabliyahDzuhur ?? 'Sebelum Dzuhur';
-        case 'Ba\'diyah Dzuhur':
-          return jadwal.sunnah.baDiyahDzuhur ?? 'Setelah Dzuhur';
-        case 'Qabliyah Ashar':
-          return jadwal.sunnah.qabliyahAshar ?? 'Sebelum Ashar';
-        case 'Ba\'diyah Maghrib':
-          return jadwal.sunnah.baDiyahMaghrib ?? 'Setelah Maghrib';
-        case 'Qabliyah Isya':
-          return jadwal.sunnah.qabliyahIsya ?? 'Sebelum Isya';
-        case 'Ba\'diyah Isya':
-          return jadwal.sunnah.baDiyahIsya ?? 'Setelah Isya';
-        default:
-          return '--:--';
-      }
-    }
-  }
-
-  String _getNextPrayerName(dynamic jadwal) {
-    if (jadwal == null) return 'Memuat...';
-
-    final now = DateTime.now();
-    final currentTime = TimeOfDay(hour: now.hour, minute: now.minute);
-
-    if (isWajibTab) {
-      final shubuh = _parseTime(jadwal.wajib.shubuh);
-      final dzuhur = _parseTime(jadwal.wajib.dzuhur);
-      final ashar = _parseTime(jadwal.wajib.ashar);
-      final maghrib = _parseTime(jadwal.wajib.maghrib);
-      final isya = _parseTime(jadwal.wajib.isya);
-
-      if (_isTimeBefore(currentTime, shubuh)) {
-        return 'Shubuh';
-      } else if (_isTimeBefore(currentTime, dzuhur)) {
-        return 'Dzuhur';
-      } else if (_isTimeBefore(currentTime, ashar)) {
-        return 'Ashar';
-      } else if (_isTimeBefore(currentTime, maghrib)) {
-        return 'Maghrib';
-      } else if (_isTimeBefore(currentTime, isya)) {
-        return 'Isya';
-      } else {
-        return 'Shubuh (Besok)';
-      }
-    } else {
-      // Logika untuk next prayer sunnah
-      final currentPrayer = _getCurrentPrayerName(jadwal);
-      final sunnahSequence = [
-        'Tahajud',
-        'Qabliyah Subuh',
-        'Dhuha',
-        'Qabliyah Dzuhur',
-        'Ba\'diyah Dzuhur',
-        'Qabliyah Ashar',
-        'Ba\'diyah Maghrib',
-        'Qabliyah Isya',
-        'Ba\'diyah Isya',
-        'Witir',
-      ];
-
-      final currentIndex = sunnahSequence.indexOf(currentPrayer);
-      if (currentIndex >= 0 && currentIndex < sunnahSequence.length - 1) {
-        return sunnahSequence[currentIndex + 1];
-      } else {
-        return sunnahSequence[0]; // Kembali ke awal
-      }
-    }
-  }
-
-  String _getNextPrayerTime(dynamic jadwal) {
-    if (jadwal == null) return '--:--';
-
-    final nextPrayerName = _getNextPrayerName(jadwal);
-
-    if (isWajibTab) {
-      switch (nextPrayerName) {
-        case 'Shubuh':
-        case 'Shubuh (Besok)':
-          return jadwal.wajib.shubuh ?? '--:--';
-        case 'Dzuhur':
-          return jadwal.wajib.dzuhur ?? '--:--';
-        case 'Ashar':
-          return jadwal.wajib.ashar ?? '--:--';
-        case 'Maghrib':
-          return jadwal.wajib.maghrib ?? '--:--';
-        case 'Isya':
-          return jadwal.wajib.isya ?? '--:--';
-        default:
-          return '--:--';
-      }
-    } else {
-      switch (nextPrayerName) {
-        case 'Tahajud':
-          return jadwal.sunnah.tahajud ?? 'Sepertiga malam';
-        case 'Witir':
-          return jadwal.sunnah.witir ?? 'Setelah Isya';
-        case 'Dhuha':
-          return jadwal.sunnah.dhuha ?? 'Pagi hari';
-        case 'Qabliyah Subuh':
-          return jadwal.sunnah.qabliyahSubuh ?? 'Sebelum Subuh';
-        case 'Qabliyah Dzuhur':
-          return jadwal.sunnah.qabliyahDzuhur ?? 'Sebelum Dzuhur';
-        case 'Ba\'diyah Dzuhur':
-          return jadwal.sunnah.baDiyahDzuhur ?? 'Setelah Dzuhur';
-        case 'Qabliyah Ashar':
-          return jadwal.sunnah.qabliyahAshar ?? 'Sebelum Ashar';
-        case 'Ba\'diyah Maghrib':
-          return jadwal.sunnah.baDiyahMaghrib ?? 'Setelah Maghrib';
-        case 'Qabliyah Isya':
-          return jadwal.sunnah.qabliyahIsya ?? 'Sebelum Isya';
-        case 'Ba\'diyah Isya':
-          return jadwal.sunnah.baDiyahIsya ?? 'Setelah Isya';
-        default:
-          return '--:--';
-      }
-    }
-  }
-
-  String _getTimeUntilNextPrayer(dynamic jadwal) {
-    if (jadwal == null) return 'Memuat...';
-
-    final now = DateTime.now();
-    final nextPrayerTimeStr = _getNextPrayerTime(jadwal);
-
-    if (nextPrayerTimeStr == '--:--' ||
-        nextPrayerTimeStr.contains('Sebelum') ||
-        nextPrayerTimeStr.contains('Setelah') ||
-        nextPrayerTimeStr.contains('malam') ||
-        nextPrayerTimeStr.contains('hari')) {
-      return 'Segera';
-    }
-
-    try {
-      final nextPrayerTime = _parseTime(nextPrayerTimeStr);
-      var nextPrayerDateTime = DateTime(
-        now.year,
-        now.month,
-        now.day,
-        nextPrayerTime.hour,
-        nextPrayerTime.minute,
-      );
-
-      // Jika waktu sudah lewat hari ini, set ke besok
-      if (nextPrayerDateTime.isBefore(now)) {
-        nextPrayerDateTime = nextPrayerDateTime.add(const Duration(days: 1));
-      }
-
-      final difference = nextPrayerDateTime.difference(now);
-      final hours = difference.inHours;
-      final minutes = difference.inMinutes.remainder(60);
-
-      if (hours > 0) {
-        return 'dalam ${hours}j ${minutes}m';
-      } else if (minutes > 0) {
-        return 'dalam ${minutes}m';
-      } else {
-        return 'Sebentar lagi';
-      }
-    } catch (e) {
-      return 'Segera';
-    }
-  }
-
-  TimeOfDay _parseTime(String timeStr) {
-    try {
-      final parts = timeStr.split(':');
-      if (parts.length == 2) {
-        return TimeOfDay(
-          hour: int.parse(parts[0]),
-          minute: int.parse(parts[1]),
-        );
-      }
-    } catch (e) {
-      // Fallback
-    }
-    return const TimeOfDay(hour: 0, minute: 0);
-  }
-
-  bool _isTimeBefore(TimeOfDay current, TimeOfDay target) {
-    if (current.hour < target.hour) {
-      return true;
-    } else if (current.hour == target.hour) {
-      return current.minute < target.minute;
-    }
-    return false;
-  }
-
-  // ---------- Responsive utils ----------
-  double _scale(BuildContext c) {
-    if (ResponsiveHelper.isSmallScreen(c)) return 1.0;
-    if (ResponsiveHelper.isMediumScreen(c)) return 1.1;
-    if (ResponsiveHelper.isLargeScreen(c)) return 1.2;
-    return 1.3;
-  }
-
-  double _px(BuildContext c, double base) => base * _scale(c);
-  double _ts(BuildContext c, double base) => ResponsiveHelper.adaptiveTextSize(
-    c,
-    base * 1.1,
-  ); // Meningkatkan base font size
-
-  EdgeInsets _hpad(BuildContext c) => EdgeInsets.symmetric(
-    horizontal: ResponsiveHelper.getResponsivePadding(c).left,
-  );
-
-  double _maxWidth(BuildContext c) {
-    if (ResponsiveHelper.isExtraLargeScreen(c)) return 980;
-    if (ResponsiveHelper.isLargeScreen(c)) return 860;
-    return double.infinity;
-  }
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _initializeControllers();
+    _initializeAlarmService();
 
-    // Animation controller untuk transisi warna header
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_isInitialized) {
+        _isInitialized = true;
+        _initializeData();
+      }
+    });
+  }
+
+  void _initializeAlarmService() {
+    _alarmService.initialize();
+
+    // TAMBAH: Monitor pending notifications (development only)
+    if (kDebugMode) {
+      Future.delayed(const Duration(seconds: 2), () async {
+        final pending = await _alarmService.getPendingNotifications();
+        logger.info('Active alarms: ${pending.length}');
+      });
+    }
+  }
+
+  void _initializeControllers() {
+    _tabController = TabController(length: 2, vsync: this);
     _headerAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
     );
 
-    // Color tween animation
     _updateHeaderColorAnimation();
 
     _tabController.addListener(() {
-      // Update animasi saat tab berubah
       if (_tabController.indexIsChanging) {
         _updateHeaderColorAnimation();
         if (_tabController.index == 0) {
@@ -393,51 +92,59 @@ class _SholatPageState extends ConsumerState<SholatPage>
           _headerAnimationController.forward();
         }
       }
-      setState(() {}); // Rebuild untuk update progress
-    });
-
-    // Initialize alarm service
-    _alarmService.initialize();
-
-    // Fetch jadwal sholat setelah frame pertama
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchJadwalSholat();
-      ref.read(authProvider.notifier).checkAuthStatus();
-      // Fetch progress data
-      ref.read(sholatProvider.notifier).fetchProgressSholatWajibHariIni();
-      ref.read(sholatProvider.notifier).fetchProgressSholatSunnahHariIni();
-      _loadAlarmStates();
-    });
-
-    // Setup timer untuk update waktu setiap detik
-    _timeUpdateTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {
-          // Update UI untuk waktu realtime
-        });
-      }
+      if (mounted) setState(() {});
     });
   }
 
-  /// Load alarm states dari local storage
-  Future<void> _loadAlarmStates() async {
+  Future<void> _initializeData() async {
     try {
-      final states = await _alarmService.getAllAlarmStates();
-      setState(() {
-        _wajibAlarms = {
-          'Subuh': states['Subuh'] ?? false,
-          'Dzuhur': states['Dzuhur'] ?? false,
-          'Ashar': states['Ashar'] ?? false,
-          'Maghrib': states['Maghrib'] ?? false,
-          'Isya': states['Isya'] ?? false,
-        };
-      });
+      await ref.read(authProvider.notifier).checkAuthStatus();
+      await _loadAlarmStates();
+
+      final currentState = ref.read(sholatProvider);
+
+      if (currentState.sholatList.isEmpty) {
+        logger.info('No jadwal data, fetching...');
+        await ref.read(sholatProvider.notifier).fetchJadwalSholat();
+      } else {
+        logger.info(
+          'Jadwal already loaded: ${currentState.sholatList.length} items',
+        );
+      }
+
+      final authState = ref.read(authProvider);
+      if (authState['status'] == AuthState.authenticated) {
+        await _fetchProgressData();
+      }
     } catch (e) {
-      logger.fine('Error loading alarm states: $e');
+      logger.severe('Error initializing data: $e');
     }
   }
 
-  /// Update waktu sholat ke alarm service
+  Future<void> _fetchProgressData() async {
+    await Future.wait([
+      ref.read(sholatProvider.notifier).fetchProgressSholatWajibHariIni(),
+      ref.read(sholatProvider.notifier).fetchProgressSholatSunnahHariIni(),
+    ]);
+  }
+
+  Future<void> _loadAlarmStates() async {
+    try {
+      final states = await _alarmService.getAllAlarmStates();
+      if (mounted) {
+        setState(() {
+          _wajibAlarms['Subuh'] = states['Subuh'] ?? false;
+          _wajibAlarms['Dzuhur'] = states['Dzuhur'] ?? false;
+          _wajibAlarms['Ashar'] = states['Ashar'] ?? false;
+          _wajibAlarms['Maghrib'] = states['Maghrib'] ?? false;
+          _wajibAlarms['Isya'] = states['Isya'] ?? false;
+        });
+      }
+    } catch (e) {
+      logger.warning('Error loading alarm states: $e');
+    }
+  }
+
   void _updateAlarmTimes(dynamic jadwal) {
     if (jadwal != null) {
       _alarmService.updatePrayerTimes({
@@ -448,23 +155,6 @@ class _SholatPageState extends ConsumerState<SholatPage>
         'Isya': jadwal.wajib.isya ?? '00:00',
       });
     }
-  }
-
-  void init() {
-    _fetchJadwalSholat();
-    ref.read(authProvider.notifier).checkAuthStatus();
-    ref.read(sholatProvider.notifier).fetchProgressSholatWajibHariIni();
-    ref.read(sholatProvider.notifier).fetchProgressSholatSunnahHariIni();
-    ref.read(sholatProvider.notifier).fetchProgressSholatWajibRiwayat();
-    ref.read(sholatProvider.notifier).fetchProgressSholatSunnahRiwayat();
-  }
-
-  void _fetchJadwalSholat() {
-    ref.read(sholatProvider.notifier).fetchJadwalSholat();
-  }
-
-  Future<void> _useCurrentLocation() async {
-    await ref.read(sholatProvider.notifier).useCurrentLocation();
   }
 
   void _updateHeaderColorAnimation() {
@@ -480,1074 +170,72 @@ class _SholatPageState extends ConsumerState<SholatPage>
         );
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    _headerAnimationController.dispose();
-    _timeUpdateTimer?.cancel();
-    _alarmService.dispose();
-    super.dispose();
-  }
+  Future<void> _handleRefresh() async {
+    try {
+      await ref.read(authProvider.notifier).checkAuthStatus();
 
-  bool get isWajibTab => _tabController.index == 0;
+      await Future.wait([
+        ref.read(sholatProvider.notifier).fetchJadwalSholat(forceRefresh: true),
+        if (ref.read(authProvider)['status'] == AuthState.authenticated)
+          _fetchProgressData(),
+      ]);
 
-  bool get isToday {
-    final now = DateTime.now();
-    return selectedDate.year == now.year &&
-        selectedDate.month == now.month &&
-        selectedDate.day == now.day;
-  }
-
-  int get _completedCount {
-    final state = ref.watch(sholatProvider);
-
-    if (isWajibTab) {
-      final progressData = state.progressWajibHariIni;
-      return progressData.values
-          .where((v) => v is Map && (v['completed'] == true))
-          .length;
-    } else {
-      final progressData = state.progressSunnahHariIni;
-      return progressData.values
-          .where((v) => v is Map && (v['completed'] == true))
-          .length;
+      if (mounted) {
+        showMessageToast(
+          context,
+          message: 'Data berhasil diperbarui',
+          type: ToastType.success,
+        );
+      }
+    } catch (e) {
+      logger.severe('Error refreshing data: $e');
+      if (mounted) {
+        showMessageToast(
+          context,
+          message: 'Gagal memperbarui data',
+          type: ToastType.error,
+        );
+      }
     }
   }
 
-  int get _totalCount {
-    return isWajibTab ? 5 : 10;
+  Future<void> _updateLocation() async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      await ref
+          .read(sholatProvider.notifier)
+          .fetchJadwalSholat(forceRefresh: true, useCurrentLocation: true);
+
+      if (mounted) {
+        Navigator.pop(context);
+        showMessageToast(
+          context,
+          message: 'Lokasi berhasil diperbarui',
+          type: ToastType.success,
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        Navigator.pop(context);
+        showMessageToast(
+          context,
+          message: 'Gagal memperbarui lokasi',
+          type: ToastType.error,
+        );
+      }
+    }
   }
 
-  /// Show login required message
   void _showLoginRequired() {
     showMessageToast(
       context,
-      message:
-          'Anda harus login untuk menggunakan fitur alarm dan pencatatan sholat',
+      message: 'Anda harus login untuk menggunakan fitur ini',
       type: ToastType.warning,
-    );
-  }
-
-  /// Show prayer detail bottom sheet
-  void _showPrayerDetail({
-    required String name,
-    required String time,
-    required IconData icon,
-    required Color color,
-  }) {
-    // Check authentication
-    if (ref.watch(authProvider)['status'] != AuthState.authenticated) {
-      _showLoginRequired();
-      return;
-    }
-
-    final isWajib = isWajibTab;
-    final isCompleted = isWajib
-        ? _wajibCompleted[name] ?? false
-        : _sunnahCompleted[name] ?? false;
-    final hasAlarm = isWajib
-        ? _wajibAlarms[name] ?? false
-        : _sunnahAlarms[name] ?? false;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) {
-          return Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(20),
-              ),
-            ),
-            padding: EdgeInsets.only(
-              bottom: MediaQuery.of(context).viewInsets.bottom,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Handle
-                Container(
-                  margin: const EdgeInsets.symmetric(vertical: 12),
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-
-                // Header
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Icon(icon, color: color, size: 28),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              name,
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                Icon(
-                                  Icons.access_time,
-                                  size: 16,
-                                  color: AppTheme.onSurfaceVariant,
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  time,
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: AppTheme.onSurfaceVariant,
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
-                const SizedBox(height: 24),
-                const Divider(height: 1),
-
-                // Checkbox - Tandai sudah sholat
-                InkWell(
-                  onTap: () {
-                    setModalState(() {
-                      if (isWajib) {
-                        _wajibCompleted[name] =
-                            !(_wajibCompleted[name] ?? false);
-                      } else {
-                        _sunnahCompleted[name] =
-                            !(_sunnahCompleted[name] ?? false);
-                      }
-                    });
-                    setState(() {}); // Update parent state
-                  },
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 20,
-                      vertical: 16,
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            color:
-                                (isWajib
-                                        ? _wajibCompleted[name]
-                                        : _sunnahCompleted[name]) ??
-                                    false
-                                ? color
-                                : Colors.transparent,
-                            border: Border.all(
-                              color:
-                                  (isWajib
-                                          ? _wajibCompleted[name]
-                                          : _sunnahCompleted[name]) ??
-                                      false
-                                  ? color
-                                  : Colors.grey.shade400,
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child:
-                              (isWajib
-                                      ? _wajibCompleted[name]
-                                      : _sunnahCompleted[name]) ??
-                                  false
-                              ? const Icon(
-                                  Icons.check,
-                                  size: 16,
-                                  color: Colors.white,
-                                )
-                              : null,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Tandai sudah sholat',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppTheme.onSurface,
-                                ),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Catat ibadah Anda hari ini',
-                                style: TextStyle(
-                                  fontSize: 13,
-                                  color: AppTheme.onSurfaceVariant,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                const Divider(height: 1),
-
-                // Toggle - Alarm
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical: 16,
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 24,
-                        height: 24,
-                        decoration: BoxDecoration(
-                          color: color.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(6),
-                        ),
-                        child: Icon(
-                          Icons.notifications_outlined,
-                          size: 16,
-                          color: color,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Alarm pengingat',
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w600,
-                                color: AppTheme.onSurface,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'Dapatkan notifikasi saat waktu sholat tiba',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: AppTheme.onSurfaceVariant,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Switch(
-                        value:
-                            (isWajib
-                                ? _wajibAlarms[name]
-                                : _sunnahAlarms[name]) ??
-                            false,
-                        onChanged: (value) {
-                          setModalState(() {
-                            if (isWajib) {
-                              _wajibAlarms[name] = value;
-                            } else {
-                              _sunnahAlarms[name] = value;
-                            }
-                          });
-                          setState(() {}); // Update parent state
-
-                          showMessageToast(
-                            context,
-                            message: value
-                                ? 'Alarm $name diaktifkan'
-                                : 'Alarm $name dinonaktifkan',
-                            type: ToastType.success,
-                          );
-                        },
-                        activeThumbColor: color,
-                      ),
-                    ],
-                  ),
-                ),
-
-                const Divider(height: 1),
-                const SizedBox(height: 16),
-
-                // Close Button
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: color,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: const Text(
-                        'Tutup',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  String get formattedDate {
-    const months = [
-      'Januari',
-      'Februari',
-      'Maret',
-      'April',
-      'Mei',
-      'Juni',
-      'Juli',
-      'Agustus',
-      'September',
-      'Oktober',
-      'November',
-      'Desember',
-    ];
-    return '${selectedDate.day} ${months[selectedDate.month - 1]} ${selectedDate.year}';
-  }
-
-  String get dayName {
-    const days = [
-      'Senin',
-      'Selasa',
-      'Rabu',
-      'Kamis',
-      'Jumat',
-      'Sabtu',
-      'Minggu',
-    ];
-    return days[selectedDate.weekday - 1];
-  }
-
-  String get hijriDate => FormatHelper.getHijriDate(selectedDate);
-
-  @override
-  Widget build(BuildContext context) {
-    final sholatState = ref.watch(sholatProvider);
-    final authState = ref.watch(authProvider);
-    final isLoggedIn = authState['status'] == AuthState.authenticated;
-
-    // Get jadwal based on selected date
-    final jadwal = ref
-        .read(sholatProvider.notifier)
-        .getJadwalByDate(selectedDate);
-
-    // Update alarm times ketika jadwal berubah
-    if (jadwal != null) {
-      _updateAlarmTimes(jadwal);
-    }
-
-    return Scaffold(
-      backgroundColor: AppTheme.backgroundWhite,
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: _maxWidth(context)),
-            child: Column(
-              children: [
-                _buildCompactHeader(
-                  context,
-                  sholatState,
-                  dayName,
-                  formattedDate,
-                  hijriDate,
-                ),
-                if (sholatState.status == SholatStatus.loading)
-                  const Expanded(
-                    child: Center(child: CircularProgressIndicator()),
-                  )
-                else if (sholatState.status == SholatStatus.error)
-                  Expanded(
-                    child: Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.error_outline,
-                            size: 64,
-                            color: Colors.red,
-                          ),
-                          const SizedBox(height: 16),
-                          Text(
-                            sholatState.message ?? 'Terjadi kesalahan',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(fontSize: 16),
-                          ),
-                          const SizedBox(height: 16),
-                          ElevatedButton.icon(
-                            onPressed: _fetchJadwalSholat,
-                            icon: const Icon(Icons.refresh),
-                            label: const Text('Coba Lagi'),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
-                else
-                  Expanded(child: _buildPrayerTimesList(context, sholatState)),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCompactHeader(
-    BuildContext context,
-    SholatState sholatState,
-    String dayName,
-    String formattedDate,
-    String hijriDate,
-  ) {
-    final small = ResponsiveHelper.isSmallScreen(context);
-
-    // Get jadwal for selected date
-    final jadwal = ref
-        .read(sholatProvider.notifier)
-        .getJadwalByDate(selectedDate);
-
-    // Get current time formatted
-    final now = DateTime.now();
-    final currentTime =
-        '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
-
-    return AnimatedBuilder(
-      animation: _headerAnimationController,
-      builder: (context, child) {
-        final progressColor =
-            _headerColorAnimation.value ?? AppTheme.primaryBlue;
-
-        return Container(
-          margin: _hpad(context).add(
-            EdgeInsets.only(top: _px(context, 12), bottom: _px(context, 16)),
-          ),
-          padding: EdgeInsets.all(_px(context, small ? 16 : 20)),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [progressColor, progressColor.withValues(alpha: 0.85)],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: progressColor.withValues(alpha: 0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Date navigation
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _compactBtn(
-                    context,
-                    icon: Icons.chevron_left_rounded,
-                    onTap: () => setState(
-                      () => selectedDate = selectedDate.subtract(
-                        const Duration(days: 1),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Text(
-                          isToday ? 'Hari ini' : dayName,
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: _ts(context, small ? 14 : 16),
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        SizedBox(height: _px(context, 2)),
-                        Text(
-                          formattedDate,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.85),
-                            fontSize: _ts(context, small ? 12 : 13),
-                          ),
-                        ),
-                        Text(
-                          hijriDate,
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.7),
-                            fontSize: _ts(context, small ? 11 : 12),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  _compactBtn(
-                    context,
-                    icon: Icons.chevron_right_rounded,
-                    onTap: () => setState(
-                      () => selectedDate = selectedDate.add(
-                        const Duration(days: 1),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: _px(context, 16)),
-              Divider(color: Colors.white.withValues(alpha: 0.2), height: 1),
-              SizedBox(height: _px(context, 16)),
-
-              // Location & Current Prayer Time
-              Row(
-                children: [
-                  Expanded(
-                    flex: 2,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        InkWell(
-                          onTap: _useCurrentLocation,
-                          borderRadius: BorderRadius.circular(8),
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(
-                              vertical: _px(context, 4),
-                            ),
-                            child: Row(
-                              children: [
-                                Icon(
-                                  Icons.location_on_rounded,
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  size: _px(context, 14),
-                                ),
-                                SizedBox(width: _px(context, 4)),
-                                Flexible(
-                                  child: Text(
-                                    sholatState.locationName ??
-                                        'Memuat lokasi...',
-                                    style: TextStyle(
-                                      color: Colors.white.withValues(
-                                        alpha: 0.85,
-                                      ),
-                                      fontSize: _ts(context, small ? 11 : 12),
-                                    ),
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                ),
-                                SizedBox(width: _px(context, 4)),
-                                Icon(
-                                  Icons.refresh,
-                                  size: _px(context, 12),
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                        // Local Time Display - Realtime
-                        Padding(
-                          padding: EdgeInsets.only(top: _px(context, 2)),
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.access_time,
-                                size: _px(context, 12),
-                                color: Colors.white.withValues(alpha: 0.6),
-                              ),
-                              SizedBox(width: _px(context, 4)),
-                              Text(
-                                currentTime,
-                                style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  fontSize: _ts(context, small ? 10 : 11),
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: _px(context, 8)),
-                        // Update bagian dalam _buildCompactHeader untuk mengganti hardcoded values:
-                        // ...existing code...
-                        SizedBox(height: _px(context, 8)),
-                        Text(
-                          _getCurrentPrayerName(jadwal),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: _ts(context, small ? 16 : 18),
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                        Text(
-                          _getCurrentPrayerTime(jadwal),
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: _ts(context, small ? 22 : 26),
-                            fontWeight: FontWeight.bold,
-                            height: 1.1,
-                          ),
-                        ),
-                        SizedBox(height: _px(context, 4)),
-                        Text(
-                          jadwal != null
-                              ? '${_getNextPrayerName(jadwal)} ${_getTimeUntilNextPrayer(jadwal)}'
-                              : 'Memuat...',
-                          style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.75),
-                            fontSize: _ts(context, small ? 10 : 11),
-                          ),
-                        ),
-                        // ...existing code...
-                      ],
-                    ),
-                  ),
-
-                  // Progress Circle
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    width: _px(context, small ? 90 : 100),
-                    height: _px(context, small ? 90 : 100),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.15),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.3),
-                        width: 3,
-                      ),
-                    ),
-                    child: Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            '$_completedCount',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: _ts(context, small ? 32 : 36),
-                              fontWeight: FontWeight.bold,
-                              height: 1,
-                            ),
-                          ),
-                          SizedBox(height: _px(context, 2)),
-                          Text(
-                            '/ $_totalCount',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.7),
-                              fontSize: _ts(context, small ? 14 : 16),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          SizedBox(height: _px(context, 4)),
-                          Text(
-                            isWajibTab ? 'Wajib' : 'Sunnah',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: _ts(context, small ? 10 : 11),
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _compactBtn(
-    BuildContext c, {
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.15),
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Padding(
-          padding: EdgeInsets.all(_px(c, 8)),
-          child: Icon(icon, color: Colors.white, size: _px(c, 20)),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPrayerTimesList(BuildContext context, SholatState sholatState) {
-    final small = ResponsiveHelper.isSmallScreen(context);
-    final jadwal = ref
-        .read(sholatProvider.notifier)
-        .getJadwalByDate(selectedDate);
-
-    return Column(
-      children: [
-        // Tabs
-        Container(
-          margin: _hpad(context).add(EdgeInsets.only(top: _px(context, 12))),
-          padding: EdgeInsets.all(_px(context, 4)),
-          decoration: BoxDecoration(
-            color: Colors.grey.shade100,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: TabBar(
-            controller: _tabController,
-            indicator: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(10),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelColor: AppTheme.primaryBlue,
-            unselectedLabelColor: AppTheme.onSurfaceVariant,
-            labelStyle: TextStyle(
-              fontWeight: FontWeight.w600,
-              fontSize: _ts(context, small ? 13 : 14),
-            ),
-            dividerColor: Colors.transparent,
-            tabs: const [
-              Tab(text: 'Wajib'),
-              Tab(text: 'Sunnah'),
-            ],
-          ),
-        ),
-
-        SizedBox(height: _px(context, 16)),
-
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildWajibTab(context, jadwal),
-              _buildSunnahTab(context, jadwal),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildWajibTab(BuildContext context, jadwal) {
-    final small = ResponsiveHelper.isSmallScreen(context);
-    final state = ref.watch(sholatProvider);
-    final authState = ref.watch(authProvider);
-    final isLoggedIn = authState['status'] == AuthState.authenticated;
-    final progressData = state.progressWajibHariIni;
-
-    // Map jadwal waktu dengan nama sholat - dengan fallback
-    final wajibList = {
-      'Shubuh': {
-        'time': jadwal?.wajib.shubuh ?? '--:--',
-        'icon': Icons.wb_sunny_outlined,
-        'dbKey': 'subuh',
-      },
-      'Dzuhur': {
-        'time': jadwal?.wajib.dzuhur ?? '--:--',
-        'icon': Icons.wb_sunny,
-        'dbKey': 'dzuhur',
-      },
-      'Ashar': {
-        'time': jadwal?.wajib.ashar ?? '--:--',
-        'icon': Icons.wb_cloudy,
-        'dbKey': 'ashar',
-      },
-      'Maghrib': {
-        'time': jadwal?.wajib.maghrib ?? '--:--',
-        'icon': Icons.wb_twilight,
-        'dbKey': 'maghrib',
-      },
-      'Isya': {
-        'time': jadwal?.wajib.isya ?? '--:--',
-        'icon': Icons.nights_stay,
-        'dbKey': 'isya',
-      },
-    };
-
-    return ListView.builder(
-      padding: _hpad(context).add(EdgeInsets.only(bottom: _px(context, 16))),
-      physics: const BouncingScrollPhysics(),
-      itemCount: wajibList.length,
-      itemBuilder: (_, i) {
-        final name = wajibList.keys.elementAt(i);
-        final jadwalData = wajibList[name]!;
-        final dbKey = jadwalData['dbKey'] as String;
-        final time = jadwalData['time'] as String;
-
-        // Ambil data progress dari state
-        final sholatProgress = progressData[dbKey] as Map<String, dynamic>?;
-        final isCompleted = sholatProgress?['completed'] as bool? ?? false;
-        final isOnTime = sholatProgress?['is_on_time'] as bool? ?? false;
-        final isJamaah = sholatProgress?['is_jamaah'] as bool? ?? false;
-        final lokasi = sholatProgress?['lokasi'] as String? ?? '';
-        final progressId = sholatProgress?['id'] as int?;
-
-        return Container(
-          margin: EdgeInsets.only(bottom: _px(context, 8)),
-          decoration: BoxDecoration(
-            color: isCompleted
-                ? AppTheme.primaryBlue.withValues(alpha: 0.04)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isCompleted
-                  ? AppTheme.primaryBlue.withValues(alpha: 0.15)
-                  : Colors.grey.shade200,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () async {
-                if (!isLoggedIn) {
-                  _showLoginRequired();
-                  return;
-                }
-
-                if (!isCompleted) {
-                  await _showSholatDetailModal(
-                    context,
-                    name,
-                    jadwalData,
-                    'wajib',
-                  );
-                } else {
-                  _showDetailWithDeleteOption(
-                    context,
-                    name,
-                    jadwalData,
-                    'wajib',
-                    sholatProgress,
-                    progressId,
-                  );
-                }
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: _px(context, small ? 14 : 16),
-                  vertical: _px(context, small ? 12 : 14),
-                ),
-                child: Row(
-                  children: [
-                    // Checkbox indicator
-                    Container(
-                      width: _px(context, 22),
-                      height: _px(context, 22),
-                      decoration: BoxDecoration(
-                        color: isCompleted
-                            ? AppTheme.primaryBlue
-                            : Colors.transparent,
-                        border: Border.all(
-                          color: isCompleted
-                              ? AppTheme.primaryBlue
-                              : Colors.grey.shade400,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: isCompleted
-                          ? Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: _px(context, 14),
-                            )
-                          : null,
-                    ),
-                    SizedBox(width: _px(context, 12)),
-
-                    // Icon sholat
-                    Container(
-                      width: _px(context, 40),
-                      height: _px(context, 40),
-                      decoration: BoxDecoration(
-                        color: isCompleted
-                            ? AppTheme.primaryBlue.withValues(alpha: 0.15)
-                            : AppTheme.primaryBlue.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        jadwalData['icon'] as IconData,
-                        color: AppTheme.primaryBlue,
-                        size: _px(context, 20),
-                      ),
-                    ),
-                    SizedBox(width: _px(context, 12)),
-
-                    // Nama dan waktu sholat
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: TextStyle(
-                              fontSize: _ts(context, small ? 14 : 15),
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.onSurface,
-                              decoration: isCompleted
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                            ),
-                          ),
-                          SizedBox(height: _px(context, 2)),
-                          Text(
-                            time,
-                            style: TextStyle(
-                              fontSize: _ts(context, small ? 12 : 13),
-                              color: AppTheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          if (isCompleted) ...[
-                            SizedBox(height: _px(context, 4)),
-                            Wrap(
-                              spacing: 4,
-                              children: [
-                                if (isOnTime)
-                                  _buildBadge(
-                                    context,
-                                    'Tepat Waktu',
-                                    Icons.check_circle,
-                                    Colors.green,
-                                  ),
-                                if (isJamaah)
-                                  _buildBadge(
-                                    context,
-                                    'Jamaah',
-                                    Icons.groups,
-                                    Colors.blue,
-                                  ),
-                                if (lokasi.isNotEmpty)
-                                  _buildBadge(
-                                    context,
-                                    lokasi,
-                                    Icons.location_on,
-                                    Colors.orange,
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-
-                    // Alarm button dengan state dari service
-                    Material(
-                      color: _wajibAlarms[name] == true
-                          ? AppTheme.primaryBlue.withValues(alpha: 0.1)
-                          : Colors.grey.shade100,
-                      borderRadius: BorderRadius.circular(10),
-                      child: InkWell(
-                        onTap: () async {
-                          if (!isLoggedIn) {
-                            _showLoginRequired();
-                            return;
-                          }
-
-                          final newState = !(_wajibAlarms[name] ?? false);
-
-                          try {
-                            // Set alarm via service
-                            await _alarmService.setAlarm(name, newState, time);
-
-                            setState(() {
-                              _wajibAlarms[name] = newState;
-                            });
-
-                            showMessageToast(
-                              context,
-                              message: newState
-                                  ? 'Alarm $name diaktifkan'
-                                  : 'Alarm $name dinonaktifkan',
-                              type: ToastType.success,
-                            );
-                          } catch (e) {
-                            showMessageToast(
-                              context,
-                              message: 'Gagal mengatur alarm: $e',
-                              type: ToastType.error,
-                            );
-                          }
-                        },
-                        borderRadius: BorderRadius.circular(10),
-                        child: Padding(
-                          padding: EdgeInsets.all(_px(context, 8)),
-                          child: Icon(
-                            _wajibAlarms[name] == true
-                                ? Icons.alarm_on_rounded
-                                : Icons.alarm_rounded,
-                            color: _wajibAlarms[name] == true
-                                ? AppTheme.primaryBlue
-                                : Colors.grey.shade500,
-                            size: _px(context, 18),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 
@@ -1561,6 +249,7 @@ class _SholatPageState extends ConsumerState<SholatPage>
     bool tepatWaktu = false;
     bool berjamaah = false;
     String tempat = '';
+    bool isLoading = false;
 
     final result = await showModalBottomSheet<bool>(
       context: context,
@@ -1783,67 +472,39 @@ class _SholatPageState extends ConsumerState<SholatPage>
                   ),
                   const SizedBox(height: 24),
 
-                  // Button Simpan
+                  // Button Simpan dengan loading
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton(
-                      onPressed: tempat.isEmpty
+                      onPressed: (tempat.isEmpty || isLoading)
                           ? null
                           : () async {
+                              setModalState(
+                                () => isLoading = true,
+                              ); // UPDATED: set loading true
+
                               try {
-                                // Konversi nama sholat ke format database
-                                String sholatKey = sholatName.toLowerCase();
-                                if (sholatKey == 'subuh') {
-                                  sholatKey = 'subuh';
-                                } else if (sholatKey == 'ba\'diyah dzuhur') {
-                                  sholatKey = 'ba_diyah_dzuhur';
-                                } else if (sholatKey == 'ba\'diyah maghrib') {
-                                  sholatKey = 'ba_diyah_maghrib';
-                                } else if (sholatKey == 'ba\'diyah isya') {
-                                  sholatKey = 'ba_diyah_isya';
-                                } else {
-                                  sholatKey = sholatKey
-                                      .replaceAll(' ', '_')
-                                      .replaceAll('\'', '');
-                                }
-
-                                print(
-                                  'Saving progress: jenis=$jenis, sholat=$sholatKey',
-                                );
-
                                 // Simpan ke database via provider
                                 final response = await ref
                                     .read(sholatProvider.notifier)
                                     .addProgressSholat(
                                       jenis: jenis,
-                                      sholat: sholatKey,
+                                      sholat: jadwalData['dbKey'] as String,
                                       isOnTime: tepatWaktu,
                                       isJamaah: berjamaah,
                                       lokasi: tempat,
                                     );
 
-                                print('Response: $response');
-
-                                if (response != null) {
+                                if (response != null && mounted) {
                                   // Tutup modal
-                                  if (mounted) {
-                                    Navigator.pop(context, true);
-                                    _showCompletionFeedback(sholatName);
-                                  }
+                                  Navigator.pop(context, true);
+                                  _showCompletionFeedback(sholatName);
 
                                   // Refresh data progress
-                                  if (jenis == 'wajib') {
-                                    await ref
-                                        .read(sholatProvider.notifier)
-                                        .fetchProgressSholatWajibHariIni();
-                                  } else {
-                                    await ref
-                                        .read(sholatProvider.notifier)
-                                        .fetchProgressSholatSunnahHariIni();
-                                  }
+                                  await _fetchProgressData();
                                 }
                               } catch (e) {
-                                print('Error saving progress: $e');
+                                logger.severe('Error saving progress: $e');
 
                                 // Ambil message dari exception
                                 String errorMessage = 'Gagal menyimpan data';
@@ -1864,6 +525,12 @@ class _SholatPageState extends ConsumerState<SholatPage>
                                     type: ToastType.error,
                                   );
                                 }
+                              } finally {
+                                if (mounted) {
+                                  setModalState(
+                                    () => isLoading = false,
+                                  ); // UPDATED: set loading false
+                                }
                               }
                             },
                       style: ElevatedButton.styleFrom(
@@ -1879,13 +546,24 @@ class _SholatPageState extends ConsumerState<SholatPage>
                         disabledBackgroundColor: Colors.grey.shade300,
                         disabledForegroundColor: Colors.grey.shade500,
                       ),
-                      child: const Text(
-                        'Simpan',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: isLoading
+                          ? SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                          : const Text(
+                              'Simpan',
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -1902,12 +580,718 @@ class _SholatPageState extends ConsumerState<SholatPage>
     }
   }
 
-  Widget _buildSunnahTab(BuildContext context, jadwal) {
+  /// Widget untuk option button (Ya/Tidak)
+  Widget _buildOptionButton({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.1)
+              : Colors.grey.shade50,
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? color : Colors.grey.shade400,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? color : Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Widget untuk place chip (Masjid, Rumah, dll)
+  Widget _buildPlaceChip({
+    required BuildContext context,
+    required String label,
+    required IconData icon,
+    required bool isSelected,
+    required VoidCallback onTap,
+    required Color color,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? color.withValues(alpha: 0.1)
+              : Colors.grey.shade50,
+          border: Border.all(
+            color: isSelected ? color : Colors.grey.shade300,
+            width: 1.5,
+          ),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? color : Colors.grey.shade400,
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+                color: isSelected ? color : Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showDeleteConfirmation(
+    BuildContext context,
+    String name,
+    String jenis,
+    int? progressId,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        // UPDATED: gunakan StatefulBuilder
+        builder: (context, setDialogState) {
+          bool isDeleting = false;
+
+          return AlertDialog(
+            title: const Text('Hapus Progress'),
+            content: Text('Apakah Anda yakin ingin menghapus progress $name?'),
+            actions: [
+              TextButton(
+                onPressed: isDeleting ? null : () => Navigator.pop(context),
+                child: const Text('Batal'),
+              ),
+              ElevatedButton(
+                onPressed: isDeleting
+                    ? null
+                    : () async {
+                        setDialogState(() => isDeleting = true);
+
+                        try {
+                          await ref
+                              .read(sholatProvider.notifier)
+                              .deleteProgressSholat(id: progressId!);
+
+                          if (mounted) {
+                            Navigator.pop(context);
+                            showMessageToast(
+                              context,
+                              message: 'Progress berhasil dihapus',
+                              type: ToastType.success,
+                            );
+                            await _fetchProgressData();
+                          }
+                        } catch (e) {
+                          if (mounted) {
+                            setDialogState(() => isDeleting = false);
+                            showMessageToast(
+                              context,
+                              message: 'Gagal menghapus progress',
+                              type: ToastType.error,
+                            );
+                          }
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.red,
+                  foregroundColor: Colors.white,
+                ),
+                child: isDeleting
+                    ? SizedBox(
+                        height: 16,
+                        width: 16,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
+                        ),
+                      )
+                    : const Text('Hapus'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showCompletionFeedback(String prayerName) {
+    showMessageToast(
+      context,
+      message: '✨ Alhamdulillah, $prayerName telah dicatat!',
+      type: ToastType.success,
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value, IconData icon) {
+    return Row(
+      children: [
+        Icon(icon, size: 20, color: Colors.grey.shade600),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                value,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    _headerAnimationController.dispose();
+    _alarmService.dispose();
+    super.dispose();
+  }
+
+  // Getters
+  bool get _isWajibTab => _tabController.index == 0;
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return _selectedDate.year == now.year &&
+        _selectedDate.month == now.month &&
+        _selectedDate.day == now.day;
+  }
+
+  // UPDATED: Get progress data based on selected date
+  Map<String, dynamic> get _currentProgressData {
+    final state = ref.watch(sholatProvider);
+    final jenis = _isWajibTab ? 'wajib' : 'sunnah';
+
+    if (_isToday) {
+      logger.info('Getting progress for today: $_selectedDate');
+      logger.info('Progress Wajib Hari Ini: ${state.progressWajibHariIni}');
+      logger.info('Progress Sunnah Hari Ini: ${state.progressSunnahHariIni}');
+
+      // Ambil data sesuai jenis
+      final progressToday = jenis == 'wajib'
+          ? state.progressWajibHariIni
+          : state.progressSunnahHariIni;
+
+      // Konversi struktur dari API ke format yang kita butuhkan
+      final Map<String, dynamic> formattedProgress = {};
+
+      // Ambil statistik
+      final statistik =
+          progressToday['statistik'] as Map<String, dynamic>? ?? {};
+      // Ambil detail
+      final detail = progressToday['detail'] as List<dynamic>? ?? [];
+
+      // Loop detail untuk build progress data
+      for (var item in detail) {
+        final sholatKey = item['sholat'] as String;
+        formattedProgress[sholatKey] = {
+          'id': item['id'],
+          'completed': statistik[sholatKey] == true,
+          'is_on_time': item['is_on_time'] == 1,
+          'is_jamaah': item['is_jamaah'] == 1,
+          'lokasi': item['lokasi'] as String? ?? '',
+        };
+      }
+
+      // Tambahkan sholat yang belum ada di detail tapi ada di statistik
+      statistik.forEach((key, value) {
+        if (!formattedProgress.containsKey(key)) {
+          formattedProgress[key] = {
+            'completed': value == true,
+            'is_on_time': false,
+            'is_jamaah': false,
+            'lokasi': '',
+          };
+        }
+      });
+
+      return formattedProgress;
+    } else {
+      final formatter = DateFormat('yyyy-MM-dd');
+      final dateKey = formatter.format(_selectedDate);
+      final riwayat = jenis == 'wajib'
+          ? state.progressWajibRiwayat
+          : state.progressSunnahRiwayat;
+
+      // Untuk riwayat, struktur mungkin berbeda
+      final riwayatData = (riwayat[dateKey] as Map<String, dynamic>?) ?? {};
+
+      // Jika riwayat juga punya struktur sama dengan hari ini
+      if (riwayatData.containsKey('statistik')) {
+        final Map<String, dynamic> formattedProgress = {};
+        final statistik =
+            riwayatData['statistik'] as Map<String, dynamic>? ?? {};
+        final detail = riwayatData['detail'] as List<dynamic>? ?? [];
+
+        for (var item in detail) {
+          final sholatKey = item['sholat'] as String;
+          formattedProgress[sholatKey] = {
+            'id': item['id'],
+            'completed': statistik[sholatKey] == true,
+            'is_on_time': item['is_on_time'] == 1,
+            'is_jamaah': item['is_jamaah'] == 1,
+            'lokasi': item['lokasi'] as String? ?? '',
+          };
+        }
+
+        statistik.forEach((key, value) {
+          if (!formattedProgress.containsKey(key)) {
+            formattedProgress[key] = {
+              'completed': value == true,
+              'is_on_time': false,
+              'is_jamaah': false,
+              'lokasi': '',
+            };
+          }
+        });
+
+        return formattedProgress;
+      }
+
+      return riwayatData;
+    }
+  }
+
+  int get _completedCount {
+    // UPDATED: Gunakan _currentProgressData agar sesuai dengan tanggal yang dipilih
+    return _currentProgressData.values
+        .where((v) => v is Map && (v['completed'] == true))
+        .length;
+  }
+
+  int get _totalCount => _isWajibTab ? 5 : 10;
+
+  String get _formattedDate {
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    return '${_selectedDate.day} ${months[_selectedDate.month - 1]} ${_selectedDate.year}';
+  }
+
+  String get _dayName {
+    const days = [
+      'Senin',
+      'Selasa',
+      'Rabu',
+      'Kamis',
+      'Jumat',
+      'Sabtu',
+      'Minggu',
+    ];
+    return days[_selectedDate.weekday - 1];
+  }
+
+  String get _hijriDate => FormatHelper.getHijriDate(_selectedDate);
+
+  // Responsive helpers
+  double _px(BuildContext c, double base) {
+    if (ResponsiveHelper.isSmallScreen(c)) return base;
+    if (ResponsiveHelper.isMediumScreen(c)) return base * 1.1;
+    if (ResponsiveHelper.isLargeScreen(c)) return base * 1.2;
+    return base * 1.3;
+  }
+
+  double _ts(BuildContext c, double base) =>
+      ResponsiveHelper.adaptiveTextSize(c, base * 1.1);
+
+  EdgeInsets _hpad(BuildContext c) => EdgeInsets.symmetric(
+    horizontal: ResponsiveHelper.getResponsivePadding(c).left,
+  );
+
+  double _maxWidth(BuildContext c) {
+    if (ResponsiveHelper.isExtraLargeScreen(c)) return 980;
+    if (ResponsiveHelper.isLargeScreen(c)) return 860;
+    return double.infinity;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sholatState = ref.watch(sholatProvider);
+    final jadwal = ref
+        .read(sholatProvider.notifier)
+        .getJadwalByDate(_selectedDate);
+
+    if (jadwal != null) {
+      _updateAlarmTimes(jadwal);
+    }
+
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundWhite,
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: AppTheme.primaryBlue,
+        child: SafeArea(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxWidth: _maxWidth(context)),
+              child: Column(
+                children: [
+                  AnimatedBuilder(
+                    animation: _headerAnimationController,
+                    builder: (context, child) {
+                      return SholatHeader(
+                        sholatState: sholatState,
+                        selectedDate: _selectedDate,
+                        formattedDate: _formattedDate,
+                        dayName: _dayName,
+                        hijriDate: _hijriDate,
+                        isToday: _isToday,
+                        completedCount: _completedCount,
+                        totalCount: _totalCount,
+                        isWajibTab: _isWajibTab,
+                        jadwal: jadwal,
+                        progressColor:
+                            _headerColorAnimation.value ?? AppTheme.primaryBlue,
+                        onPreviousDay: () async {
+                          setState(() {
+                            _selectedDate = _selectedDate.subtract(
+                              const Duration(days: 1),
+                            );
+                          });
+                          final authState = ref.read(authProvider);
+                          if (authState['status'] == AuthState.authenticated) {
+                            await _fetchProgressData();
+                          }
+                        },
+                        onNextDay: () async {
+                          setState(() {
+                            _selectedDate = _selectedDate.add(
+                              const Duration(days: 1),
+                            );
+                          });
+                          final authState = ref.read(authProvider);
+                          if (authState['status'] == AuthState.authenticated) {
+                            await _fetchProgressData();
+                          }
+                        },
+                        onLocationUpdate: _updateLocation,
+                      );
+                    },
+                  ),
+                  if (sholatState.status == SholatStatus.loading ||
+                      _isLoadingProgress)
+                    const Expanded(
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (sholatState.status == SholatStatus.error)
+                    _buildErrorState(sholatState)
+                  else
+                    Expanded(child: _buildPrayerTimesList(sholatState, jadwal)),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+      // TAMBAH: FAB untuk test alarm (development only)
+      floatingActionButton: kDebugMode
+          ? FloatingActionButton.extended(
+              onPressed: () async {
+                await _alarmService.playAdzanTest();
+                showMessageToast(
+                  context,
+                  message: 'Test alarm dimulai. Cek notifikasi!',
+                  type: ToastType.info,
+                );
+              },
+              icon: const Icon(Icons.alarm),
+              label: const Text('Test Alarm'),
+              backgroundColor: AppTheme.primaryBlue,
+            )
+          : null,
+    );
+  }
+
+  Widget _buildErrorState(SholatState sholatState) {
+    return Expanded(
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+            const SizedBox(height: 16),
+            Text(
+              sholatState.message ?? 'Terjadi kesalahan',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 16),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: () => ref
+                  .read(sholatProvider.notifier)
+                  .fetchJadwalSholat(forceRefresh: true),
+              icon: const Icon(Icons.refresh),
+              label: const Text('Coba Lagi'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildPrayerTimesList(SholatState sholatState, dynamic jadwal) {
     final small = ResponsiveHelper.isSmallScreen(context);
+
+    return Column(
+      children: [
+        _buildTabs(small),
+        SizedBox(height: _px(context, 16)),
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _buildWajibTab(jadwal, small),
+              _buildSunnahTab(jadwal, small),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTabs(bool small) {
+    return Container(
+      margin: _hpad(context).add(EdgeInsets.only(top: _px(context, 12))),
+      padding: EdgeInsets.all(_px(context, 4)),
+      decoration: BoxDecoration(
+        color: Colors.grey.shade100,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: TabBar(
+        controller: _tabController,
+        indicator: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        indicatorSize: TabBarIndicatorSize.tab,
+        labelColor: AppTheme.primaryBlue,
+        unselectedLabelColor: AppTheme.onSurfaceVariant,
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: _ts(context, small ? 13 : 14),
+        ),
+        dividerColor: Colors.transparent,
+        tabs: const [
+          Tab(text: 'Wajib'),
+          Tab(text: 'Sunnah'),
+        ],
+      ),
+    );
+  }
+
+  // ...existing code...
+
+  Widget _buildWajibTab(dynamic jadwal, bool small) {
     final state = ref.watch(sholatProvider);
     final authState = ref.watch(authProvider);
     final isLoggedIn = authState['status'] == AuthState.authenticated;
-    final progressData = state.progressSunnahHariIni;
+    final progressData = _currentProgressData;
+
+    final wajibList = {
+      'Subuh': {
+        // UPDATED: ubah dari 'Shubuh' ke 'Subuh'
+        'time': jadwal?.wajib.shubuh ?? '--:--',
+        'icon': Icons.wb_sunny_outlined,
+        'dbKey': 'subuh', // UPDATED: lowercase 'subuh' sesuai API
+      },
+      'Dzuhur': {
+        'time': jadwal?.wajib.dzuhur ?? '--:--',
+        'icon': Icons.wb_sunny,
+        'dbKey': 'dzuhur',
+      },
+      'Ashar': {
+        'time': jadwal?.wajib.ashar ?? '--:--',
+        'icon': Icons.wb_cloudy,
+        'dbKey': 'ashar',
+      },
+      'Maghrib': {
+        'time': jadwal?.wajib.maghrib ?? '--:--',
+        'icon': Icons.wb_twilight,
+        'dbKey': 'maghrib',
+      },
+      'Isya': {
+        'time': jadwal?.wajib.isya ?? '--:--',
+        'icon': Icons.nights_stay,
+        'dbKey': 'isya',
+      },
+    };
+
+    return ListView.builder(
+      padding: _hpad(context).add(EdgeInsets.only(bottom: _px(context, 16))),
+      physics: const BouncingScrollPhysics(),
+      itemCount: wajibList.length,
+      itemBuilder: (_, i) {
+        final name = wajibList.keys.elementAt(i);
+        final jadwalData = wajibList[name]!;
+        final dbKey = jadwalData['dbKey'] as String;
+        final time = jadwalData['time'] as String;
+        final sholatProgress = progressData[dbKey] as Map<String, dynamic>?;
+        final isCompleted = sholatProgress?['completed'] as bool? ?? false;
+
+        logger.info(
+          'Sholat: $name, dbKey: $dbKey, isCompleted: $isCompleted, progress: $sholatProgress',
+        );
+
+        return SholatCard(
+          name: name,
+          jadwalData: jadwalData,
+          isCompleted: isCompleted,
+          isOnTime: sholatProgress?['is_on_time'] as bool? ?? false,
+          isJamaah: sholatProgress?['is_jamaah'] as bool? ?? false,
+          lokasi: sholatProgress?['lokasi'] as String? ?? '',
+          jenis: 'wajib',
+          canTap: jadwal != null && time != '--:--',
+          isAlarmActive: _wajibAlarms[name] ?? false,
+          onTap: () async {
+            if (!isLoggedIn) {
+              _showLoginRequired();
+              return;
+            }
+
+            // Jika bukan hari ini, tampilkan warning
+            if (!_isToday && !isCompleted) {
+              showMessageToast(
+                context,
+                message: 'Hanya bisa menambah progress untuk hari ini',
+                type: ToastType.warning,
+              );
+              return;
+            }
+
+            // UPDATED: Logic untuk modal
+            if (isCompleted) {
+              // Jika sudah ada progress, tampilkan modal detail dengan opsi hapus
+              _showDetailWithDeleteOption(
+                context,
+                name,
+                jadwalData,
+                'wajib',
+                sholatProgress,
+                sholatProgress?['id'] as int?,
+              );
+            } else {
+              // Jika belum ada progress dan hari ini, tampilkan modal input
+              if (_isToday) {
+                await _showSholatDetailModal(
+                  context,
+                  name,
+                  jadwalData,
+                  'wajib',
+                );
+              } else {
+                showMessageToast(
+                  context,
+                  message: 'Tidak ada data progress untuk tanggal ini',
+                  type: ToastType.info,
+                );
+              }
+            }
+          },
+          onAlarmTap: () async {
+            if (!isLoggedIn) {
+              _showLoginRequired();
+              return;
+            }
+
+            final newState = !(_wajibAlarms[name] ?? false);
+
+            try {
+              await _alarmService.setAlarm(name, newState, time);
+
+              setState(() {
+                _wajibAlarms[name] = newState;
+              });
+
+              showMessageToast(
+                context,
+                message: newState
+                    ? 'Alarm $name diaktifkan'
+                    : 'Alarm $name dinonaktifkan',
+                type: ToastType.success,
+              );
+            } catch (e) {
+              showMessageToast(
+                context,
+                message: 'Gagal mengatur alarm: $e',
+                type: ToastType.error,
+              );
+            }
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildSunnahTab(dynamic jadwal, bool small) {
+    final state = ref.watch(sholatProvider);
+    final authState = ref.watch(authProvider);
+    final isLoggedIn = authState['status'] == AuthState.authenticated;
+    final progressData = _currentProgressData;
 
     final sunnahList = {
       'Tahajud': {
@@ -1969,174 +1353,65 @@ class _SholatPageState extends ConsumerState<SholatPage>
       itemBuilder: (_, i) {
         final name = sunnahList.keys.elementAt(i);
         final jadwalData = sunnahList[name]!;
-
-        // Ambil data progress dari state
         final dbKey = jadwalData['dbKey'] as String;
         final sholatProgress = progressData[dbKey] as Map<String, dynamic>?;
         final isCompleted = sholatProgress?['completed'] as bool? ?? false;
-        final isOnTime = sholatProgress?['is_on_time'] as bool? ?? false;
-        final isJamaah = sholatProgress?['is_jamaah'] as bool? ?? false;
-        final lokasi = sholatProgress?['lokasi'] as String? ?? '';
-        final progressId = sholatProgress?['id'] as int?;
 
-        return Container(
-          margin: EdgeInsets.only(bottom: _px(context, 8)),
-          decoration: BoxDecoration(
-            color: isCompleted
-                ? AppTheme.accentGreen.withValues(alpha: 0.04)
-                : Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: isCompleted
-                  ? AppTheme.accentGreen.withValues(alpha: 0.15)
-                  : Colors.grey.shade200,
-            ),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: () async {
-                // Check authentication first
-                if (!isLoggedIn) {
-                  _showLoginRequired();
-                  return;
-                }
+        return SholatCard(
+          name: name,
+          jadwalData: jadwalData,
+          isCompleted: isCompleted,
+          isOnTime: sholatProgress?['is_on_time'] as bool? ?? false,
+          isJamaah: sholatProgress?['is_jamaah'] as bool? ?? false,
+          lokasi: sholatProgress?['lokasi'] as String? ?? '',
+          jenis: 'sunnah',
+          canTap: true,
+          isAlarmActive: false,
+          onTap: () async {
+            if (!isLoggedIn) {
+              _showLoginRequired();
+              return;
+            }
 
-                if (!isCompleted) {
-                  // Tampilkan modal untuk input detail sholat
-                  await _showSholatDetailModal(
-                    context,
-                    name,
-                    jadwalData,
-                    'sunnah',
-                  );
-                } else {
-                  // Jika sudah selesai, tampilkan modal detail dengan opsi hapus
-                  _showDetailWithDeleteOption(
-                    context,
-                    name,
-                    jadwalData,
-                    'sunnah',
-                    sholatProgress,
-                    progressId,
-                  );
-                }
-              },
-              borderRadius: BorderRadius.circular(14),
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  horizontal: _px(context, small ? 14 : 16),
-                  vertical: _px(context, small ? 12 : 14),
-                ),
-                child: Row(
-                  children: [
-                    // Checkbox indicator
-                    Container(
-                      width: _px(context, 22),
-                      height: _px(context, 22),
-                      decoration: BoxDecoration(
-                        color: isCompleted
-                            ? AppTheme.accentGreen
-                            : Colors.transparent,
-                        border: Border.all(
-                          color: isCompleted
-                              ? AppTheme.accentGreen
-                              : Colors.grey.shade400,
-                          width: 2,
-                        ),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: isCompleted
-                          ? Icon(
-                              Icons.check_rounded,
-                              color: Colors.white,
-                              size: _px(context, 14),
-                            )
-                          : null,
-                    ),
-                    SizedBox(width: _px(context, 12)),
+            // Jika bukan hari ini, tampilkan warning
+            if (!_isToday && !isCompleted) {
+              showMessageToast(
+                context,
+                message: 'Hanya bisa menambah progress untuk hari ini',
+                type: ToastType.warning,
+              );
+              return;
+            }
 
-                    // Icon sholat
-                    Container(
-                      width: _px(context, 40),
-                      height: _px(context, 40),
-                      decoration: BoxDecoration(
-                        color: isCompleted
-                            ? AppTheme.accentGreen.withValues(alpha: 0.15)
-                            : AppTheme.accentGreen.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        jadwalData['icon'] as IconData,
-                        color: AppTheme.accentGreen,
-                        size: _px(context, 20),
-                      ),
-                    ),
-                    SizedBox(width: _px(context, 12)),
-
-                    // Nama dan waktu sholat
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            name,
-                            style: TextStyle(
-                              fontSize: _ts(context, small ? 14 : 15),
-                              fontWeight: FontWeight.w600,
-                              color: AppTheme.onSurface,
-                              decoration: isCompleted
-                                  ? TextDecoration.lineThrough
-                                  : null,
-                            ),
-                          ),
-                          SizedBox(height: _px(context, 2)),
-                          Text(
-                            jadwalData['time'] as String,
-                            style: TextStyle(
-                              fontSize: _ts(context, small ? 11 : 12),
-                              color: AppTheme.onSurfaceVariant,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                          // Tampilkan badge info jika sudah selesai
-                          if (isCompleted) ...[
-                            SizedBox(height: _px(context, 4)),
-                            Wrap(
-                              spacing: 4,
-                              children: [
-                                if (isOnTime)
-                                  _buildBadge(
-                                    context,
-                                    'Tepat Waktu',
-                                    Icons.check_circle,
-                                    Colors.green,
-                                  ),
-                                if (isJamaah)
-                                  _buildBadge(
-                                    context,
-                                    'Jamaah',
-                                    Icons.groups,
-                                    Colors.blue,
-                                  ),
-                                if (lokasi.isNotEmpty)
-                                  _buildBadge(
-                                    context,
-                                    lokasi,
-                                    Icons.location_on,
-                                    Colors.orange,
-                                  ),
-                              ],
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
+            // UPDATED: Logic untuk modal
+            if (isCompleted) {
+              // Jika sudah ada progress, tampilkan modal detail dengan opsi hapus
+              _showDetailWithDeleteOption(
+                context,
+                name,
+                jadwalData,
+                'sunnah',
+                sholatProgress,
+                sholatProgress?['id'] as int?,
+              );
+            } else {
+              // Jika belum ada progress dan hari ini, tampilkan modal input
+              if (_isToday) {
+                await _showSholatDetailModal(
+                  context,
+                  name,
+                  jadwalData,
+                  'sunnah',
+                );
+              } else {
+                showMessageToast(
+                  context,
+                  message: 'Tidak ada data progress untuk tanggal ini',
+                  type: ToastType.info,
+                );
+              }
+            }
+          },
         );
       },
     );
@@ -2144,18 +1419,19 @@ class _SholatPageState extends ConsumerState<SholatPage>
 
   // ...existing code...
 
-  /// Modal untuk menampilkan detail progress dengan opsi hapus
+  /// Modal untuk detail sholat dengan opsi hapus (UPDATED)
   void _showDetailWithDeleteOption(
     BuildContext context,
-    String sholatName,
+    String name,
     Map<String, dynamic> jadwalData,
     String jenis,
-    Map<String, dynamic>? progressData,
+    Map<String, dynamic>? sholatProgress,
     int? progressId,
   ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (context) => Container(
         padding: const EdgeInsets.all(24),
         decoration: const BoxDecoration(
@@ -2164,19 +1440,22 @@ class _SholatPageState extends ConsumerState<SholatPage>
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade300,
+                  borderRadius: BorderRadius.circular(2),
+                ),
               ),
             ),
             const SizedBox(height: 20),
 
-            // Header
+            // Header dengan icon
             Row(
               children: [
                 Container(
@@ -2203,342 +1482,46 @@ class _SholatPageState extends ConsumerState<SholatPage>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Sholat $sholatName',
-                        style: TextStyle(
+                        'Sholat $name',
+                        style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.onSurface,
                         ),
                       ),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.check_circle,
-                            size: 14,
-                            color: Colors.green,
-                          ),
-                          const SizedBox(width: 4),
-                          const Text(
-                            'Sudah tercatat',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.green,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // Info detail
-            if (progressData != null) ...[
-              _buildInfoRow(
-                'Tepat Waktu',
-                progressData['is_on_time'] == true ? 'Ya' : 'Tidak',
-                Icons.access_time,
-              ),
-              const SizedBox(height: 12),
-              _buildInfoRow(
-                'Berjamaah',
-                progressData['is_jamaah'] == true ? 'Ya' : 'Tidak',
-                Icons.groups,
-              ),
-              const SizedBox(height: 12),
-              _buildInfoRow(
-                'Lokasi',
-                progressData['lokasi'] as String? ?? '-',
-                Icons.location_on,
-              ),
-              const SizedBox(height: 24),
-              const Divider(height: 1),
-              const SizedBox(height: 16),
-            ],
-
-            // Button Hapus
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  // Tutup modal detail
-                  Navigator.pop(context);
-
-                  // Tampilkan konfirmasi hapus
-                  final confirmed = await _showDeleteConfirmation(
-                    context,
-                    sholatName,
-                    jenis,
-                  );
-
-                  if (confirmed == true && progressId != null) {
-                    try {
-                      // Panggil provider untuk hapus
-                      await ref
-                          .read(sholatProvider.notifier)
-                          .deleteProgressSholat(id: progressId);
-
-                      // Refresh data
-                      if (jenis == 'wajib') {
-                        ref
-                            .read(sholatProvider.notifier)
-                            .fetchProgressSholatWajibHariIni();
-                      } else {
-                        ref
-                            .read(sholatProvider.notifier)
-                            .fetchProgressSholatSunnahHariIni();
-                      }
-
-                      if (mounted) {
-                        showMessageToast(
-                          context,
-                          message:
-                              'Progress sholat $sholatName berhasil dihapus',
-                          type: ToastType.success,
-                        );
-                      }
-                    } catch (e) {
-                      String errorMessage = 'Gagal menghapus data';
-
-                      if (e is Exception) {
-                        final errorString = e.toString();
-                        if (errorString.contains('Exception:')) {
-                          errorMessage = errorString
-                              .replaceAll('Exception:', '')
-                              .trim();
-                        }
-                      }
-
-                      if (mounted) {
-                        showMessageToast(
-                          context,
-                          message: errorMessage,
-                          type: ToastType.error,
-                        );
-                      }
-                    }
-                  }
-                },
-                icon: const Icon(Icons.delete_outline_rounded),
-                label: const Text(
-                  'Hapus Catatan',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.red,
-                  side: const BorderSide(color: Colors.red, width: 2),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Button Tutup
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: jenis == 'wajib'
-                      ? AppTheme.primaryBlue
-                      : AppTheme.accentGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                child: const Text(
-                  'Tutup',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  /// Dialog konfirmasi hapus progress
-  Future<bool?> _showDeleteConfirmation(
-    BuildContext context,
-    String sholatName,
-    String jenis,
-  ) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.warning_rounded,
-                color: Colors.red,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Expanded(
-              child: Text(
-                'Hapus Catatan?',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        content: Text(
-          'Apakah Anda yakin ingin menghapus catatan sholat $sholatName? Tindakan ini tidak dapat dibatalkan.',
-          style: TextStyle(fontSize: 15, color: AppTheme.onSurfaceVariant),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(
-              'Batal',
-              style: TextStyle(
-                fontSize: 15,
-                fontWeight: FontWeight.w600,
-                color: AppTheme.onSurfaceVariant,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
-              foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-              elevation: 0,
-            ),
-            child: const Text(
-              'Hapus',
-              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Widget badge kecil untuk menampilkan info detail sholat
-  Widget _buildBadge(
-    BuildContext context,
-    String label,
-    IconData icon,
-    Color color,
-  ) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(4),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 10, color: color),
-          const SizedBox(width: 2),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 9,
-              color: color,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// Modal untuk edit/hapus progress sholat yang sudah ada
-  void _showEditSholatModal(
-    BuildContext context,
-    String sholatName,
-    Map<String, dynamic> jadwalData,
-    String jenis,
-    Map<String, dynamic>? progressData,
-  ) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Handle bar
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: Colors.grey.shade300,
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Header
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color:
-                        (jenis == 'wajib'
-                                ? AppTheme.primaryBlue
-                                : AppTheme.accentGreen)
-                            .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    jadwalData['icon'] as IconData,
-                    color: jenis == 'wajib'
-                        ? AppTheme.primaryBlue
-                        : AppTheme.accentGreen,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
                       Text(
-                        'Sholat $sholatName',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppTheme.onSurface,
-                        ),
-                      ),
-                      const Text(
-                        'Sudah tercatat',
+                        jadwalData['time'] as String,
                         style: TextStyle(
                           fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                // Badge "Completed"
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.green.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: Colors.green.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.check_circle, color: Colors.green, size: 16),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Selesai',
+                        style: TextStyle(
+                          fontSize: 12,
                           color: Colors.green,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ],
@@ -2548,190 +1531,96 @@ class _SholatPageState extends ConsumerState<SholatPage>
             ),
             const SizedBox(height: 24),
 
-            // Info detail
-            if (progressData != null) ...[
-              _buildInfoRow(
-                'Tepat Waktu',
-                progressData['is_on_time'] == true ? 'Ya' : 'Tidak',
-                Icons.access_time,
+            // Detail Progress
+            if (sholatProgress != null) ...[
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Column(
+                  children: [
+                    _buildInfoRow(
+                      'Tepat Waktu',
+                      sholatProgress['is_on_time'] == true ? 'Ya' : 'Tidak',
+                      Icons.access_time,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildInfoRow(
+                      'Berjamaah',
+                      sholatProgress['is_jamaah'] == true ? 'Ya' : 'Tidak',
+                      Icons.groups,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildInfoRow(
+                      'Lokasi',
+                      sholatProgress['lokasi'] as String? ?? '-',
+                      Icons.location_on,
+                    ),
+                  ],
+                ),
               ),
-              const SizedBox(height: 12),
-              _buildInfoRow(
-                'Berjamaah',
-                progressData['is_jamaah'] == true ? 'Ya' : 'Tidak',
-                Icons.groups,
-              ),
-              const SizedBox(height: 12),
-              _buildInfoRow(
-                'Lokasi',
-                progressData['lokasi'] as String? ?? '-',
-                Icons.location_on,
-              ),
-              const SizedBox(height: 24),
             ],
+            const SizedBox(height: 24),
 
-            // Button Tutup
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: jenis == 'wajib'
-                      ? AppTheme.primaryBlue
-                      : AppTheme.accentGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+            // Button Hapus (hanya untuk hari ini)
+            if (_isToday)
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _showDeleteConfirmation(context, name, jenis, progressId);
+                  },
+                  icon: const Icon(Icons.delete_outline),
+                  label: const Text('Hapus Progress'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  elevation: 0,
                 ),
-                child: const Text(
-                  'Tutup',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+              )
+            else
+              // Info jika bukan hari ini
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade700,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Progress hanya bisa dihapus untuk hari ini',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ),
+            const SizedBox(height: 8),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildInfoRow(String label, String value, IconData icon) {
-    return Row(
-      children: [
-        Icon(icon, size: 20, color: AppTheme.onSurfaceVariant),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: AppTheme.onSurfaceVariant,
-                ),
-              ),
-              Text(
-                value,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOptionButton({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    final selectedColor = color ?? AppTheme.primaryBlue;
-
-    return Material(
-      color: isSelected
-          ? selectedColor.withValues(alpha: 0.1)
-          : Colors.grey.shade100,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: isSelected ? selectedColor : Colors.grey.shade300,
-              width: 2,
-            ),
-          ),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? selectedColor : AppTheme.onSurfaceVariant,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? selectedColor : AppTheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceChip({
-    required BuildContext context,
-    required String label,
-    required IconData icon,
-    required bool isSelected,
-    required VoidCallback onTap,
-    Color? color,
-  }) {
-    final selectedColor = color ?? AppTheme.primaryBlue;
-
-    return Material(
-      color: isSelected ? selectedColor : Colors.grey.shade100,
-      borderRadius: BorderRadius.circular(10),
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? Colors.white : AppTheme.onSurfaceVariant,
-                size: 18,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                label,
-                style: TextStyle(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : AppTheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  void _showCompletionFeedback(String sholatName) {
-    final feedbacks = [
-      'Alhamdulillah! Sholat $sholatName tercatat',
-      'Barakallahu fiik! Semoga diterima',
-      'Masya Allah, istiqomah terus ya',
-      'Semoga berkah sholat ${sholatName}nya',
-      'Subhanallah, terus semangat beribadah',
-    ];
-    final msg = feedbacks[DateTime.now().millisecond % feedbacks.length];
-
-    showMessageToast(context, message: msg, type: ToastType.success);
-  }
 }
+
+// ...existing code...
