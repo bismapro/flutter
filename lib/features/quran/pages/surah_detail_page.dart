@@ -1,6 +1,5 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test_flutter/app/theme.dart';
@@ -410,7 +409,8 @@ class _SurahDetailPageState extends State<SurahDetailPage>
                     Flexible(
                       child: Text(
                         _currentSurah.namaLatin,
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: isDesktop
                               ? 22
                               : isTablet
@@ -444,7 +444,8 @@ class _SurahDetailPageState extends State<SurahDetailPage>
                             const SizedBox(width: 4),
                             Text(
                               'Downloaded',
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
                                 fontSize: 11,
                                 fontWeight: FontWeight.w600,
                                 color: AppTheme.accentGreen,
@@ -458,7 +459,8 @@ class _SurahDetailPageState extends State<SurahDetailPage>
                 ),
                 Text(
                   '${_currentSurah.jumlahAyat} Ayat • ${_currentSurah.tempatTurun == 'Mekah' ? 'Makkiyah' : 'Madaniyyah'}',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: isTablet ? 14 : 13,
                     color: AppTheme.onSurfaceVariant,
                   ),
@@ -468,7 +470,8 @@ class _SurahDetailPageState extends State<SurahDetailPage>
           ),
           Text(
             _currentSurah.nama,
-            style: GoogleFonts.amiriQuran(
+            style: TextStyle(
+              fontFamily: 'AmiriQuran',
               fontSize: isDesktop
                   ? 28
                   : isTablet
@@ -499,11 +502,13 @@ class _SurahDetailPageState extends State<SurahDetailPage>
         indicatorWeight: 3,
         labelColor: AppTheme.primaryBlue,
         unselectedLabelColor: AppTheme.onSurfaceVariant,
-        labelStyle: GoogleFonts.poppins(
+        labelStyle: TextStyle(
+          fontFamily: 'Poppins',
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: GoogleFonts.poppins(
+        unselectedLabelStyle: TextStyle(
+          fontFamily: 'Poppins',
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -540,7 +545,8 @@ class _SurahDetailPageState extends State<SurahDetailPage>
                     child: Center(
                       child: Text(
                         '${surah.nomor}',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.primaryBlue,

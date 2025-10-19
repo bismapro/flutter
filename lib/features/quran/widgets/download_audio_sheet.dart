@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/quran/surah.dart';
 import 'package:test_flutter/data/models/quran/qori.dart';
@@ -192,7 +191,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                   children: [
                     Text(
                       'Download Audio',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.onSurface,
@@ -200,7 +200,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                     ),
                     Text(
                       widget.surah.namaLatin,
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 14,
                         color: AppTheme.onSurfaceVariant,
                       ),
@@ -259,7 +260,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                   const SizedBox(height: 16),
                   Text(
                     'Loading qori list...',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 14,
                       color: AppTheme.onSurfaceVariant,
                     ),
@@ -290,7 +292,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                       const SizedBox(width: 8),
                       Text(
                         'Select Qori',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 14,
                           fontWeight: FontWeight.w600,
                           color: AppTheme.onSurface,
@@ -316,7 +319,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                           Icons.arrow_drop_down,
                           color: AppTheme.primaryBlue,
                         ),
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: 14,
                           color: AppTheme.onSurface,
                         ),
@@ -360,7 +364,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                   const SizedBox(height: 16),
                   Text(
                     'Unable to load qori list',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 14,
                       color: AppTheme.onSurfaceVariant,
                     ),
@@ -399,14 +404,16 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                   children: [
                     Text(
                       'Downloading...',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 13,
                         color: AppTheme.onSurfaceVariant,
                       ),
                     ),
                     Text(
                       '${(_downloadProgress * 100).toStringAsFixed(0)}%',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.accentGreen,
@@ -439,7 +446,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                   ),
                   child: Text(
                     'Cancel',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: 15,
                       fontWeight: FontWeight.w500,
                     ),
@@ -482,7 +490,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                             const SizedBox(width: 12),
                             Text(
                               'Downloading...',
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -501,7 +510,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
                             const SizedBox(width: 8),
                             Text(
                               'Start Download',
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: Colors.white,
@@ -527,7 +537,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
         const SizedBox(width: 8),
         Text(
           label,
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 13,
             color: AppTheme.onSurfaceVariant,
           ),
@@ -535,7 +546,8 @@ class _DownloadAudioSheetState extends State<DownloadAudioSheet> {
         const Spacer(),
         Text(
           value,
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: AppTheme.onSurface,

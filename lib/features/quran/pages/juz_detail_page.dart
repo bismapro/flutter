@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/quran/juz.dart';
@@ -197,7 +196,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
               children: [
                 Text(
                   'Juz ${_currentJuz.number}',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: isDesktop
                         ? 22
                         : isTablet
@@ -210,7 +210,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                 ),
                 Text(
                   '$totalVerses Ayat • ${_currentJuz.startSurahName} - ${_currentJuz.endSurahName}',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: isTablet ? 14 : 13,
                     color: AppTheme.onSurfaceVariant,
                   ),
@@ -231,7 +232,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
             ),
             child: Text(
               '${_currentJuz.number}',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: isDesktop
                     ? 24
                     : isTablet
@@ -263,11 +265,13 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
         indicatorWeight: 3,
         labelColor: AppTheme.primaryBlue,
         unselectedLabelColor: AppTheme.onSurfaceVariant,
-        labelStyle: GoogleFonts.poppins(
+        labelStyle: TextStyle(
+          fontFamily: 'Poppins',
           fontSize: 14,
           fontWeight: FontWeight.w600,
         ),
-        unselectedLabelStyle: GoogleFonts.poppins(
+        unselectedLabelStyle: TextStyle(
+          fontFamily: 'Poppins',
           fontSize: 14,
           fontWeight: FontWeight.w500,
         ),
@@ -298,7 +302,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                   child: Center(
                     child: Text(
                       '${juz.number}',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.primaryBlue,
@@ -372,7 +377,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                     ),
                     child: Text(
                       '$surahNumber',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                         color: AppTheme.primaryBlue,
@@ -386,7 +392,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                       children: [
                         Text(
                           quran.getSurahName(surahNumber),
-                          style: GoogleFonts.poppins(
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
                             color: AppTheme.onSurface,
@@ -394,7 +401,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                         ),
                         Text(
                           '${verses.length} Ayat • Ayat ${verses.first} - ${verses.last}',
-                          style: GoogleFonts.poppins(
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
                             fontSize: 12,
                             color: AppTheme.onSurfaceVariant,
                           ),
@@ -404,7 +412,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                   ),
                   Text(
                     quran.getSurahNameArabic(surahNumber),
-                    style: GoogleFonts.amiriQuran(
+                    style: TextStyle(
+                      fontFamily: 'AmiriQuran',
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                       color: AppTheme.primaryBlue,

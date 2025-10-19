@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/features/quran/quran_provider.dart';
 
@@ -58,8 +57,8 @@ class AyahCard extends ConsumerWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.accentGreen.withOpacity(0.2),
-                    AppTheme.accentGreen.withOpacity(0.1),
+                    AppTheme.accentGreen.withValues(alpha:0.2),
+                    AppTheme.accentGreen.withValues(alpha:0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -76,7 +75,8 @@ class AyahCard extends ConsumerWidget {
             // Title
             Text(
               'Bookmark This Ayah?',
-              style: GoogleFonts.poppins(
+              style: const TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: AppTheme.onSurface,
@@ -89,7 +89,8 @@ class AyahCard extends ConsumerWidget {
             Text(
               'Mark Surah $surahNumber, Ayah $verseNumber as your last reading position',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: const TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 14,
                 color: AppTheme.onSurfaceVariant,
                 height: 1.5,
@@ -111,9 +112,10 @@ class AyahCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Cancel',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 15,
                         fontWeight: FontWeight.w600,
                         color: AppTheme.onSurfaceVariant,
@@ -166,12 +168,16 @@ class AyahCard extends ConsumerWidget {
                           SnackBar(
                             content: Row(
                               children: [
-                                Icon(Icons.check_circle, color: Colors.white),
+                                const Icon(
+                                  Icons.check_circle,
+                                  color: Colors.white,
+                                ),
                                 const SizedBox(width: 12),
                                 Expanded(
                                   child: Text(
                                     'Surah $surahNumber, Ayah $verseNumber bookmarked!',
-                                    style: GoogleFonts.poppins(
+                                    style: const TextStyle(
+                                      fontFamily: 'Poppins',
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
@@ -201,9 +207,10 @@ class AyahCard extends ConsumerWidget {
                         borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                    child: Text(
+                    child: const Text(
                       'Bookmark',
-                      style: GoogleFonts.poppins(
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
                       ),
@@ -222,20 +229,9 @@ class AyahCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final quranState = ref.watch(quranProvider);
 
-    // ✅ FIX: Check both surahNumber AND verseNumber
     final isBookmarked =
         quranState.progresBacaQuran?.suratId == surahNumber &&
         quranState.progresBacaQuran?.ayat == verseNumber;
-
-    // Debug log
-    if (quranState.progresBacaQuran != null) {
-      print('🔖 Bookmark check:');
-      print('   Current: Surah $surahNumber, Ayah $verseNumber');
-      print(
-        '   Bookmarked: Surah ${quranState.progresBacaQuran?.suratId}, Ayah ${quranState.progresBacaQuran?.ayat}',
-      );
-      print('   Is Bookmarked: $isBookmarked');
-    }
 
     return Container(
       margin: EdgeInsets.only(bottom: isTablet ? 20 : 16),
@@ -253,8 +249,8 @@ class AyahCard extends ConsumerWidget {
           color: isBookmarked
               ? AppTheme.accentGreen
               : isPlaying
-              ? AppTheme.accentGreen.withOpacity(0.5)
-              : AppTheme.primaryBlue.withOpacity(0.1),
+              ? AppTheme.accentGreen.withValues(alpha:0.5)
+              : AppTheme.primaryBlue.withValues(alpha:0.1),
           width: isBookmarked
               ? 2
               : isPlaying
@@ -264,10 +260,10 @@ class AyahCard extends ConsumerWidget {
         boxShadow: [
           BoxShadow(
             color: isBookmarked
-                ? AppTheme.accentGreen.withOpacity(0.2)
+                ? AppTheme.accentGreen.withValues(alpha:0.2)
                 : isPlaying
-                ? AppTheme.accentGreen.withOpacity(0.15)
-                : AppTheme.primaryBlue.withOpacity(0.08),
+                ? AppTheme.accentGreen.withValues(alpha:0.15)
+                : AppTheme.primaryBlue.withValues(alpha:0.08),
             blurRadius: 20,
             offset: const Offset(0, 4),
             spreadRadius: -5,
@@ -290,17 +286,17 @@ class AyahCard extends ConsumerWidget {
                   gradient: LinearGradient(
                     colors: isBookmarked
                         ? [
-                            AppTheme.accentGreen.withOpacity(0.2),
-                            AppTheme.accentGreen.withOpacity(0.1),
+                            AppTheme.accentGreen.withValues(alpha:0.2),
+                            AppTheme.accentGreen.withValues(alpha:0.1),
                           ]
                         : isPlaying
                         ? [
-                            AppTheme.accentGreen.withOpacity(0.2),
-                            AppTheme.accentGreen.withOpacity(0.1),
+                            AppTheme.accentGreen.withValues(alpha:0.2),
+                            AppTheme.accentGreen.withValues(alpha:0.1),
                           ]
                         : [
-                            AppTheme.primaryBlue.withOpacity(0.15),
-                            AppTheme.accentGreen.withOpacity(0.1),
+                            AppTheme.primaryBlue.withValues(alpha:0.15),
+                            AppTheme.accentGreen.withValues(alpha:0.1),
                           ],
                   ),
                   borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
@@ -327,6 +323,7 @@ class AyahCard extends ConsumerWidget {
                           ? 'Bookmarked • $verseNumber'
                           : 'Ayat $verseNumber',
                       style: TextStyle(
+                        fontFamily: 'Poppins',
                         fontSize: isTablet ? 14 : 13,
                         fontWeight: FontWeight.w600,
                         color: isBookmarked
@@ -349,8 +346,8 @@ class AyahCard extends ConsumerWidget {
                     height: isTablet ? 42 : 40,
                     decoration: BoxDecoration(
                       color: isBookmarked
-                          ? AppTheme.accentGreen.withOpacity(0.15)
-                          : AppTheme.primaryBlue.withOpacity(0.1),
+                          ? AppTheme.accentGreen.withValues(alpha:0.15)
+                          : AppTheme.primaryBlue.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
                     ),
                     child: IconButton(
@@ -385,7 +382,8 @@ class AyahCard extends ConsumerWidget {
               Flexible(
                 child: Text(
                   arabicText,
-                  style: GoogleFonts.amiriQuran(
+                  style: TextStyle(
+                    fontFamily: 'AmiriQuran',
                     fontSize: isDesktop
                         ? 30
                         : isTablet
@@ -393,7 +391,7 @@ class AyahCard extends ConsumerWidget {
                         : 26,
                     height: 2.0,
                     color: AppTheme.onSurface,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w400,
                   ),
                   textAlign: TextAlign.right,
                   textDirection: TextDirection.rtl,
@@ -402,14 +400,15 @@ class AyahCard extends ConsumerWidget {
               const SizedBox(width: 8),
               Text(
                 verseEndSymbol,
-                style: GoogleFonts.amiriQuran(
+                style: TextStyle(
+                  fontFamily: 'AmiriQuran',
                   fontSize: isDesktop
                       ? 30
                       : isTablet
                       ? 28
                       : 26,
                   color: AppTheme.primaryBlue,
-                  fontWeight: FontWeight.w600,
+                  fontWeight: FontWeight.w400,
                 ),
               ),
             ],
@@ -423,9 +422,9 @@ class AyahCard extends ConsumerWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppTheme.primaryBlue.withOpacity(0.0),
-                  AppTheme.primaryBlue.withOpacity(0.2),
-                  AppTheme.primaryBlue.withOpacity(0.0),
+                  AppTheme.primaryBlue.withValues(alpha:0.0),
+                  AppTheme.primaryBlue.withValues(alpha:0.2),
+                  AppTheme.primaryBlue.withValues(alpha:0.0),
                 ],
               ),
             ),
@@ -437,13 +436,14 @@ class AyahCard extends ConsumerWidget {
           Text(
             translation,
             style: TextStyle(
+              fontFamily: 'Poppins',
               fontSize: isDesktop
                   ? 17
                   : isTablet
                   ? 16
                   : 15,
               height: 1.7,
-              color: AppTheme.onSurface.withOpacity(0.9),
+              color: AppTheme.onSurface.withValues(alpha:0.9),
               fontWeight: FontWeight.w400,
             ),
             textAlign: TextAlign.left,

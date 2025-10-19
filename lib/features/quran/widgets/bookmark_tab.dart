@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/connection/connection_provider.dart';
 import 'package:test_flutter/features/quran/quran_provider.dart';
@@ -115,9 +114,7 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
     final isDesktop = screenWidth > 1024;
 
     final quranState = ref.watch(quranProvider);
-    final connectionState = ref.watch(connectionProvider);
     final progress = quranState.progresBacaQuran;
-    final isOffline = !connectionState.isOnline;
 
     return RefreshIndicator(
       onRefresh: _refreshProgress,
@@ -132,109 +129,6 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
           vertical: isTablet ? 12 : 8,
         ),
         children: [
-          // Header Card
-          Container(
-            padding: EdgeInsets.all(isTablet ? 24 : 20),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppTheme.primaryBlue.withOpacity(0.1),
-                  AppTheme.accentGreen.withOpacity(0.1),
-                ],
-              ),
-              borderRadius: BorderRadius.circular(isTablet ? 20 : 16),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppTheme.primaryBlue.withOpacity(0.1),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Icon(
-                    Icons.bookmark_rounded,
-                    color: AppTheme.accentGreen,
-                    size: isTablet ? 28 : 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Last Reading',
-                        style: GoogleFonts.poppins(
-                          fontSize: isTablet ? 18 : 16,
-                          fontWeight: FontWeight.w600,
-                          color: AppTheme.onSurface,
-                        ),
-                      ),
-                      Text(
-                        'Continue where you left off',
-                        style: GoogleFonts.poppins(
-                          fontSize: isTablet ? 14 : 12,
-                          color: AppTheme.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_isRefreshing)
-                  const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                else
-                  IconButton(
-                    onPressed: _refreshProgress,
-                    icon: const Icon(Icons.refresh_rounded),
-                    color: AppTheme.primaryBlue,
-                    tooltip: 'Refresh',
-                  ),
-              ],
-            ),
-          ),
-
-          const SizedBox(height: 24),
-
-          // Status indicator - Watch dari ConnectionState
-          if (isOffline)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.orange.shade50,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.orange.shade200),
-              ),
-              child: Row(
-                children: [
-                  Icon(Icons.wifi_off, color: Colors.orange.shade700, size: 20),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Offline mode: Showing cached data',
-                      style: GoogleFonts.poppins(
-                        fontSize: 13,
-                        color: Colors.orange.shade900,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
           // Progress Content
           if (quranState.status == QuranStatus.loading && progress == null)
             _buildLoadingState(isTablet)
@@ -257,7 +151,8 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
             const SizedBox(height: 16),
             Text(
               'Loading progress...',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: isTablet ? 15 : 14,
                 color: AppTheme.onSurfaceVariant,
               ),
@@ -293,8 +188,9 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
             ),
             const SizedBox(height: 24),
             Text(
-              'No Reading Progress',
-              style: GoogleFonts.poppins(
+              'Belum ada bookmark',
+              style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: isDesktop
                     ? 22
                     : isTablet
@@ -306,9 +202,10 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Start reading to bookmark your progress',
+              'Mulai membaca untuk menandai kemajuan Anda di Quran.',
               textAlign: TextAlign.center,
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: isTablet ? 15 : 14,
                 color: AppTheme.onSurfaceVariant,
               ),
@@ -394,7 +291,8 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
                     child: Center(
                       child: Text(
                         '$surahId',
-                        style: GoogleFonts.poppins(
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
                           fontSize: isDesktop
                               ? 22
                               : isTablet
@@ -415,7 +313,8 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
                       children: [
                         Text(
                           surahName,
-                          style: GoogleFonts.poppins(
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
                             fontSize: isDesktop
                                 ? 20
                                 : isTablet
@@ -439,7 +338,8 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
                               ),
                               child: Text(
                                 'Ayah $ayahNumber',
-                                style: GoogleFonts.poppins(
+                                style: TextStyle(
+                                  fontFamily: 'Poppins',
                                   fontSize: isTablet ? 13 : 12,
                                   fontWeight: FontWeight.w600,
                                   color: AppTheme.accentGreen,
@@ -449,7 +349,8 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
                             const SizedBox(width: 8),
                             Text(
                               '${surah.jumlahAyat} Ayat',
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
                                 fontSize: isTablet ? 14 : 13,
                                 color: AppTheme.onSurfaceVariant,
                               ),
@@ -463,7 +364,8 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
                   // Arabic Name
                   Text(
                     surah.nama,
-                    style: GoogleFonts.amiriQuran(
+                    style: TextStyle(
+                      fontFamily: 'AmiriQuran',
                       fontSize: isDesktop
                           ? 28
                           : isTablet
@@ -496,7 +398,8 @@ class _BookmarkTabState extends ConsumerState<BookmarkTab> {
                   icon: const Icon(Icons.play_arrow_rounded),
                   label: Text(
                     'Continue Reading',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: isTablet ? 15 : 14,
                       fontWeight: FontWeight.w600,
                     ),

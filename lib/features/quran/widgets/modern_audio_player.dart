@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/features/quran/services/quran_audio_service.dart';
 
@@ -130,7 +129,8 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
                                   children: [
                                     Text(
                                       widget.surahName,
-                                      style: GoogleFonts.poppins(
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
                                         fontSize: 14,
                                         fontWeight: FontWeight.w600,
                                         color: AppTheme.onSurface,
@@ -138,7 +138,8 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
                                     ),
                                     Text(
                                       'Recited by ${widget.qariName}',
-                                      style: GoogleFonts.poppins(
+                                      style: TextStyle(
+                                        fontFamily: 'Poppins',
                                         fontSize: 12,
                                         color: AppTheme.onSurfaceVariant,
                                       ),
@@ -257,7 +258,8 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
                               children: [
                                 Text(
                                   _formatDuration(position),
-                                  style: GoogleFonts.poppins(
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                     color: AppTheme.onSurfaceVariant,
@@ -265,7 +267,8 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
                                 ),
                                 Text(
                                   _formatDuration(duration),
-                                  style: GoogleFonts.poppins(
+                                  style: TextStyle(
+                                    fontFamily: 'Poppins',
                                     fontSize: 12,
                                     fontWeight: FontWeight.w500,
                                     color: AppTheme.onSurfaceVariant,
@@ -284,7 +287,8 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
                             icon: const Icon(Icons.download_rounded, size: 20),
                             label: Text(
                               'Download Audio',
-                              style: GoogleFonts.poppins(
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
                                 fontSize: 10,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -335,7 +339,8 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
             const SizedBox(width: 12),
             Text(
               'Delete Download',
-              style: GoogleFonts.poppins(
+              style: TextStyle(
+                fontFamily: 'Poppins',
                 fontSize: 18,
                 fontWeight: FontWeight.w600,
               ),
@@ -344,7 +349,8 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
         ),
         content: Text(
           'Are you sure you want to delete this downloaded audio?',
-          style: GoogleFonts.poppins(
+          style: TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 14,
             color: AppTheme.onSurfaceVariant,
           ),
@@ -357,7 +363,10 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
             ),
             child: Text(
               'Cancel',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w500),
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ),
           ElevatedButton(
@@ -375,7 +384,10 @@ class _ModernAudioPlayerState extends State<ModernAudioPlayer> {
             ),
             child: Text(
               'Delete',
-              style: GoogleFonts.poppins(fontWeight: FontWeight.w600),
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

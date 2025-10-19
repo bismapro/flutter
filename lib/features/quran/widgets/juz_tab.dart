@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:quran/quran.dart' as quran;
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/quran/juz.dart';
@@ -158,7 +157,8 @@ class _JuzTabState extends State<JuzTab> {
               child: Center(
                 child: Text(
                   '${juz.number}',
-                  style: GoogleFonts.poppins(
+                  style: TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: isDesktop
                         ? 22
                         : isTablet
@@ -179,7 +179,8 @@ class _JuzTabState extends State<JuzTab> {
                 children: [
                   Text(
                     'Juz ${juz.number}',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: isDesktop
                           ? 18
                           : isTablet
@@ -192,7 +193,8 @@ class _JuzTabState extends State<JuzTab> {
                   const SizedBox(height: 4),
                   Text(
                     '${juz.startSurahName} (${juz.startAyah}) - ${juz.endSurahName} (${juz.endAyah})',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: isTablet ? 14 : 13,
                       color: AppTheme.onSurfaceVariant,
                     ),
@@ -202,7 +204,8 @@ class _JuzTabState extends State<JuzTab> {
                   const SizedBox(height: 2),
                   Text(
                     '$totalVerses Ayat',
-                    style: GoogleFonts.poppins(
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
                       fontSize: isTablet ? 13 : 12,
                       color: AppTheme.accentGreen,
                       fontWeight: FontWeight.w500,
