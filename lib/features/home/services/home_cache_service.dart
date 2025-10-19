@@ -58,7 +58,7 @@ class HomeCacheService {
           key: CacheKeys.homeLatestArticle,
           fromJson: (jsonData) {
             if (jsonData is List) {
-              return jsonData.map((item) => item as Artikel).toList();
+              return jsonData.map((item) => Artikel.fromJson(item)).toList();
             }
             return [];
           },

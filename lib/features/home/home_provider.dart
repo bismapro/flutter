@@ -32,40 +32,72 @@ class HomeProvider extends StateNotifier<HomeState> {
 
   final Ref _ref;
 
-  // Helper to check if online
-  // bool get _isOnline => _ref.read(connectionProvider).isOnline;
+  // ...existing code...
 
   // Load cached data saat inisialisasi
   Future<void> _loadCachedData() async {
-    final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
-    final cachedLocation = await LocationService.getLocation();
-    final cachedArtikelTerbaru = HomeCacheService.getCachedArtikelTerbaru();
+    try {
+      final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
+      final cachedLocation = await LocationService.getLocation();
+      final cachedArtikelTerbaru = HomeCacheService.getCachedArtikelTerbaru();
 
-    if (cachedJadwal != Sholat.empty() &&
-        cachedLocation != null &&
-        cachedLocation.isNotEmpty) {
-      // Update state dengan jadwal dan lokasi dari cache
-      state = state.copyWith(
-        jadwalSholat: cachedJadwal,
-        articles: cachedArtikelTerbaru,
-        latitude: cachedLocation['lat'] as double?,
-        longitude: cachedLocation['long'] as double?,
-        locationName: cachedLocation['name'] as String?,
-        localDate: cachedLocation['date'] as String?,
-        localTime: cachedLocation['time'] as String?,
-      );
-    } else if (cachedLocation != null) {
-      // Jika ada lokasi tapi belum ada jadwal, set lokasi saja
-      state = state.copyWith(
-        latitude: cachedLocation['lat'] as double?,
-        longitude: cachedLocation['long'] as double?,
-        locationName: cachedLocation['name'] as String?,
-        localDate: cachedLocation['date'] as String?,
-        localTime: cachedLocation['time'] as String?,
-      );
+      logger.info('Loading cached data...');
+      logger.info('cachedJadwal: ${cachedJadwal != Sholat.empty()}');
+      logger.info('cachedLocation: ${cachedLocation != null}');
+      logger.info('cachedArtikelTerbaru: ${cachedArtikelTerbaru.length}');
+
+      // Always load cached articles if available
+      if (cachedArtikelTerbaru.isNotEmpty) {
+        logger.info(
+          'Loading cached articles: ${cachedArtikelTerbaru.length} articles',
+        );
+      }
+
+      if (cachedJadwal != Sholat.empty() &&
+          cachedLocation != null &&
+          cachedLocation.isNotEmpty) {
+        // Update state dengan semua data dari cache
+        state = state.copyWith(
+          jadwalSholat: cachedJadwal,
+          articles: cachedArtikelTerbaru,
+          latitude: cachedLocation['lat'] as double?,
+          longitude: cachedLocation['long'] as double?,
+          locationName: cachedLocation['name'] as String?,
+          localDate: cachedLocation['date'] as String?,
+          localTime: cachedLocation['time'] as String?,
+          status: HomeStatus.loaded,
+        );
+        logger.info('Successfully loaded all cached data');
+      } else if (cachedLocation != null && cachedLocation.isNotEmpty) {
+        // Jika ada lokasi tapi belum ada jadwal, set lokasi dan artikel
+        state = state.copyWith(
+          articles: cachedArtikelTerbaru,
+          latitude: cachedLocation['lat'] as double?,
+          longitude: cachedLocation['long'] as double?,
+          locationName: cachedLocation['name'] as String?,
+          localDate: cachedLocation['date'] as String?,
+          localTime: cachedLocation['time'] as String?,
+          status: cachedArtikelTerbaru.isNotEmpty
+              ? HomeStatus.loaded
+              : HomeStatus.initial,
+        );
+        logger.info('Successfully loaded cached location and articles');
+      } else if (cachedArtikelTerbaru.isNotEmpty) {
+        // Jika hanya ada artikel, load artikel saja
+        state = state.copyWith(
+          articles: cachedArtikelTerbaru,
+          status: HomeStatus.loaded,
+        );
+        logger.info('Successfully loaded cached articles only');
+      } else {
+        logger.warning('No cached data available');
+      }
+    } catch (e) {
+      logger.severe('Error loading cached data: $e');
     }
   }
 
+  // ...existing code...
   // ...existing code...
   Future<void> checkIsJadwalSholatCacheExist() async {
     final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
@@ -92,85 +124,125 @@ class HomeProvider extends StateNotifier<HomeState> {
     bool forceRefresh = false,
     bool useCurrentLocation = false,
   }) async {
-    // Jika useCurrentLocation = true, ambil lokasi real-time
-    if (useCurrentLocation) {
-      logger.info('Fetching current location...');
-      state = state.copyWith(status: HomeStatus.loading);
+    try {
+      // Jika useCurrentLocation = true, ambil lokasi real-time
+      if (useCurrentLocation) {
+        logger.info('Fetching current location...');
+        state = state.copyWith(status: HomeStatus.loading);
 
-      Map<String, dynamic> locationData;
-      if (forceRefresh) {
-        locationData = await LocationService.getCurrentLocation(
-          forceRefresh: true,
-        );
+        try {
+          Map<String, dynamic> locationData;
+          if (forceRefresh) {
+            locationData = await LocationService.getCurrentLocation(
+              forceRefresh: true,
+            );
+          } else {
+            locationData = await LocationService.getCurrentLocation();
+          }
+
+          latitude = locationData['lat'] as double?;
+          longitude = locationData['long'] as double?;
+          locationName = locationData['name'] as String?;
+          localDate = locationData['date'] as String?;
+          localTime = locationData['time'] as String?;
+
+          logger.info(
+            'Location obtained: $locationName ($latitude, $longitude) | $localDate $localTime',
+          );
+        } catch (e) {
+          logger.warning('Failed to get current location: $e');
+          // Fallback ke cache location
+          final cachedLocation = await LocationService.getLocation();
+          if (cachedLocation != null && cachedLocation.isNotEmpty) {
+            latitude = cachedLocation['lat'] as double?;
+            longitude = cachedLocation['long'] as double?;
+            locationName = cachedLocation['name'] as String?;
+            localDate = cachedLocation['date'] as String?;
+            localTime = cachedLocation['time'] as String?;
+            logger.info('Using cached location due to error');
+          } else {
+            throw Exception('No location data available');
+          }
+        }
       } else {
-        locationData = await LocationService.getCurrentLocation();
-      }
-      latitude = locationData['lat'] as double;
-      longitude = locationData['long'] as double;
-      locationName = locationData['name'] as String;
-      localDate = locationData['date'] as String;
-      localTime = locationData['time'] as String;
+        // Jika tidak ada parameter, gunakan dari state atau cache
+        latitude ??= state.latitude;
+        longitude ??= state.longitude;
+        locationName ??= state.locationName;
+        localDate ??= state.localDate;
+        localTime ??= state.localTime;
 
-      logger.info(
-        'Location obtained: $locationName ($latitude, $longitude) | $localDate $localTime',
-      );
-    } else {
-      // Jika tidak ada parameter, gunakan dari state atau cache
-      latitude ??= state.latitude;
-      longitude ??= state.longitude;
-      locationName ??= state.locationName;
-      localDate ??= state.localDate;
-      localTime ??= state.localTime;
+        // Jika masih null, ambil dari cache
+        if (latitude == null || longitude == null) {
+          final cachedLocation = await LocationService.getLocation();
+          if (cachedLocation != null && cachedLocation.isNotEmpty) {
+            latitude = cachedLocation['lat'] as double?;
+            longitude = cachedLocation['long'] as double?;
+            locationName = cachedLocation['name'] as String?;
+            localDate = cachedLocation['date'] as String?;
+            localTime = cachedLocation['time'] as String?;
+            logger.info('Using cached location');
+          }
+        }
 
-      // Jika masih null, ambil dari cache
-      if (latitude == null || longitude == null) {
-        final cachedLocation = await LocationService.getLocation();
-        if (cachedLocation != null) {
-          latitude = cachedLocation['lat'] as double;
-          longitude = cachedLocation['long'] as double;
-          locationName = cachedLocation['name'] as String;
-          localDate = cachedLocation['date'] as String;
-          localTime = cachedLocation['time'] as String;
+        // Jika masih null, ambil lokasi saat ini
+        if (latitude == null || longitude == null) {
+          logger.info('No location available, fetching current location...');
+          try {
+            final locationData = await LocationService.getCurrentLocation();
+            latitude = locationData['lat'] as double?;
+            longitude = locationData['long'] as double?;
+            locationName = locationData['name'] as String?;
+            localDate = locationData['date'] as String?;
+            localTime = locationData['time'] as String?;
+          } catch (e) {
+            logger.severe('Failed to get any location: $e');
+            // Jika gagal total, gunakan data cache yang ada di state
+            final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
+            if (cachedJadwal != Sholat.empty()) {
+              state = state.copyWith(
+                status: HomeStatus.offline,
+                jadwalSholat: cachedJadwal,
+                message: 'Using offline data',
+              );
+              return;
+            } else {
+              throw Exception('No location or cached data available');
+            }
+          }
         }
       }
 
-      // Jika masih null, ambil lokasi saat ini
+      // Validasi bahwa kita punya koordinat
       if (latitude == null || longitude == null) {
-        logger.info('No location available, fetching current location...');
-        final locationData = await LocationService.getCurrentLocation();
-        latitude = locationData['lat'] as double;
-        longitude = locationData['long'] as double;
-        locationName = locationData['name'] as String;
-        localDate = locationData['date'] as String;
-        localTime = locationData['time'] as String;
+        throw Exception('Location coordinates not available');
       }
-    }
 
-    // Cek cache terlebih dahulu
-    final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
+      // Cek cache terlebih dahulu
+      final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
 
-    // Jika ada cache dan bukan force refresh, gunakan cache
-    if (cachedJadwal != Sholat.empty() && !forceRefresh) {
-      logger.info('Using cached jadwal sholat data');
+      // Jika ada cache dan bukan force refresh, gunakan cache
+      if (cachedJadwal != Sholat.empty() && !forceRefresh) {
+        logger.info('Using cached jadwal sholat data');
+        state = state.copyWith(
+          status: HomeStatus.loaded,
+          jadwalSholat: cachedJadwal,
+          latitude: latitude,
+          longitude: longitude,
+          locationName: locationName ?? 'Unknown Location',
+          localDate: localDate ?? DateTime.now().toString().split(' ')[0],
+          localTime:
+              localTime ?? TimeOfDay.now().format(NavigatorState().context),
+          message: 'Jadwal sholat dimuat dari cache',
+        );
+        return;
+      }
+
+      // Jika tidak ada cache atau force refresh, fetch dari network
       state = state.copyWith(
-        status: HomeStatus.loaded,
-        jadwalSholat: cachedJadwal,
-        latitude: latitude,
-        longitude: longitude,
-        locationName: locationName,
-        localDate: localDate,
-        localTime: localTime,
-        message: 'Jadwal sholat dimuat dari cache',
+        status: forceRefresh ? HomeStatus.refreshing : HomeStatus.loading,
       );
-      return;
-    }
 
-    // Jika tidak ada cache atau force refresh, fetch dari network
-    state = state.copyWith(
-      status: forceRefresh ? HomeStatus.refreshing : HomeStatus.loading,
-    );
-
-    try {
       // 1. Fetch dari network
       final response = await HomeService.getJadwalSholat(
         latitude: latitude,
@@ -197,9 +269,10 @@ class HomeProvider extends StateNotifier<HomeState> {
         jadwalSholat: sholatList,
         latitude: latitude,
         longitude: longitude,
-        locationName: locationName,
-        localDate: localDate,
-        localTime: localTime,
+        locationName: locationName ?? 'Unknown Location',
+        localDate: localDate ?? DateTime.now().toString().split(' ')[0],
+        localTime:
+            localTime ?? TimeOfDay.now().format(NavigatorState().context),
         message: 'Jadwal sholat berhasil diperbarui',
       );
 
@@ -207,46 +280,76 @@ class HomeProvider extends StateNotifier<HomeState> {
     } catch (e) {
       logger.severe('Error fetching jadwal sholat: $e');
 
-      // 5. Jika gagal dan ada cache, gunakan cache
-      if (cachedJadwal != Sholat.empty()) {
-        logger.info('Using cached jadwal sholat due to network error');
+      // 5. Jika gagal, gunakan cache
+      final cachedJadwal = HomeCacheService.getCachedJadwalSholat();
+      final cachedLocation = await LocationService.getLocation();
+
+      if (cachedJadwal != Sholat.empty() ||
+          (cachedLocation != null && cachedLocation.isNotEmpty)) {
+        logger.info('Using cached data due to network error');
+
         state = state.copyWith(
           status: HomeStatus.offline,
-          jadwalSholat: cachedJadwal,
-          latitude: latitude,
-          longitude: longitude,
-          locationName: locationName,
-          localDate: localDate,
-          localTime: localTime,
+          jadwalSholat: cachedJadwal != Sholat.empty()
+              ? cachedJadwal
+              : state.jadwalSholat,
+          latitude: cachedLocation != null
+              ? (cachedLocation['lat'] as double?)
+              : state.latitude,
+          longitude: cachedLocation != null
+              ? (cachedLocation['long'] as double?)
+              : state.longitude,
+          locationName: cachedLocation != null
+              ? (cachedLocation['name'] as String?)
+              : state.locationName ?? 'Unknown Location',
+          localDate: cachedLocation != null
+              ? (cachedLocation['date'] as String?)
+              : state.localDate ?? DateTime.now().toString().split(' ')[0],
+          localTime: cachedLocation != null
+              ? (cachedLocation['time'] as String?)
+              : state.localTime ??
+                    TimeOfDay.now().format(NavigatorState().context),
           message: 'Menggunakan data offline',
         );
       } else {
         logger.warning('No cached data available');
         state = state.copyWith(
           status: HomeStatus.error,
+          locationName: state.locationName ?? 'Unknown Location',
+          localDate: state.localDate ?? DateTime.now().toString().split(' ')[0],
+          localTime:
+              state.localTime ??
+              TimeOfDay.now().format(NavigatorState().context),
           message: 'Gagal mengambil jadwal sholat: $e',
         );
       }
     }
   }
 
-  // ...existing code...
   Future<void> fetchArtikelTerbaru({bool forceRefresh = false}) async {
-    // Jika sudah ada data dan bukan force refresh, skip
-    if (!forceRefresh && state.articles.isNotEmpty) {
-      logger.info('Using existing artikel terbaru data');
-      return;
-    }
-
-    state = state.copyWith(
-      status: forceRefresh ? HomeStatus.refreshing : HomeStatus.loading,
-    );
-
     try {
+      // Cek cache terlebih dahulu
+      final cachedArtikel = HomeCacheService.getCachedArtikelTerbaru();
+
+      // Jika ada cache dan bukan force refresh, gunakan cache
+      if (cachedArtikel.isNotEmpty && !forceRefresh) {
+        logger.info('Using cached artikel terbaru data');
+        state = state.copyWith(
+          status: HomeStatus.loaded,
+          articles: cachedArtikel,
+          message: 'Artikel dimuat dari cache',
+        );
+        return;
+      }
+
+      // Set loading/refreshing state
+      state = state.copyWith(
+        status: forceRefresh ? HomeStatus.refreshing : HomeStatus.loading,
+      );
+
       // 1. Try network first
       final response = await HomeService.getLatestArticle();
-
-      final artikelList = response['data'];
+      final artikelList = response['data'] as List<Artikel>;
 
       // 2. Cache the fetched data
       await HomeCacheService.cacheArtikelTerbaru(artikelList);
@@ -270,13 +373,15 @@ class HomeProvider extends StateNotifier<HomeState> {
         state = state.copyWith(
           status: HomeStatus.offline,
           articles: cachedArtikel,
-          message: 'Menggunakan data offline',
+          message: 'Menggunakan data artikel offline',
         );
       } else {
         logger.warning('No cached artikel data available');
+        // Keep existing articles if any, otherwise set to empty
         state = state.copyWith(
           status: HomeStatus.error,
-          message: 'Gagal mengambil artikel terbaru: $e',
+          articles: state.articles.isEmpty ? [] : state.articles,
+          message: 'Gagal mengambil artikel terbaru: ${e.toString()}',
         );
       }
     }
