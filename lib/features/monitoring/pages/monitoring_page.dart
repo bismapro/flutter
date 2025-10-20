@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/router.dart';
 import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/core/utils/responsive_helper.dart';
 import 'child_detail_page.dart';
 
 class MonitoringPage extends ConsumerStatefulWidget {
@@ -17,10 +18,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // isPremium will be determined from authProvider
-  String userRole = 'parent'; // 'parent' or 'child'
+  // isPremium akan ditentukan dari authProvider nantinya
+  String userRole = 'parent'; // 'parent' atau 'child'
 
-  // Sample data for children
+  // Sample data anak
   final List<Map<String, dynamic>> children = [
     {
       'id': '1',
@@ -64,7 +65,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     },
   ];
 
-  // Sample notifications
+  // Sample notifikasi
   final List<Map<String, dynamic>> notifications = [
     {
       'id': '1',
@@ -103,7 +104,6 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-
     _animationController.forward();
   }
 
@@ -114,66 +114,49 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     super.dispose();
   }
 
+  // ========= Helpers Responsif =========
+
+  int _gridCount(BuildContext context) {
+    if (ResponsiveHelper.isExtraLargeScreen(context)) return 4;
+    if (ResponsiveHelper.isLargeScreen(context)) return 3;
+    if (ResponsiveHelper.isMediumScreen(context)) return 2;
+    return 1;
+  }
+
+  double _chartHeight(BuildContext context, {double base = 150}) {
+    if (ResponsiveHelper.isSmallScreen(context)) return base * 0.9;
+    if (ResponsiveHelper.isLargeScreen(context)) return base * 1.15;
+    if (ResponsiveHelper.isExtraLargeScreen(context)) return base * 1.25;
+    return base;
+  }
+
+  Widget _wrapMaxWidth(Widget child) {
+    // Supaya di layar lebar kontennya tidak terlalu stretched
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1100),
+        child: child,
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Get authentication state from authProvider
-    // TODO: Uncomment this when authProvider is ready
+    // TODO: aktifkan authProvider saat siap
     // final authState = ref.watch(authProvider);
     // final isAuthenticated = authState.isAuthenticated;
     // final isPremium = authState.user?.isPremium ?? false;
 
-    // For now, using hardcoded values
-    final isAuthenticated = true; // Set to true when user is logged in
-    final isPremium = false; // Set to true when user has premium subscription
+    // sementara: hardcoded
+    final isAuthenticated = true;
+    final isPremium = false;
 
-    // Check authentication first
-    if (!isAuthenticated) {
-      return _buildLoginRequired();
-    }
+    if (!isAuthenticated) return _buildLoginRequired();
+    if (!isPremium) return _buildPremiumRequired();
 
-    // Check premium status
-    if (!isPremium) {
-      return _buildPremiumRequired();
-    }
-
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              AppTheme.primaryBlue.withValues(alpha: 0.05),
-              AppTheme.backgroundWhite,
-            ],
-            stops: const [0.0, 0.4],
-          ),
-        ),
-        child: SafeArea(
-          child: FadeTransition(
-            opacity: _fadeAnimation,
-            child: Column(
-              children: [
-                _buildHeader(isPremium),
-                _buildTabBar(),
-                Expanded(
-                  child: TabBarView(
-                    controller: _tabController,
-                    children: [
-                      _buildDashboardTab(),
-                      _buildChildrenTab(),
-                      _buildNotificationsTab(),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-      floatingActionButton: _buildFloatingActionButton(),
-    );
   }
+
+  // ========= Halaman Auth & Premium =========
 
   Widget _buildLoginRequired() {
     return Scaffold(
@@ -205,10 +188,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text(
+                  Text(
                     'Login Diperlukan',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 28),
                       fontWeight: FontWeight.bold,
                       color: AppTheme.onSurface,
                     ),
@@ -218,7 +201,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                   Text(
                     'Anda harus login terlebih dahulu untuk mengakses fitur Monitoring Keluarga',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                       color: AppTheme.onSurfaceVariant,
                       height: 1.5,
                     ),
@@ -229,9 +212,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/login');
-                      },
+                      onPressed: () => Navigator.pushNamed(context, '/login'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryBlue,
                         foregroundColor: Colors.white,
@@ -240,10 +221,13 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Login Sekarang',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: ResponsiveHelper.adaptiveTextSize(
+                            context,
+                            16,
+                          ),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -256,7 +240,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                     child: Text(
                       'Kembali ke Home',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: ResponsiveHelper.adaptiveTextSize(
+                          context,
+                          16,
+                        ),
                         color: AppTheme.primaryBlue,
                         fontWeight: FontWeight.w600,
                       ),
@@ -306,10 +293,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text(
+                  Text(
                     'Fitur Premium',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 28),
                       fontWeight: FontWeight.bold,
                       color: AppTheme.onSurface,
                     ),
@@ -319,7 +306,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                   Text(
                     'Monitoring Keluarga adalah fitur premium. Pantau aktivitas ibadah keluarga dengan fitur lengkap!',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                       color: AppTheme.onSurfaceVariant,
                       height: 1.5,
                     ),
@@ -363,9 +350,8 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/subscription');
-                      },
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/subscription'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
@@ -374,15 +360,18 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.workspace_premium_rounded, size: 24),
-                          SizedBox(width: 12),
+                          const Icon(Icons.workspace_premium_rounded, size: 24),
+                          const SizedBox(width: 12),
                           Text(
                             'Berlangganan Premium',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: ResponsiveHelper.adaptiveTextSize(
+                                context,
+                                16,
+                              ),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -397,7 +386,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                     child: Text(
                       'Kembali ke Home',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: ResponsiveHelper.adaptiveTextSize(
+                          context,
+                          16,
+                        ),
                         color: Colors.amber,
                         fontWeight: FontWeight.w600,
                       ),
@@ -427,8 +419,8 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              fontSize: 14,
+            style: TextStyle(
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
               color: AppTheme.onSurface,
               fontWeight: FontWeight.w500,
             ),
@@ -439,79 +431,130 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     );
   }
 
+  // ========= Header & Tab =========
+
   Widget _buildHeader(bool isPremium) {
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(14),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primaryBlue.withValues(alpha: 0.15),
-                      AppTheme.accentGreen.withValues(alpha: 0.15),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Icon(
-                  Icons.family_restroom_rounded,
-                  color: AppTheme.primaryBlue,
-                  size: 32,
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Monitoring Keluarga',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.onSurface,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    Text(
-                      userRole == 'parent'
-                          ? 'Pantau aktivitas ibadah anak'
-                          : 'Laporkan aktivitas ibadah Anda',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: AppTheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isPremium)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.amber, Colors.orange],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'PREMIUM',
+          LayoutBuilder(
+            builder: (context, _) {
+              final isWide = !ResponsiveHelper.isSmallScreen(context);
+              final titleSize = ResponsiveHelper.adaptiveTextSize(context, 28);
+              final subtitleSize = ResponsiveHelper.adaptiveTextSize(
+                context,
+                15,
+              );
+
+              final title = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Monitoring Keluarga',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
+                      fontSize: titleSize,
                       fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                      letterSpacing: -0.5,
                     ),
                   ),
-                ),
-            ],
+                  Text(
+                    userRole == 'parent'
+                        ? 'Pantau aktivitas ibadah anak'
+                        : 'Laporkan aktivitas ibadah Anda',
+                    style: TextStyle(
+                      fontSize: subtitleSize,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              );
+
+              final badge = isPremium
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Colors.amber, Colors.orange],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'PREMIUM',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink();
+
+              return isWide
+                  ? Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [
+                                AppTheme.primaryBlue.withValues(alpha: 0.15),
+                                AppTheme.accentGreen.withValues(alpha: 0.15),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            Icons.family_restroom_rounded,
+                            color: AppTheme.primaryBlue,
+                            size: 32,
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(child: title),
+                        badge,
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [
+                                    AppTheme.primaryBlue.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    AppTheme.accentGreen.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              child: Icon(
+                                Icons.family_restroom_rounded,
+                                color: AppTheme.primaryBlue,
+                                size: 32,
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(child: title),
+                            const SizedBox(width: 8),
+                            badge,
+                          ],
+                        ),
+                      ],
+                    );
+            },
           ),
           const SizedBox(height: 20),
 
@@ -531,30 +574,55 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                   color: AppTheme.primaryBlue.withValues(alpha: 0.2),
                 ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: _buildQuickStat(
-                      'Anak Aktif',
-                      '${children.length}',
-                      Icons.people_rounded,
-                      AppTheme.primaryBlue,
+              child: LayoutBuilder(
+                builder: (context, _) {
+                  final isWide =
+                      ResponsiveHelper.isMediumScreen(context) ||
+                      ResponsiveHelper.isLargeScreen(context) ||
+                      ResponsiveHelper.isExtraLargeScreen(context);
+                  final items = [
+                    Expanded(
+                      child: _buildQuickStat(
+                        'Anak Aktif',
+                        '${children.length}',
+                        Icons.people_rounded,
+                        AppTheme.primaryBlue,
+                      ),
                     ),
-                  ),
-                  Container(
-                    width: 1,
-                    height: 40,
-                    color: AppTheme.primaryBlue.withValues(alpha: 0.2),
-                  ),
-                  Expanded(
-                    child: _buildQuickStat(
-                      'Notifikasi',
-                      '${notifications.where((n) => !n['isRead']).length}',
-                      Icons.notifications_rounded,
-                      AppTheme.accentGreen,
+                    Container(
+                      width: 1,
+                      height: 40,
+                      color: AppTheme.primaryBlue.withValues(alpha: 0.2),
                     ),
-                  ),
-                ],
+                    Expanded(
+                      child: _buildQuickStat(
+                        'Notifikasi',
+                        '${notifications.where((n) => !n['isRead']).length}',
+                        Icons.notifications_rounded,
+                        AppTheme.accentGreen,
+                      ),
+                    ),
+                  ];
+                  return isWide
+                      ? Row(children: items)
+                      : Column(
+                          children: [
+                            _buildQuickStat(
+                              'Anak Aktif',
+                              '${children.length}',
+                              Icons.people_rounded,
+                              AppTheme.primaryBlue,
+                            ),
+                            const SizedBox(height: 12),
+                            _buildQuickStat(
+                              'Notifikasi',
+                              '${notifications.where((n) => !n['isRead']).length}',
+                              Icons.notifications_rounded,
+                              AppTheme.accentGreen,
+                            ),
+                          ],
+                        );
+                },
               ),
             ),
         ],
@@ -582,7 +650,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
         Text(
           value,
           style: TextStyle(
-            fontSize: 18,
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
             fontWeight: FontWeight.bold,
             color: color,
           ),
@@ -591,7 +659,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
             color: AppTheme.onSurfaceVariant,
             fontWeight: FontWeight.w500,
           ),
@@ -602,7 +670,9 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
 
   Widget _buildTabBar() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      margin: EdgeInsets.symmetric(
+        horizontal: ResponsiveHelper.isSmallScreen(context) ? 12 : 24,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -617,6 +687,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
       ),
       child: TabBar(
         controller: _tabController,
+        isScrollable: ResponsiveHelper.isSmallScreen(context),
         indicator: BoxDecoration(
           gradient: LinearGradient(
             colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
@@ -625,10 +696,13 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
         ),
         labelColor: Colors.white,
         unselectedLabelColor: AppTheme.onSurfaceVariant,
-        labelStyle: const TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
-        unselectedLabelStyle: const TextStyle(
+        labelStyle: TextStyle(
+          fontWeight: FontWeight.w600,
+          fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
+        ),
+        unselectedLabelStyle: TextStyle(
           fontWeight: FontWeight.w500,
-          fontSize: 14,
+          fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
         ),
         dividerColor: Colors.transparent,
         indicatorSize: TabBarIndicatorSize.tab,
@@ -645,16 +719,18 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     );
   }
 
+  // ========= Tab: Dashboard =========
+
   Widget _buildDashboardTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Ringkasan Aktivitas Hari Ini',
             style: TextStyle(
-              fontSize: 20,
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 20),
               fontWeight: FontWeight.bold,
               color: AppTheme.onSurface,
               letterSpacing: -0.3,
@@ -733,8 +809,11 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                           Expanded(
                             child: Text(
                               child['name'],
-                              style: const TextStyle(
-                                fontSize: 16,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.adaptiveTextSize(
+                                  context,
+                                  16,
+                                ),
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.onSurface,
                               ),
@@ -752,7 +831,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                       Text(
                         'Umur ${child['age']} tahun',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: ResponsiveHelper.adaptiveTextSize(
+                            context,
+                            12,
+                          ),
                           color: AppTheme.onSurfaceVariant,
                         ),
                       ),
@@ -784,7 +866,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                       Text(
                         '${progress['streak']}',
                         style: TextStyle(
-                          fontSize: 12,
+                          fontSize: ResponsiveHelper.adaptiveTextSize(
+                            context,
+                            12,
+                          ),
                           fontWeight: FontWeight.bold,
                           color: progress['streak'] >= 7
                               ? AppTheme.accentGreen
@@ -857,7 +942,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
           Text(
             label,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 11),
               fontWeight: FontWeight.w600,
               color: AppTheme.onSurfaceVariant,
             ),
@@ -866,7 +951,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
           Text(
             value,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
               fontWeight: FontWeight.bold,
               color: color,
             ),
@@ -884,19 +969,21 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     );
   }
 
+  // ========= Tab: Anak-anak =========
+
   Widget _buildChildrenTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Daftar Anak',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 20),
                   fontWeight: FontWeight.bold,
                   color: AppTheme.onSurface,
                   letterSpacing: -0.3,
@@ -913,7 +1000,22 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
             ],
           ),
           const SizedBox(height: 16),
-          ...children.map((child) => _buildChildDetailCard(child)).toList(),
+
+          // Grid responsif
+          GridView.builder(
+            itemCount: children.length,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: _gridCount(context),
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: ResponsiveHelper.isSmallScreen(context)
+                  ? 1.05
+                  : 1.4,
+            ),
+            itemBuilder: (_, i) => _buildChildDetailCard(children[i]),
+          ),
         ],
       ),
     );
@@ -930,7 +1032,6 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
         );
       },
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -979,8 +1080,11 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                           Expanded(
                             child: Text(
                               child['name'],
-                              style: const TextStyle(
-                                fontSize: 18,
+                              style: TextStyle(
+                                fontSize: ResponsiveHelper.adaptiveTextSize(
+                                  context,
+                                  18,
+                                ),
                                 fontWeight: FontWeight.bold,
                                 color: AppTheme.onSurface,
                               ),
@@ -998,7 +1102,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                       Text(
                         'Umur ${child['age']} tahun',
                         style: TextStyle(
-                          fontSize: 14,
+                          fontSize: ResponsiveHelper.adaptiveTextSize(
+                            context,
+                            14,
+                          ),
                           color: AppTheme.onSurfaceVariant,
                         ),
                       ),
@@ -1014,7 +1121,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                           Text(
                             'Aktif ${_getTimeAgo(child['lastActive'])}',
                             style: TextStyle(
-                              fontSize: 12,
+                              fontSize: ResponsiveHelper.adaptiveTextSize(
+                                context,
+                                12,
+                              ),
                               color: AppTheme.onSurfaceVariant,
                             ),
                           ),
@@ -1028,8 +1138,8 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                     Icons.more_vert_rounded,
                     color: AppTheme.onSurfaceVariant,
                   ),
-                  itemBuilder: (context) => [
-                    const PopupMenuItem(
+                  itemBuilder: (context) => const [
+                    PopupMenuItem(
                       value: 'detail',
                       child: Row(
                         children: [
@@ -1039,7 +1149,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'reward',
                       child: Row(
                         children: [
@@ -1049,7 +1159,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                         ],
                       ),
                     ),
-                    const PopupMenuItem(
+                    PopupMenuItem(
                       value: 'settings',
                       child: Row(
                         children: [
@@ -1065,10 +1175,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
               ],
             ),
             const SizedBox(height: 16),
-            const Text(
+            Text(
               'Progress Minggu Ini',
               style: TextStyle(
-                fontSize: 14,
+                fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
                 fontWeight: FontWeight.w600,
                 color: AppTheme.onSurface,
               ),
@@ -1085,7 +1195,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     final days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
     return Container(
-      height: 120,
+      height: _chartHeight(context, base: 130),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         crossAxisAlignment: CrossAxisAlignment.end,
@@ -1132,7 +1242,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
               Text(
                 days[index],
                 style: TextStyle(
-                  fontSize: 10,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 10),
                   color: AppTheme.onSurfaceVariant,
                   fontWeight: FontWeight.w500,
                 ),
@@ -1144,19 +1254,21 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     );
   }
 
+  // ========= Tab: Notifikasi =========
+
   Widget _buildNotificationsTab() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Notifikasi',
                 style: TextStyle(
-                  fontSize: 20,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 20),
                   fontWeight: FontWeight.bold,
                   color: AppTheme.onSurface,
                   letterSpacing: -0.3,
@@ -1185,6 +1297,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
 
   Widget _buildNotificationCard(Map<String, dynamic> notification) {
     final isRead = notification['isRead'];
+
     Color getTypeColor(String type) {
       switch (type) {
         case 'missed_prayer':
@@ -1254,7 +1367,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                 Text(
                   notification['childName'],
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
                     fontWeight: FontWeight.bold,
                     color: AppTheme.onSurface,
                   ),
@@ -1263,7 +1376,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                 Text(
                   notification['message'],
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 13),
                     color: AppTheme.onSurfaceVariant,
                   ),
                 ),
@@ -1271,7 +1384,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                 Text(
                   _getTimeAgo(notification['time']),
                   style: TextStyle(
-                    fontSize: 11,
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 11),
                     color: AppTheme.onSurfaceVariant.withValues(alpha: 0.7),
                   ),
                 ),
@@ -1291,6 +1404,8 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
       ),
     );
   }
+
+  // ========= Grafik & Achievements =========
 
   Widget _buildWeeklyChart() {
     return Container(
@@ -1331,10 +1446,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Grafik Aktivitas Mingguan',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                   fontWeight: FontWeight.bold,
                   color: AppTheme.onSurface,
                 ),
@@ -1354,21 +1469,22 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
           const SizedBox(height: 16),
           // Combined chart for all children
           Container(
-            height: 150,
+            height: _chartHeight(context, base: 160),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               crossAxisAlignment: CrossAxisAlignment.end,
               children: List.generate(7, (dayIndex) {
                 final days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
 
-                // Calculate average progress for all children
                 double avgSholat = 0, avgQuran = 0;
                 int tahajudCount = 0;
 
                 for (var child in children) {
                   avgSholat += child['weeklyStats']['sholat'][dayIndex] / 5.0;
                   avgQuran += child['weeklyStats']['quran'][dayIndex] / 3.0;
-                  if (child['weeklyStats']['tahajud'][dayIndex]) tahajudCount++;
+                  if (child['weeklyStats']['tahajud'][dayIndex]) {
+                    tahajudCount++;
+                  }
                 }
 
                 avgSholat /= children.length;
@@ -1411,7 +1527,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                     Text(
                       days[dayIndex],
                       style: TextStyle(
-                        fontSize: 11,
+                        fontSize: ResponsiveHelper.adaptiveTextSize(
+                          context,
+                          11,
+                        ),
                         color: AppTheme.onSurfaceVariant,
                         fontWeight: FontWeight.w500,
                       ),
@@ -1442,7 +1561,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
             color: AppTheme.onSurfaceVariant,
             fontWeight: FontWeight.w500,
           ),
@@ -1490,10 +1609,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Pencapaian Terbaru',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                   fontWeight: FontWeight.bold,
                   color: AppTheme.onSurface,
                 ),
@@ -1546,8 +1665,8 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
           const SizedBox(height: 8),
           Text(
             name,
-            style: const TextStyle(
-              fontSize: 13,
+            style: TextStyle(
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 13),
               fontWeight: FontWeight.bold,
               color: AppTheme.onSurface,
             ),
@@ -1557,7 +1676,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
           Text(
             achievement,
             style: TextStyle(
-              fontSize: 11,
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 11),
               color: color,
               fontWeight: FontWeight.w600,
             ),
@@ -1568,100 +1687,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     );
   }
 
-  Widget _buildPremiumPrompt() {
-    return Expanded(
-      child: Center(
-        child: Container(
-          margin: const EdgeInsets.all(24),
-          padding: const EdgeInsets.all(32),
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.primaryBlue.withValues(alpha: 0.1),
-                AppTheme.accentGreen.withValues(alpha: 0.1),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.2),
-            ),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [Colors.amber, Colors.orange],
-                  ),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: const Icon(
-                  Icons.family_restroom_rounded,
-                  color: Colors.white,
-                  size: 48,
-                ),
-              ),
-              const SizedBox(height: 24),
-              const Text(
-                'Fitur Premium',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.onSurface,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Pantau aktivitas ibadah anak-anak Anda dengan fitur monitoring keluarga',
-                style: TextStyle(
-                  fontSize: 16,
-                  color: AppTheme.onSurfaceVariant,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: ElevatedButton(
-                  onPressed: () {
-                    // Navigate to premium upgrade
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  child: const Text(
-                    'Upgrade ke Premium',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // ========= FAB & Dialogs =========
 
   Widget _buildFloatingActionButton() {
+    final isSmall = ResponsiveHelper.isSmallScreen(context);
     return Container(
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -1676,24 +1705,35 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
           ),
         ],
       ),
-      child: FloatingActionButton.extended(
-        onPressed: _showRewardDialog,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        icon: const Icon(
-          Icons.card_giftcard_rounded,
-          color: Colors.white,
-          size: 24,
-        ),
-        label: const Text(
-          'Kirim Reward',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-      ),
+      child: isSmall
+          ? FloatingActionButton(
+              onPressed: _showRewardDialog,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: const Icon(
+                Icons.card_giftcard_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+            )
+          : FloatingActionButton.extended(
+              onPressed: _showRewardDialog,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              icon: const Icon(
+                Icons.card_giftcard_rounded,
+                color: Colors.white,
+                size: 24,
+              ),
+              label: Text(
+                'Kirim Reward',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
+                ),
+              ),
+            ),
     );
   }
 
@@ -1702,9 +1742,12 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Tambah Anak',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1764,9 +1807,12 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
       context: context,
       builder: (context) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text(
+        title: Text(
           'Kirim Reward',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1784,7 +1830,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                   child: Text(child['name'] as String),
                 );
               }).toList(),
-              onChanged: (value) {},
+              onChanged: (_) {},
             ),
             const SizedBox(height: 16),
             TextField(
@@ -1817,7 +1863,7 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                   SnackBar(
                     content: Row(
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.card_giftcard_rounded,
                           color: Colors.white,
                           size: 20,
@@ -1868,7 +1914,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: Text(
           'Pengaturan ${child['name']}',
-          style: const TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
+          ),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
@@ -1876,17 +1925,17 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
             SwitchListTile(
               title: const Text('Notifikasi Sholat'),
               value: true,
-              onChanged: (value) {},
+              onChanged: (_) {},
             ),
             SwitchListTile(
               title: const Text('Notifikasi Al-Qur\'an'),
               value: true,
-              onChanged: (value) {},
+              onChanged: (_) {},
             ),
             SwitchListTile(
               title: const Text('Laporan Harian'),
               value: false,
-              onChanged: (value) {},
+              onChanged: (_) {},
             ),
           ],
         ),
@@ -1919,6 +1968,8 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
       ),
     );
   }
+
+  // ========= Utils =========
 
   String _getTimeAgo(DateTime dateTime) {
     final now = DateTime.now();
