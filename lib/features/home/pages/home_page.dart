@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_islamic_icons/flutter_islamic_icons.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:hijri_date_time/hijri_date_time.dart';
 import 'package:test_flutter/app/router.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
+import 'package:test_flutter/core/utils/format_helper.dart';
 import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/widgets/menu/custom_bottom_app_bar.dart';
 import 'package:test_flutter/core/widgets/offline_badge.dart';
@@ -146,30 +146,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
-  String _formatHijriDate(DateTime date) {
-    try {
-      final hijriDate = HijriDateTime.fromGregorian(date);
-      const hijriMonths = [
-        'Muharram',
-        'Safar',
-        'Rabiul Awal',
-        'Rabiul Akhir',
-        'Jumadil Awal',
-        'Jumadil Akhir',
-        'Rajab',
-        'Syaban',
-        'Ramadhan',
-        'Syawal',
-        'Zulkaidah',
-        'Zulhijjah',
-      ];
-      final monthName = hijriMonths[hijriDate.month - 1];
-      return '${hijriDate.day} $monthName ${hijriDate.year} H';
-    } catch (e) {
-      return 'Tanggal Hijriah';
-    }
-  }
-
   @override
   void dispose() {
     _timer?.cancel();
@@ -210,7 +186,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       final day = int.parse(dateParts[2]);
       final date = DateTime(year, month, day);
       gregorianDate = _formatGregorianDate(date);
-      hijriDate = _formatHijriDate(date);
+      hijriDate = FormatHelper.getHijriDate(date);
     } catch (e) {
       logger.warning('Error parsing date: $e');
     }
@@ -967,7 +943,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     // Show articles (even if offline/error, as long as we have cached data)
     return Column(
       children: [
-
         // Articles list
         ...articles.take(3).map((article) {
           return _buildEnhancedArticleCard(
