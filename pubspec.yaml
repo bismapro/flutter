@@ -49,7 +49,6 @@ dependencies:
   flutter_dotenv: ^6.0.0
   audio_service: ^0.18.18
   just_audio: ^0.10.5
-  rxdart: ^0.27.7
 
   # Local storage and alarm functionality
   shared_preferences: ^2.3.2
@@ -76,7 +75,6 @@ dependencies:
   connectivity_plus: ^6.1.5
   internet_connection_checker: ^3.0.1
   quran: ^1.4.1
-  just_audio_background: ^0.0.1-beta.17
 
 dev_dependencies:
   flutter_test:
