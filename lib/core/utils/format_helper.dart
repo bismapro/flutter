@@ -1,4 +1,4 @@
-import 'package:hijri_date_time/hijri_date_time.dart';
+import 'package:hijri/hijri_calendar.dart';
 import 'package:intl/intl.dart';
 
 class FormatHelper {
@@ -45,34 +45,36 @@ class FormatHelper {
     return DateFormat('d MMMM yyyy', locale).format(date);
   }
 
-  /// Mengonversi tanggal Masehi ke format tanggal Hijriah lengkap.
-  /// Contoh: "14 Rabiul Awal 1447 H"
   static String getHijriDate(DateTime date) {
     try {
-      // Konversi dari Gregorian ke Hijriah
-      final hijriDate = HijriDateTime.fromGregorian(date);
+      HijriCalendar.setLocal('en');
+      final h = HijriCalendar.fromDate(date);
 
-      // Daftar nama bulan Hijriah
-      const hijriMonths = [
-        'Muharram',
-        'Safar',
-        'Rabiul Awal',
-        'Rabiul Akhir',
-        'Jumadil Awal',
-        'Jumadil Akhir',
-        'Rajab',
-        'Syaban',
-        'Ramadhan',
-        'Syawal',
-        'Zulkaidah',
-        'Zulhijjah',
-      ];
+      // Ambil nama bulan dari package, ubah ke lower case & hilangkan tanda petik
+      final monthEn = h
+          .getLongMonthName()
+          .toLowerCase()
+          .replaceAll("'", "")
+          .trim();
 
-      // Ambil nama bulan dari list (index bulan - 1)
-      final monthName = hijriMonths[hijriDate.month - 1];
+      const monthMapId = {
+        'muharram': 'Muharram',
+        'safar': 'Safar',
+        'rabi al-awwal': 'Rabiul Awal',
+        'rabi al-thani': 'Rabiul Akhir',
+        'jumada al-awwal': 'Jumadil Awal',
+        'jumada al-thani': 'Jumadil Akhir',
+        'rajab': 'Rajab',
+        'shaaban': 'Syaban',
+        'sha ban': 'Syaban',
+        'ramadan': 'Ramadhan',
+        'shawwal': 'Syawal',
+        'dhu al-qidah': 'Zulkaidah',
+        'dhu al-hijjah': 'Zulhijjah',
+      };
 
-      // Format hasil akhir seperti "9 Muharram 1446 H"
-      return '${hijriDate.day} $monthName ${hijriDate.year} H';
+      final monthId = monthMapId[monthEn] ?? h.getLongMonthName();
+      return '${h.hDay} $monthId ${h.hYear} H';
     } catch (e) {
       return 'Tanggal Hijriah';
     }

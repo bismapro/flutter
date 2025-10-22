@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:test_flutter/app/router.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:intl/intl.dart';
+import 'package:test_flutter/core/utils/responsive_helper.dart';
 
 class TahajudPage extends StatefulWidget {
   const TahajudPage({super.key});
@@ -14,6 +15,7 @@ class _TahajudPageState extends State<TahajudPage>
     with TickerProviderStateMixin {
   late AnimationController _progressController;
   late Animation<double> _progressAnimation;
+
   // Authentication & Premium status
   bool isAuthenticated = true; // Set to true when user is logged in
   bool isPremium = false; // Set to true when user has premium subscription
@@ -59,7 +61,7 @@ class _TahajudPageState extends State<TahajudPage>
   DateTime selectedMonth = DateTime.now();
   PageController calendarPageController = PageController();
 
-  // Available badges
+  // Available badges (kalau nanti diperlukan di UI lanjutan)
   final List<Map<String, dynamic>> badges = [
     {
       'id': 'first_step',
@@ -136,6 +138,82 @@ class _TahajudPageState extends State<TahajudPage>
     super.dispose();
   }
 
+  // ===================== Responsive helpers =====================
+
+  // Maksimalkan kenyamanan baca di layar lebar
+  Widget _wrapMaxWidth(Widget child) {
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1100),
+        child: child,
+      ),
+    );
+  }
+
+  // Ukuran sel kalender adaptif
+  double _calendarCellSize(BuildContext context) {
+    final w = ResponsiveHelper.getScreenWidth(context);
+    if (ResponsiveHelper.isSmallScreen(context))
+      return (w - 24 - 24) / 7 - 6; // padding horizontal 24 + margin cell
+    if (ResponsiveHelper.isMediumScreen(context)) return (w - 24 - 24) / 7 - 2;
+    // Large & XL, karena dibatasi maxWidth, ukuran nyaman
+    return 44;
+  }
+
+  // Tinggi kartu (streak/progress) menyesuaikan
+  EdgeInsets _outerHMargin(BuildContext context) {
+    return EdgeInsets.symmetric(
+      horizontal: ResponsiveHelper.isSmallScreen(context) ? 16 : 24,
+    );
+  }
+
+  // FAB responsif (label dihide di layar kecil)
+  Widget _responsiveFAB({
+    required bool disabled,
+    required VoidCallback? onPressed,
+    required IconData icon,
+    required String label,
+    required List<Color> gradient,
+  }) {
+    final isSmall = ResponsiveHelper.isSmallScreen(context);
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(colors: gradient),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: (disabled ? Colors.grey : AppTheme.primaryBlue).withValues(
+              alpha: 0.4,
+            ),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: isSmall
+          ? FloatingActionButton(
+              onPressed: disabled ? null : onPressed,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              child: Icon(icon, color: Colors.white, size: 24),
+            )
+          : FloatingActionButton.extended(
+              onPressed: disabled ? null : onPressed,
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              icon: Icon(icon, color: Colors.white, size: 24),
+              label: Text(
+                label,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w600,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
+                ),
+              ),
+            ),
+    );
+  }
+
   void _markTodayComplete() {
     if (!todayCompleted && isPremium) {
       setState(() {
@@ -151,12 +229,14 @@ class _TahajudPageState extends State<TahajudPage>
         SnackBar(
           content: Row(
             children: [
-              Icon(Icons.star_rounded, color: Colors.white, size: 20),
+              const Icon(Icons.star_rounded, color: Colors.white, size: 20),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Alhamdulillah! Tahajud hari ini berhasil dicatat',
-                  style: TextStyle(fontSize: 15),
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
+                  ),
                 ),
               ),
             ],
@@ -175,14 +255,9 @@ class _TahajudPageState extends State<TahajudPage>
 
   @override
   Widget build(BuildContext context) {
-    if (!isAuthenticated) {
-      return _buildLoginRequired();
-    }
+    if (!isAuthenticated) return _buildLoginRequired();
+    if (!isPremium) return _buildPremiumRequired();
 
-    // Check premium status
-    if (!isPremium) {
-      return _buildPremiumRequired();
-    }
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -198,15 +273,17 @@ class _TahajudPageState extends State<TahajudPage>
         ),
         child: SafeArea(
           child: SingleChildScrollView(
-            child: Column(
-              children: [
-                _buildHeader(),
-                _buildStreakCard(),
-                // _buildProgressSection(),
-                _buildWeeklyProgress(),
-                _buildCalendarSection(),
-                const SizedBox(height: 100),
-              ],
+            child: _wrapMaxWidth(
+              Column(
+                children: [
+                  _buildHeader(),
+                  _buildStreakCard(),
+                  // _buildProgressSection(), // opsional
+                  _buildWeeklyProgress(),
+                  _buildCalendarSection(),
+                  const SizedBox(height: 100),
+                ],
+              ),
             ),
           ),
         ),
@@ -215,15 +292,69 @@ class _TahajudPageState extends State<TahajudPage>
     );
   }
 
+  // ===================== Header =====================
+
   Widget _buildHeader() {
     return Container(
-      padding: const EdgeInsets.all(24.0),
+      padding: ResponsiveHelper.getResponsivePadding(context),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
+          LayoutBuilder(
+            builder: (context, _) {
+              final isWide = !ResponsiveHelper.isSmallScreen(context);
+              final titleSize = ResponsiveHelper.adaptiveTextSize(context, 28);
+              final subtitleSize = ResponsiveHelper.adaptiveTextSize(
+                context,
+                15,
+              );
+
+              final title = Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tahajud Challenge',
+                    style: TextStyle(
+                      fontSize: titleSize,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.onSurface,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  Text(
+                    'Bangun di malam hari untuk beribadah',
+                    style: TextStyle(
+                      fontSize: subtitleSize,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              );
+
+              final badge = isPremium
+                  ? Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Colors.amber, Colors.orange],
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Text(
+                        'PREMIUM',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink();
+
+              final iconBox = Container(
                 padding: const EdgeInsets.all(14),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
@@ -239,56 +370,34 @@ class _TahajudPageState extends State<TahajudPage>
                   color: AppTheme.primaryBlue,
                   size: 32,
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Tahajud Challenge',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: AppTheme.onSurface,
-                        letterSpacing: -0.5,
-                      ),
-                    ),
-                    Text(
-                      'Bangun di malam hari untuk beribadah',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: AppTheme.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (isPremium)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [Colors.amber, Colors.orange],
-                    ),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    'PREMIUM',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-            ],
+              );
+
+              return isWide
+                  ? Row(
+                      children: [
+                        iconBox,
+                        const SizedBox(width: 16),
+                        Expanded(child: title),
+                        badge,
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            iconBox,
+                            const SizedBox(width: 12),
+                            Expanded(child: title),
+                            const SizedBox(width: 8),
+                            badge,
+                          ],
+                        ),
+                      ],
+                    );
+            },
           ),
           const SizedBox(height: 20),
-
           // Quote Card
           Container(
             padding: const EdgeInsets.all(20),
@@ -306,11 +415,11 @@ class _TahajudPageState extends State<TahajudPage>
             ),
             child: Column(
               children: [
-                const Text(
+                Text(
                   'وَمِنَ اللَّيْلِ فَتَهَجَّدْ بِهِ نَافِلَةً لَّكَ',
                   style: TextStyle(
                     color: AppTheme.primaryBlue,
-                    fontSize: 16,
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                     fontWeight: FontWeight.w600,
                     height: 1.8,
                   ),
@@ -321,7 +430,7 @@ class _TahajudPageState extends State<TahajudPage>
                   '"Dan pada sebagian malam, maka lakukanlah shalat tahajud sebagai suatu ibadah tambahan bagimu"',
                   style: TextStyle(
                     color: AppTheme.onSurface.withValues(alpha: 0.8),
-                    fontSize: 13,
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 13),
                     fontStyle: FontStyle.italic,
                   ),
                   textAlign: TextAlign.center,
@@ -331,7 +440,7 @@ class _TahajudPageState extends State<TahajudPage>
                   'QS. Al-Isra: 79',
                   style: TextStyle(
                     color: AppTheme.onSurfaceVariant,
-                    fontSize: 12,
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
                     fontWeight: FontWeight.w500,
                   ),
                   textAlign: TextAlign.center,
@@ -343,6 +452,8 @@ class _TahajudPageState extends State<TahajudPage>
       ),
     );
   }
+
+  // ===================== Auth & Premium =====================
 
   Widget _buildLoginRequired() {
     return Scaffold(
@@ -374,10 +485,10 @@ class _TahajudPageState extends State<TahajudPage>
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text(
+                  Text(
                     'Login Diperlukan',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 28),
                       fontWeight: FontWeight.bold,
                       color: AppTheme.onSurface,
                     ),
@@ -387,7 +498,7 @@ class _TahajudPageState extends State<TahajudPage>
                   Text(
                     'Anda harus login terlebih dahulu untuk mengakses Tahajud Challenge',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                       color: AppTheme.onSurfaceVariant,
                       height: 1.5,
                     ),
@@ -398,9 +509,7 @@ class _TahajudPageState extends State<TahajudPage>
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/login');
-                      },
+                      onPressed: () => Navigator.pushNamed(context, '/login'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppTheme.primaryBlue,
                         foregroundColor: Colors.white,
@@ -409,10 +518,13 @@ class _TahajudPageState extends State<TahajudPage>
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Login Sekarang',
                         style: TextStyle(
-                          fontSize: 16,
+                          fontSize: ResponsiveHelper.adaptiveTextSize(
+                            context,
+                            16,
+                          ),
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -425,7 +537,10 @@ class _TahajudPageState extends State<TahajudPage>
                     child: Text(
                       'Kembali ke Home',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: ResponsiveHelper.adaptiveTextSize(
+                          context,
+                          16,
+                        ),
                         color: AppTheme.primaryBlue,
                         fontWeight: FontWeight.w600,
                       ),
@@ -475,10 +590,10 @@ class _TahajudPageState extends State<TahajudPage>
                     ),
                   ),
                   const SizedBox(height: 32),
-                  const Text(
+                  Text(
                     'Fitur Premium',
                     style: TextStyle(
-                      fontSize: 28,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 28),
                       fontWeight: FontWeight.bold,
                       color: AppTheme.onSurface,
                     ),
@@ -488,7 +603,7 @@ class _TahajudPageState extends State<TahajudPage>
                   Text(
                     'Tahajud Challenge adalah fitur premium. Tingkatkan ibadah malam Anda dengan fitur tracking dan reward!',
                     style: TextStyle(
-                      fontSize: 16,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                       color: AppTheme.onSurfaceVariant,
                       height: 1.5,
                     ),
@@ -532,9 +647,8 @@ class _TahajudPageState extends State<TahajudPage>
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/subscription');
-                      },
+                      onPressed: () =>
+                          Navigator.pushNamed(context, '/subscription'),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
@@ -543,15 +657,18 @@ class _TahajudPageState extends State<TahajudPage>
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: const Row(
+                      child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.workspace_premium_rounded, size: 24),
-                          SizedBox(width: 12),
+                          const Icon(Icons.workspace_premium_rounded, size: 24),
+                          const SizedBox(width: 12),
                           Text(
                             'Berlangganan Premium',
                             style: TextStyle(
-                              fontSize: 16,
+                              fontSize: ResponsiveHelper.adaptiveTextSize(
+                                context,
+                                16,
+                              ),
                               fontWeight: FontWeight.w600,
                             ),
                           ),
@@ -562,10 +679,13 @@ class _TahajudPageState extends State<TahajudPage>
                   const SizedBox(height: 16),
                   TextButton(
                     onPressed: () => Navigator.pop(context),
-                    child: const Text(
+                    child: Text(
                       'Kembali',
                       style: TextStyle(
-                        fontSize: 16,
+                        fontSize: ResponsiveHelper.adaptiveTextSize(
+                          context,
+                          16,
+                        ),
                         color: Colors.amber,
                         fontWeight: FontWeight.w600,
                       ),
@@ -595,8 +715,8 @@ class _TahajudPageState extends State<TahajudPage>
         Expanded(
           child: Text(
             text,
-            style: const TextStyle(
-              fontSize: 14,
+            style: TextStyle(
+              fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
               color: AppTheme.onSurface,
               fontWeight: FontWeight.w500,
             ),
@@ -607,9 +727,11 @@ class _TahajudPageState extends State<TahajudPage>
     );
   }
 
+  // ===================== Streak Card =====================
+
   Widget _buildStreakCard() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      margin: _outerHMargin(context),
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -629,17 +751,19 @@ class _TahajudPageState extends State<TahajudPage>
       ),
       child: Column(
         children: [
+          // header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              // left
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Streak Saat Ini',
                     style: TextStyle(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -649,20 +773,26 @@ class _TahajudPageState extends State<TahajudPage>
                     children: [
                       Text(
                         '$currentStreak',
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: Colors.white,
-                          fontSize: 36,
+                          fontSize: ResponsiveHelper.adaptiveTextSize(
+                            context,
+                            36,
+                          ),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                       const SizedBox(width: 4),
-                      const Padding(
-                        padding: EdgeInsets.only(bottom: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 8),
                         child: Text(
                           'hari',
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: 16,
+                            fontSize: ResponsiveHelper.adaptiveTextSize(
+                              context,
+                              16,
+                            ),
                             fontWeight: FontWeight.w500,
                           ),
                         ),
@@ -671,6 +801,7 @@ class _TahajudPageState extends State<TahajudPage>
                   ),
                 ],
               ),
+              // right
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -686,18 +817,33 @@ class _TahajudPageState extends State<TahajudPage>
             ],
           ),
           const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _buildStreakStat('Terpanjang', '$longestStreak hari'),
-              ),
-              Container(
-                width: 1,
-                height: 40,
-                color: Colors.white.withValues(alpha: 0.3),
-              ),
-              Expanded(child: _buildStreakStat('Total', '$tahajudCount hari')),
-            ],
+          // stats
+          LayoutBuilder(
+            builder: (context, _) {
+              final isWide = !ResponsiveHelper.isSmallScreen(context);
+              final items = [
+                Expanded(
+                  child: _buildStreakStat('Terpanjang', '$longestStreak hari'),
+                ),
+                Container(
+                  width: 1,
+                  height: 40,
+                  color: Colors.white.withValues(alpha: 0.3),
+                ),
+                Expanded(
+                  child: _buildStreakStat('Total', '$tahajudCount hari'),
+                ),
+              ];
+              return isWide
+                  ? Row(children: items)
+                  : Column(
+                      children: [
+                        _buildStreakStat('Terpanjang', '$longestStreak hari'),
+                        const SizedBox(height: 12),
+                        _buildStreakStat('Total', '$tahajudCount hari'),
+                      ],
+                    );
+            },
           ),
         ],
       ),
@@ -711,16 +857,16 @@ class _TahajudPageState extends State<TahajudPage>
           label,
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.8),
-            fontSize: 12,
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
             fontWeight: FontWeight.w500,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
-            fontSize: 16,
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -728,12 +874,16 @@ class _TahajudPageState extends State<TahajudPage>
     );
   }
 
+  // ===================== Progress Section (opsional) =====================
+
   Widget _buildProgressSection() {
     final nextLevel = levels.firstWhere(
       (level) => level['minDays'] > tahajudCount,
       orElse: () => levels.last,
     );
-    final progress = tahajudCount / nextLevel['minDays'];
+    final progress = nextLevel['minDays'] == 0
+        ? 1.0
+        : (tahajudCount / nextLevel['minDays']).clamp(0.0, 1.0);
 
     return Container(
       margin: const EdgeInsets.all(24),
@@ -774,10 +924,10 @@ class _TahajudPageState extends State<TahajudPage>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Progress Menuju Level Berikutnya',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                   fontWeight: FontWeight.bold,
                   color: AppTheme.onSurface,
                 ),
@@ -790,8 +940,8 @@ class _TahajudPageState extends State<TahajudPage>
             children: [
               Text(
                 'Level ${nextLevel['level']}: ${nextLevel['name']}',
-                style: const TextStyle(
-                  fontSize: 14,
+                style: TextStyle(
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
                   fontWeight: FontWeight.w600,
                   color: AppTheme.onSurface,
                 ),
@@ -799,7 +949,7 @@ class _TahajudPageState extends State<TahajudPage>
               Text(
                 '${tahajudCount}/${nextLevel['minDays']} hari',
                 style: TextStyle(
-                  fontSize: 14,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
                   color: AppTheme.onSurfaceVariant,
                 ),
               ),
@@ -815,13 +965,14 @@ class _TahajudPageState extends State<TahajudPage>
                   color: AppTheme.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(4),
                 ),
-                child: Stack(
-                  children: [
-                    Container(
-                      width:
-                          MediaQuery.of(context).size.width *
-                          progress *
-                          _progressAnimation.value,
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: (progress * _progressAnimation.value).clamp(
+                      0.0,
+                      1.0,
+                    ),
+                    child: Container(
                       decoration: BoxDecoration(
                         gradient: LinearGradient(
                           colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
@@ -829,7 +980,7 @@ class _TahajudPageState extends State<TahajudPage>
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
-                  ],
+                  ),
                 ),
               );
             },
@@ -839,9 +990,11 @@ class _TahajudPageState extends State<TahajudPage>
     );
   }
 
+  // ===================== Weekly Progress =====================
+
   Widget _buildWeeklyProgress() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 24),
+      margin: _outerHMargin(context),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -879,10 +1032,10 @@ class _TahajudPageState extends State<TahajudPage>
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+              Text(
                 'Progress 7 Hari Terakhir',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
                   fontWeight: FontWeight.bold,
                   color: AppTheme.onSurface,
                 ),
@@ -895,21 +1048,22 @@ class _TahajudPageState extends State<TahajudPage>
             children: List.generate(7, (index) {
               final days = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
               final isCompleted = weeklyProgress[index];
+              final box = ResponsiveHelper.isSmallScreen(context) ? 30.0 : 32.0;
 
               return Column(
                 children: [
                   Text(
                     days[index],
                     style: TextStyle(
-                      fontSize: 12,
+                      fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
                       color: AppTheme.onSurfaceVariant,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Container(
-                    width: 32,
-                    height: 32,
+                    width: box,
+                    height: box,
                     decoration: BoxDecoration(
                       color: isCompleted
                           ? AppTheme.accentGreen
@@ -921,7 +1075,7 @@ class _TahajudPageState extends State<TahajudPage>
                       color: isCompleted
                           ? Colors.white
                           : AppTheme.onSurfaceVariant.withValues(alpha: 0.5),
-                      size: 18,
+                      size: ResponsiveHelper.isSmallScreen(context) ? 16 : 18,
                     ),
                   ),
                 ],
@@ -932,6 +1086,8 @@ class _TahajudPageState extends State<TahajudPage>
       ),
     );
   }
+
+  // ===================== Calendar =====================
 
   Widget _buildCalendarSection() {
     return Container(
@@ -950,44 +1106,46 @@ class _TahajudPageState extends State<TahajudPage>
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.primaryBlue.withValues(alpha: 0.2),
-                      AppTheme.primaryBlue.withValues(alpha: 0.1),
-                    ],
+      child: _wrapMaxWidth(
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppTheme.primaryBlue.withValues(alpha: 0.2),
+                        AppTheme.primaryBlue.withValues(alpha: 0.1),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-                  borderRadius: BorderRadius.circular(10),
+                  child: Icon(
+                    Icons.calendar_month_rounded,
+                    color: AppTheme.primaryBlue,
+                    size: 20,
+                  ),
                 ),
-                child: Icon(
-                  Icons.calendar_month_rounded,
-                  color: AppTheme.primaryBlue,
-                  size: 20,
+                const SizedBox(width: 12),
+                Text(
+                  'Kalender Tahajud',
+                  style: TextStyle(
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.onSurface,
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                'Kalender Tahajud',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.onSurface,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _buildCalendarHeader(),
-          const SizedBox(height: 16),
-          _buildCalendarGrid(),
-        ],
+              ],
+            ),
+            const SizedBox(height: 20),
+            _buildCalendarHeader(),
+            const SizedBox(height: 16),
+            _buildCalendarGrid(),
+          ],
+        ),
       ),
     );
   }
@@ -1009,8 +1167,8 @@ class _TahajudPageState extends State<TahajudPage>
         ),
         Text(
           DateFormat('MMMM yyyy', 'id_ID').format(selectedMonth),
-          style: const TextStyle(
-            fontSize: 18,
+          style: TextStyle(
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 18),
             fontWeight: FontWeight.bold,
             color: AppTheme.onSurface,
           ),
@@ -1041,11 +1199,11 @@ class _TahajudPageState extends State<TahajudPage>
       selectedMonth.month + 1,
       0,
     );
-    final firstDayWeekday = firstDayOfMonth.weekday;
+    final firstDayWeekday = firstDayOfMonth.weekday; // 1..7 (Mon..Sun)
     final daysInMonth = lastDayOfMonth.day;
 
-    // Days of week header
     final daysOfWeek = ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'];
+    final cell = _calendarCellSize(context);
 
     return Column(
       children: [
@@ -1059,7 +1217,7 @@ class _TahajudPageState extends State<TahajudPage>
                   day,
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    fontSize: 12,
+                    fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
                     fontWeight: FontWeight.w600,
                     color: AppTheme.onSurfaceVariant,
                   ),
@@ -1079,9 +1237,8 @@ class _TahajudPageState extends State<TahajudPage>
               children: List.generate(7, (dayIndex) {
                 final dayNumber =
                     weekIndex * 7 + dayIndex - firstDayWeekday + 2;
-
                 if (dayNumber < 1 || dayNumber > daysInMonth) {
-                  return Expanded(child: Container());
+                  return const Expanded(child: SizedBox());
                 }
 
                 final currentDate = DateTime(
@@ -1096,10 +1253,11 @@ class _TahajudPageState extends State<TahajudPage>
                     currentDate.day,
                   ),
                 );
+                final now = DateTime.now();
                 final isToday =
-                    DateTime.now().year == currentDate.year &&
-                    DateTime.now().month == currentDate.month &&
-                    DateTime.now().day == currentDate.day;
+                    now.year == currentDate.year &&
+                    now.month == currentDate.month &&
+                    now.day == currentDate.day;
 
                 return Expanded(
                   child: GestureDetector(
@@ -1125,7 +1283,7 @@ class _TahajudPageState extends State<TahajudPage>
                     },
                     child: Container(
                       margin: const EdgeInsets.all(2),
-                      height: 40,
+                      height: cell,
                       decoration: BoxDecoration(
                         color: isCompleted
                             ? AppTheme.accentGreen
@@ -1144,7 +1302,10 @@ class _TahajudPageState extends State<TahajudPage>
                             Text(
                               '$dayNumber',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: ResponsiveHelper.adaptiveTextSize(
+                                  context,
+                                  14,
+                                ),
                                 fontWeight: FontWeight.w500,
                                 color: isCompleted
                                     ? Colors.white
@@ -1158,15 +1319,23 @@ class _TahajudPageState extends State<TahajudPage>
                                 top: 2,
                                 right: 2,
                                 child: Container(
-                                  width: 16,
-                                  height: 16,
+                                  width: ResponsiveHelper.isSmallScreen(context)
+                                      ? 14
+                                      : 16,
+                                  height:
+                                      ResponsiveHelper.isSmallScreen(context)
+                                      ? 14
+                                      : 16,
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
                                     Icons.check_rounded,
-                                    size: 12,
+                                    size:
+                                        ResponsiveHelper.isSmallScreen(context)
+                                        ? 10
+                                        : 12,
                                     color: AppTheme.accentGreen,
                                   ),
                                 ),
@@ -1183,11 +1352,12 @@ class _TahajudPageState extends State<TahajudPage>
         }),
         const SizedBox(height: 16),
         // Legend
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 20,
+          runSpacing: 8,
           children: [
             _buildCalendarLegend(AppTheme.accentGreen, 'Tahajud dilakukan'),
-            const SizedBox(width: 20),
             _buildCalendarLegend(
               AppTheme.primaryBlue.withValues(alpha: 0.3),
               'Hari ini',
@@ -1213,48 +1383,26 @@ class _TahajudPageState extends State<TahajudPage>
         const SizedBox(width: 6),
         Text(
           label,
-          style: TextStyle(fontSize: 12, color: AppTheme.onSurfaceVariant),
+          style: TextStyle(
+            fontSize: ResponsiveHelper.adaptiveTextSize(context, 12),
+            color: AppTheme.onSurfaceVariant,
+          ),
         ),
       ],
     );
   }
 
+  // ===================== FAB =====================
+
   Widget _buildFloatingActionButton() {
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: todayCompleted
-              ? [Colors.grey, Colors.grey.shade400]
-              : [AppTheme.primaryBlue, AppTheme.accentGreen],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: (todayCompleted ? Colors.grey : AppTheme.primaryBlue)
-                .withValues(alpha: 0.4),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: FloatingActionButton.extended(
-        onPressed: todayCompleted ? null : _markTodayComplete,
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        icon: Icon(
-          todayCompleted ? Icons.check_circle_rounded : Icons.add_rounded,
-          color: Colors.white,
-          size: 24,
-        ),
-        label: Text(
-          todayCompleted ? 'Selesai' : 'Catat Tahajud',
-          style: const TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
-            fontSize: 16,
-          ),
-        ),
-      ),
+    return _responsiveFAB(
+      disabled: todayCompleted,
+      onPressed: _markTodayComplete,
+      icon: todayCompleted ? Icons.check_circle_rounded : Icons.add_rounded,
+      label: todayCompleted ? 'Selesai' : 'Catat Tahajud',
+      gradient: todayCompleted
+          ? [Colors.grey, Colors.grey.shade400]
+          : [AppTheme.primaryBlue, AppTheme.accentGreen],
     );
   }
 }
