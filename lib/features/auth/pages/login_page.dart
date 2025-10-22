@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
@@ -108,7 +107,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
           context,
           message:
               authState['message']?.toString() ??
-              tr('login.login_success_message'),
+              'Login berhasil! Selamat datang kembali.',
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );
@@ -238,7 +237,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               ],
                             ).createShader(bounds),
                             child: Text(
-                              tr('login.title'),
+                              "Selamat Datang Kembali",
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.adaptiveTextSize(
                                   context,
@@ -252,7 +251,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                           ),
                           SizedBox(height: isSmall ? 6 : 8),
                           Text(
-                            tr('login.description'),
+                            "Masuk untuk melanjutkan perjalanan islami Anda",
                             style: TextStyle(
                               fontSize: ResponsiveHelper.adaptiveTextSize(
                                 context,
@@ -318,7 +317,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   decoration: InputDecoration(
                                     labelText: 'Email',
-                                    hintText: tr('login.email_hint'),
+                                    hintText: "Masukkan email Anda",
                                     prefixIcon: Icon(
                                       Icons.email_outlined,
                                       color: AppTheme.primaryBlue,
@@ -360,14 +359,12 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return tr('login.email_validation_null');
+                                      return "Harap masukkan email";
                                     }
                                     if (!RegExp(
                                       r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                                     ).hasMatch(value)) {
-                                      return tr(
-                                        'login.email_validation_invalid',
-                                      );
+                                      return "Harap masukkan email yang valid";
                                     }
                                     return null;
                                   },
@@ -386,7 +383,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   decoration: InputDecoration(
                                     labelText: 'Password',
-                                    hintText: tr('login.password_hint'),
+                                    hintText: "Masukkan kata sandi Anda",
                                     prefixIcon: Icon(
                                       Icons.lock_outlined,
                                       color: AppTheme.accentGreen,
@@ -442,14 +439,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return tr(
-                                        'login.password_validation_null',
-                                      );
+                                      return "Harap masukkan kata sandi";
                                     }
                                     if (value.length < 6) {
-                                      return tr(
-                                        'login.password_validation_short',
-                                      );
+                                      return "Kata sandi minimal 6 karakter";
                                     }
                                     return null;
                                   },
@@ -457,32 +450,30 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                 SizedBox(height: 8),
 
                                 // Forgot Password
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () {
-                                      // TODO: navigate to forgot password page
-                                    },
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      tr('login.button_forgot_password'),
-                                      style: TextStyle(
-                                        color: AppTheme.primaryBlue,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize:
-                                            ResponsiveHelper.adaptiveTextSize(
-                                              context,
-                                              14,
-                                            ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                                // Align(
+                                //   alignment: Alignment.centerRight,
+                                //   child: TextButton(
+                                //     onPressed: () {},
+                                //     style: TextButton.styleFrom(
+                                //       padding: const EdgeInsets.symmetric(
+                                //         horizontal: 8,
+                                //         vertical: 4,
+                                //       ),
+                                //     ),
+                                //     child: Text(
+                                //       "Lupa Kata Sandi?",
+                                //       style: TextStyle(
+                                //         color: AppTheme.primaryBlue,
+                                //         fontWeight: FontWeight.w600,
+                                //         fontSize:
+                                //             ResponsiveHelper.adaptiveTextSize(
+                                //               context,
+                                //               14,
+                                //             ),
+                                //       ),
+                                //     ),
+                                //   ),
+                                // ),
                                 SizedBox(height: _gapSmall(context)),
 
                                 // Login Button
@@ -522,7 +513,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Text(
-                                                tr('login.button_login'),
+                                                "Masuk",
                                                 style: TextStyle(
                                                   fontSize:
                                                       ResponsiveHelper.adaptiveTextSize(
@@ -568,7 +559,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               Padding(
                                 padding: EdgeInsets.symmetric(horizontal: 16),
                                 child: Text(
-                                  tr('login.divider_text'),
+                                  "Atau lanjutkan dengan",
                                   style: TextStyle(fontSize: 14),
                                 ),
                               ),
@@ -636,7 +627,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                         ),
                                         SizedBox(width: 8),
                                         Text(
-                                          tr('login.button_google'),
+                                          "Lanjutkan dengan Google",
                                           style: TextStyle(
                                             fontSize:
                                                 ResponsiveHelper.adaptiveTextSize(
@@ -691,7 +682,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                tr('login.no_account_yet'),
+                                "Belum punya akun?",
                                 style: TextStyle(
                                   color: AppTheme.onSurfaceVariant,
                                   fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -705,7 +696,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   Navigator.pushNamed(context, '/signup');
                                 },
                                 child: Text(
-                                  ' ${tr('login.button_sign_up')}',
+                                  " Daftar",
                                   style: TextStyle(
                                     color: AppTheme.primaryBlue,
                                     fontWeight: FontWeight.bold,
@@ -743,7 +734,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        tr('login.left_panel_title'),
+                        "Tumbuh dalam Iman",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -756,7 +747,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        tr('login.left_pane_subtitle'),
+                        "Akses konten islami pilihan dan lanjutkan perjalananmu.",
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: ResponsiveHelper.adaptiveTextSize(

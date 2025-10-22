@@ -1,5 +1,3 @@
-// app/app.dart
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'theme.dart';
@@ -26,9 +24,6 @@ class _MyAppState extends ConsumerState<MyApp> {
 
     return MaterialApp(
       title: 'Shollover',
-      locale: context.locale,
-      supportedLocales: context.supportedLocales,
-      localizationsDelegates: context.localizationDelegates,
       theme: AppTheme.lightTheme,
       home: const SplashScreen(),
       onGenerateRoute: AppRoutes.generateRoute,

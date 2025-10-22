@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
@@ -70,13 +69,420 @@ class _SignupPageState extends ConsumerState<SignupPage>
     super.dispose();
   }
 
+  // 🆕 Show Terms of Service Modal
+  void _showTermsOfService() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildPolicyModal(
+        title: 'Ketentuan Layanan',
+        content: _getTermsOfServiceContent(),
+        icon: Icons.gavel_rounded,
+        iconColor: AppTheme.primaryBlue,
+      ),
+    );
+  }
+
+  // 🆕 Show Privacy Policy Modal
+  void _showPrivacyPolicy() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => _buildPolicyModal(
+        title: 'Kebijakan Privasi',
+        content: _getPrivacyPolicyContent(),
+        icon: Icons.privacy_tip_rounded,
+        iconColor: AppTheme.accentGreen,
+      ),
+    );
+  }
+
+  // 🆕 Build Policy Modal Widget
+  Widget _buildPolicyModal({
+    required String title,
+    required String content,
+    required IconData icon,
+    required Color iconColor,
+  }) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.85,
+      minChildSize: 0.5,
+      maxChildSize: 0.95,
+      builder: (context, scrollController) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            children: [
+              // Drag Handle
+              Container(
+                margin: const EdgeInsets.only(top: 12, bottom: 8),
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+
+              // Header
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 8, 24, 16),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: iconColor.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(icon, color: iconColor, size: 24),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Text(
+                        title,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.onSurface,
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.close_rounded),
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ],
+                ),
+              ),
+
+              const Divider(height: 1),
+
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  controller: scrollController,
+                  padding: const EdgeInsets.all(24),
+                  child: Text(
+                    content,
+                    style: TextStyle(
+                      fontSize: 15,
+                      height: 1.6,
+                      color: AppTheme.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+
+              // Footer
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.grey[50],
+                  border: Border(
+                    top: BorderSide(color: Colors.grey[200]!, width: 1),
+                  ),
+                ),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    onPressed: () => Navigator.pop(context),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: iconColor,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 0,
+                    ),
+                    child: const Text(
+                      'Mengerti',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  // 🆕 Terms of Service Content
+  String _getTermsOfServiceContent() {
+    return '''
+KETENTUAN LAYANAN
+
+Terakhir diperbarui: ${DateTime.now().day} ${_getMonthName(DateTime.now().month)} ${DateTime.now().year}
+
+1. PENERIMAAN KETENTUAN
+
+Dengan mengakses dan menggunakan aplikasi ini, Anda menyetujui untuk terikat dengan Ketentuan Layanan ini. Jika Anda tidak setuju dengan ketentuan ini, mohon tidak menggunakan layanan kami.
+
+2. DESKRIPSI LAYANAN
+
+Aplikasi kami menyediakan konten Islami, termasuk namun tidak terbatas pada:
+• Al-Qur'an digital dengan terjemahan
+• Jadwal waktu sholat
+• Kumpulan doa dan dzikir
+• Artikel dan konten edukatif Islami
+• Fitur pencarian kiblat
+
+3. AKUN PENGGUNA
+
+3.1 Pendaftaran Akun
+• Anda harus berusia minimal 13 tahun untuk membuat akun
+• Informasi yang Anda berikan harus akurat dan lengkap
+• Anda bertanggung jawab menjaga kerahasiaan password
+• Anda bertanggung jawab atas semua aktivitas yang terjadi di akun Anda
+
+3.2 Keamanan Akun
+• Segera beritahu kami jika terjadi penggunaan tidak sah pada akun Anda
+• Kami tidak bertanggung jawab atas kerugian akibat kelalaian Anda menjaga keamanan akun
+
+4. PENGGUNAAN LAYANAN
+
+Anda setuju untuk TIDAK:
+• Menggunakan layanan untuk tujuan ilegal
+• Mengunggah konten yang melanggar hukum atau hak orang lain
+• Mengirimkan spam atau konten berbahaya
+• Mencoba mengakses sistem tanpa otorisasi
+• Mengganggu atau merusak infrastruktur layanan
+
+5. HAK KEKAYAAN INTELEKTUAL
+
+5.1 Konten Kami
+• Semua konten dalam aplikasi dilindungi hak cipta
+• Anda dapat menggunakan konten untuk keperluan pribadi non-komersial
+• Dilarang mendistribusikan atau memodifikasi konten tanpa izin
+
+5.2 Konten Pengguna
+• Anda mempertahankan hak atas konten yang Anda buat
+• Dengan mengunggah konten, Anda memberikan kami lisensi untuk menggunakannya dalam layanan
+
+6. PEMBATASAN TANGGUNG JAWAB
+
+• Layanan disediakan "sebagaimana adanya"
+• Kami tidak menjamin layanan bebas dari error atau gangguan
+• Kami tidak bertanggung jawab atas kerugian yang timbul dari penggunaan layanan
+• Tanggung jawab kami terbatas pada jumlah yang Anda bayarkan (jika ada)
+
+7. PERUBAHAN LAYANAN
+
+Kami berhak:
+• Memodifikasi atau menghentikan layanan kapan saja
+• Mengubah fitur atau konten
+• Membatasi akses untuk pemeliharaan
+
+8. PEMUTUSAN
+
+Kami dapat menutup akun Anda jika:
+• Anda melanggar Ketentuan Layanan ini
+• Kami diwajibkan oleh hukum
+• Layanan dihentikan
+
+9. HUKUM YANG BERLAKU
+
+Ketentuan ini diatur oleh hukum Republik Indonesia. Setiap perselisihan akan diselesaikan di pengadilan yang berwenang di Indonesia.
+
+10. KONTAK
+
+Jika Anda memiliki pertanyaan tentang Ketentuan Layanan ini, hubungi kami di:
+Email: support@islamicapp.com
+Telepon: +62 XXX XXXX XXXX
+
+11. PERUBAHAN KETENTUAN
+
+Kami dapat memperbarui Ketentuan Layanan ini dari waktu ke waktu. Perubahan akan berlaku setelah dipublikasikan di aplikasi. Penggunaan berkelanjutan berarti Anda menerima perubahan tersebut.
+
+DENGAN MENDAFTAR, ANDA MENYATAKAN TELAH MEMBACA, MEMAHAMI, DAN MENYETUJUI KETENTUAN LAYANAN INI.
+''';
+  }
+
+  // 🆕 Privacy Policy Content
+  String _getPrivacyPolicyContent() {
+    return '''
+KEBIJAKAN PRIVASI
+
+Terakhir diperbarui: ${DateTime.now().day} ${_getMonthName(DateTime.now().month)} ${DateTime.now().year}
+
+1. PENDAHULUAN
+
+Kami menghargai privasi Anda dan berkomitmen melindungi data pribadi Anda. Kebijakan Privasi ini menjelaskan bagaimana kami mengumpulkan, menggunakan, dan melindungi informasi Anda.
+
+2. INFORMASI YANG KAMI KUMPULKAN
+
+2.1 Informasi yang Anda Berikan
+• Nama lengkap
+• Alamat email
+• Nomor telepon (opsional)
+• Foto profil (opsional)
+• Preferensi dan pengaturan aplikasi
+
+2.2 Informasi yang Dikumpulkan Otomatis
+• Informasi perangkat (model, sistem operasi, ID unik)
+• Data penggunaan aplikasi
+• Lokasi geografis (untuk fitur waktu sholat dan kiblat)
+• Log aktivitas
+
+2.3 Informasi dari Pihak Ketiga
+• Data dari Google Sign-In (jika Anda login dengan Google)
+• Informasi dari layanan analitik
+
+3. BAGAIMANA KAMI MENGGUNAKAN INFORMASI
+
+Kami menggunakan informasi Anda untuk:
+• Menyediakan dan meningkatkan layanan
+• Mengirim notifikasi waktu sholat
+• Personalisasi pengalaman pengguna
+• Analisis penggunaan aplikasi
+• Komunikasi terkait layanan
+• Keamanan dan pencegahan fraud
+• Mematuhi kewajiban hukum
+
+4. BERBAGI INFORMASI
+
+Kami TIDAK menjual data pribadi Anda. Kami dapat berbagi informasi dengan:
+
+4.1 Penyedia Layanan
+• Hosting dan penyimpanan data
+• Layanan analitik (Google Analytics, Firebase)
+• Layanan notifikasi push
+• Penyedia layanan pembayaran (jika ada)
+
+4.2 Kewajiban Hukum
+• Jika diwajibkan oleh hukum
+• Untuk melindungi hak dan keamanan kami
+• Dalam proses hukum atau investigasi
+
+4.3 Dengan Persetujuan Anda
+• Dengan izin eksplisit Anda untuk tujuan tertentu
+
+5. PENYIMPANAN DATA
+
+• Data disimpan di server yang aman
+• Kami menggunakan enkripsi untuk melindungi data sensitif
+• Data disimpan selama akun aktif atau sesuai kebutuhan hukum
+• Anda dapat meminta penghapusan data kapan saja
+
+6. LOKASI PENYIMPANAN DATA
+
+Data Anda dapat disimpan dan diproses di:
+• Server di Indonesia
+• Server penyedia layanan cloud (AWS, Google Cloud)
+• Lokasi lain sesuai penyedia layanan kami
+
+7. HAK ANDA
+
+Anda memiliki hak untuk:
+• Mengakses data pribadi Anda
+• Memperbaiki data yang tidak akurat
+• Menghapus data Anda
+• Membatasi pemrosesan data
+• Portabilitas data
+• Menarik persetujuan
+• Mengajukan keberatan
+
+Untuk menggunakan hak-hak ini, hubungi kami di privacy@islamicapp.com
+
+8. KEAMANAN
+
+Kami menerapkan langkah-langkah keamanan:
+• Enkripsi data saat transmisi (SSL/TLS)
+• Enkripsi data sensitif saat penyimpanan
+• Kontrol akses yang ketat
+• Audit keamanan berkala
+• Pelatihan karyawan tentang privasi
+
+Namun, tidak ada sistem yang 100% aman. Kami tidak dapat menjamin keamanan absolut.
+
+9. COOKIES DAN TEKNOLOGI PELACAKAN
+
+Kami menggunakan:
+• Cookies untuk menyimpan preferensi
+• Analytics tools untuk memahami penggunaan
+• Teknologi fingerprinting perangkat
+
+Anda dapat mengatur preferensi cookies di pengaturan aplikasi.
+
+10. PRIVASI ANAK-ANAK
+
+• Layanan tidak ditujukan untuk anak di bawah 13 tahun
+• Kami tidak dengan sengaja mengumpulkan data anak di bawah 13 tahun
+• Jika kami menemukan data anak, akan segera dihapus
+• Orang tua dapat menghubungi kami untuk menghapus data anak
+
+11. PERUBAHAN KEBIJAKAN
+
+• Kami dapat memperbarui Kebijakan Privasi ini
+• Perubahan material akan diberitahukan melalui email atau notifikasi
+• Penggunaan berkelanjutan berarti persetujuan terhadap perubahan
+
+12. TRANSFER DATA INTERNASIONAL
+
+Jika data Anda ditransfer ke luar Indonesia:
+• Kami memastikan perlindungan yang memadai
+• Sesuai dengan standar internasional
+• Dengan mekanisme perlindungan yang sesuai
+
+13. KONTAK
+
+Untuk pertanyaan tentang privasi:
+• Email: privacy@islamicapp.com
+• Alamat: [Alamat Kantor]
+• Telepon: +62 XXX XXXX XXXX
+
+Data Protection Officer:
+• Email: dpo@islamicapp.com
+
+14. KELUHAN
+
+Jika tidak puas dengan penanganan data Anda, Anda dapat:
+• Mengajukan keluhan kepada kami
+• Menghubungi otoritas perlindungan data
+
+DENGAN MENGGUNAKAN LAYANAN INI, ANDA MENYETUJUI PENGUMPULAN DAN PENGGUNAAN INFORMASI SESUAI KEBIJAKAN INI.
+''';
+  }
+
+  // 🆕 Helper: Get Month Name in Indonesian
+  String _getMonthName(int month) {
+    const months = [
+      'Januari',
+      'Februari',
+      'Maret',
+      'April',
+      'Mei',
+      'Juni',
+      'Juli',
+      'Agustus',
+      'September',
+      'Oktober',
+      'November',
+      'Desember',
+    ];
+    return months[month - 1];
+  }
+
   Future<void> _handleSignup() async {
     if (_formKey.currentState?.validate() ?? false) {
       if (!_agreeTerms) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           showMessageToast(
             context,
-            message: tr('signup.terms_required'),
+            message:
+                'Anda harus menyetujui Ketentuan Layanan dan Kebijakan Privasi',
             type: ToastType.error,
             duration: const Duration(seconds: 4),
           );
@@ -101,6 +507,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
       ResponsiveHelper.isSmallScreen(context) ? 20 : 28;
   double _fieldHeight(BuildContext context) =>
       ResponsiveHelper.isSmallScreen(context) ? 52 : 56;
+
+  final isLoadingGoogle = false;
 
   @override
   Widget build(BuildContext context) {
@@ -131,7 +539,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
         showMessageToast(
           context,
           message:
-              authState['message']?.toString() ?? tr('signup.toast_success'),
+              authState['message']?.toString() ??
+              'Pendaftaran berhasil! Selamat bergabung.',
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );
@@ -223,7 +632,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                   colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
                 ).createShader(bounds),
                 child: Text(
-                  tr('signup.title'),
+                  'Buat Akun',
                   style: TextStyle(
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 30),
                     fontWeight: FontWeight.bold,
@@ -234,7 +643,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
               ),
               SizedBox(height: isSmall ? 6 : 8),
               Text(
-                tr('signup.subtitle'),
+                'Bergabunglah dengan komunitas Islami kami hari ini',
                 style: TextStyle(
                   fontSize: ResponsiveHelper.adaptiveTextSize(context, 15),
                   color: AppTheme.onSurfaceVariant,
@@ -292,8 +701,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                       ),
                       decoration: InputDecoration(
-                        labelText: tr('signup.name_label'),
-                        hintText: tr('signup.name_hint'),
+                        labelText: 'Nama Lengkap',
+                        hintText: 'Masukkan nama lengkap Anda',
                         prefixIcon: Icon(
                           Icons.person_outlined,
                           color: AppTheme.primaryBlue,
@@ -314,11 +723,10 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return tr('signup.name_validation_null');
+                          return 'Silakan masukkan nama Anda';
                         }
-
                         if (value.length < 3) {
-                          return tr('signup.name_validation_short');
+                          return 'Nama harus memiliki setidaknya 3 karakter';
                         }
                         return null;
                       },
@@ -336,8 +744,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                       ),
                       decoration: InputDecoration(
-                        labelText: tr('signup.email_label'),
-                        hintText: tr('signup.email_hint'),
+                        labelText: 'Email',
+                        hintText: 'Masukkan email Anda',
                         prefixIcon: Icon(
                           Icons.email_outlined,
                           color: AppTheme.accentGreen,
@@ -358,12 +766,12 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return tr('signup.email_validation_null');
+                          return 'Silakan masukkan email Anda';
                         }
                         if (!RegExp(
                           r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
                         ).hasMatch(value)) {
-                          return tr('signup.email_validation_invalid');
+                          return 'Silakan masukkan email yang valid';
                         }
                         return null;
                       },
@@ -381,8 +789,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                       ),
                       decoration: InputDecoration(
-                        labelText: tr('signup.password_label'),
-                        hintText: tr('signup.password_hint'),
+                        labelText: 'Kata Sandi',
+                        hintText: 'Buat kata sandi',
                         prefixIcon: Icon(
                           Icons.lock_outlined,
                           color: AppTheme.primaryBlue,
@@ -416,10 +824,10 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return tr('signup.password_validation_null');
+                          return 'Silakan masukkan kata sandi';
                         }
                         if (value.length < 6) {
-                          return tr('signup.password_validation_short');
+                          return 'Kata sandi harus memiliki setidaknya 6 karakter';
                         }
                         return null;
                       },
@@ -437,8 +845,8 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                       ),
                       decoration: InputDecoration(
-                        labelText: tr('signup.confirm_password_label'),
-                        hintText: tr('signup.confirm_password_hint'),
+                        labelText: 'Konfirmasi Kata Sandi',
+                        hintText: 'Masukkan ulang kata sandi',
                         prefixIcon: Icon(
                           Icons.lock_outlined,
                           color: AppTheme.accentGreen,
@@ -473,19 +881,17 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
-                          return tr('signup.confirm_password_validation_null');
+                          return 'Silakan konfirmasi kata sandi Anda';
                         }
                         if (value != _passwordController.text) {
-                          return tr(
-                            'signup.confirm_password_validation_mismatch',
-                          );
+                          return 'Kata sandi tidak cocok';
                         }
                         return null;
                       },
                     ),
                     SizedBox(height: _gapMedium(context) - 4),
 
-                    // Terms
+                    // Terms - 🆕 UPDATED WITH CLICKABLE LINKS
                     Container(
                       decoration: BoxDecoration(
                         color: Colors.grey.shade50,
@@ -515,20 +921,42 @@ class _SignupPageState extends ConsumerState<SignupPage>
                                   color: AppTheme.onSurfaceVariant,
                                 ),
                                 children: [
-                                  TextSpan(text: tr('signup.terms_text')),
-                                  TextSpan(
-                                    text: tr('signup.terms_service'),
-                                    style: TextStyle(
-                                      color: AppTheme.primaryBlue,
-                                      fontWeight: FontWeight.w600,
+                                  const TextSpan(text: 'Saya setuju dengan '),
+                                  WidgetSpan(
+                                    child: GestureDetector(
+                                      onTap: _showTermsOfService,
+                                      child: Text(
+                                        'Ketentuan Layanan',
+                                        style: TextStyle(
+                                          color: AppTheme.primaryBlue,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize:
+                                              ResponsiveHelper.adaptiveTextSize(
+                                                context,
+                                                13,
+                                              ),
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
                                     ),
                                   ),
-                                  TextSpan(text: tr('signup.terms_and')),
-                                  TextSpan(
-                                    text: tr('signup.privacy_policy'),
-                                    style: TextStyle(
-                                      color: AppTheme.primaryBlue,
-                                      fontWeight: FontWeight.w600,
+                                  const TextSpan(text: ' dan '),
+                                  WidgetSpan(
+                                    child: GestureDetector(
+                                      onTap: _showPrivacyPolicy,
+                                      child: Text(
+                                        'Kebijakan Privasi',
+                                        style: TextStyle(
+                                          color: AppTheme.primaryBlue,
+                                          fontWeight: FontWeight.w600,
+                                          fontSize:
+                                              ResponsiveHelper.adaptiveTextSize(
+                                                context,
+                                                13,
+                                              ),
+                                          decoration: TextDecoration.underline,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -572,7 +1000,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    tr('signup.button_signup'),
+                                    'Daftar',
                                     style: TextStyle(
                                       fontSize:
                                           ResponsiveHelper.adaptiveTextSize(
@@ -614,10 +1042,10 @@ class _SignupPageState extends ConsumerState<SignupPage>
               Row(
                 children: [
                   Expanded(child: Divider(color: Colors.grey[300])),
-                  Padding(
+                  const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16),
                     child: Text(
-                      tr('signup.divider_text'),
+                      'Atau daftar dengan',
                       style: TextStyle(fontSize: 14),
                     ),
                   ),
@@ -629,7 +1057,26 @@ class _SignupPageState extends ConsumerState<SignupPage>
                 width: double.infinity,
                 height: _fieldHeight(context),
                 child: OutlinedButton(
-                  onPressed: () {},
+                  onPressed: isLoading
+                      ? null
+                      : () async {
+                          try {
+                            await ref
+                                .read(authProvider.notifier)
+                                .loginWithGoogle();
+                          } catch (e) {
+                            if (mounted) {
+                              showMessageToast(
+                                context,
+                                message: e.toString().replaceFirst(
+                                  'Exception: ',
+                                  '',
+                                ),
+                                type: ToastType.error,
+                              );
+                            }
+                          }
+                        },
                   style: OutlinedButton.styleFrom(
                     side: BorderSide(color: Colors.grey[300]!, width: 2),
                     shape: RoundedRectangleBorder(
@@ -647,7 +1094,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        tr('signup.button_google'),
+                        'Lanjutkan dengan Google',
                         style: TextStyle(
                           fontSize: ResponsiveHelper.adaptiveTextSize(
                             context,
@@ -695,7 +1142,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    tr('signup.already_account'),
+                    'Sudah punya akun?',
                     style: TextStyle(
                       color: AppTheme.onSurfaceVariant,
                       fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
@@ -704,7 +1151,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                   GestureDetector(
                     onTap: () => Navigator.pushNamed(context, '/login'),
                     child: Text(
-                      ' ${tr('signup.login')}',
+                      ' Masuk',
                       style: TextStyle(
                         color: AppTheme.accentGreen,
                         fontWeight: FontWeight.bold,
@@ -762,7 +1209,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          tr('signup.left_panel_title'),
+                          'Mulai Perjalananmu',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -775,7 +1222,7 @@ class _SignupPageState extends ConsumerState<SignupPage>
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          tr('signup.left_panel_description'),
+                          'Buat akun untuk mengakses konten dan fitur Islami pilihan.',
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.adaptiveTextSize(

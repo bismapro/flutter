@@ -1,4 +1,3 @@
-import 'package:easy_localization/easy_localization.dart';
 import 'package:flutter/material.dart';
 import 'package:test_flutter/core/constants/app_config.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
@@ -151,7 +150,7 @@ class _WelcomePageState extends State<WelcomePage>
               colors: [AppTheme.primaryBlue, AppTheme.accentGreen],
             ).createShader(bounds),
             child: Text(
-              tr('app.name'),
+              "Shollover",
               textAlign: TextAlign.center,
               style: TextStyle(
                 fontSize: appNameSize,
@@ -196,7 +195,7 @@ class _WelcomePageState extends State<WelcomePage>
                     child: Column(
                       children: [
                         Text(
-                          tr('welcome.title'),
+                          "Tetap Terhubung dengan\nIbadahmu",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -211,7 +210,7 @@ class _WelcomePageState extends State<WelcomePage>
                         ),
                         SizedBox(height: isSmall ? 12 : 16),
                         Text(
-                          tr('welcome.description'),
+                          "Waktu sholat, arah kiblat, kalender hijriah\ndan komunitas - semua dalam satu aplikasi",
                           textAlign: TextAlign.center,
                           style: TextStyle(
                             fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -236,19 +235,21 @@ class _WelcomePageState extends State<WelcomePage>
                           spacing: 16,
                           runSpacing: 12,
                           children: [
-                            _FeatureChip(text: tr('welcome.features_1')),
-                            _FeatureChip(text: tr('welcome.features_2')),
-                            _FeatureChip(text: tr('welcome.features_3')),
+                            _FeatureChip(text: "Waktu sholat akurat"),
+                            _FeatureChip(
+                              text: "Temukan teman baru dalam komunitas",
+                            ),
+                            _FeatureChip(text: "Baca Al-Qur’an"),
                           ],
                         );
                       }
                       return Column(
                         children: [
-                          _FeatureRow(text: tr('welcome.features_1')),
-                          SizedBox(height: 12),
-                          _FeatureRow(text: tr('welcome.features_2')),
-                          SizedBox(height: 12),
-                          _FeatureRow(text: tr('welcome.features_3')),
+                          _FeatureRow(text: "Waktu sholat akurat"),
+                          _FeatureRow(
+                            text: "Temukan teman baru dalam komunitas",
+                          ),
+                          _FeatureRow(text: "Baca Al-Qur’an"),
                         ],
                       );
                     },
@@ -292,7 +293,7 @@ class _WelcomePageState extends State<WelcomePage>
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      tr('welcome.button_get_started'),
+                      "Mulai Sekarang",
                       style: TextStyle(
                         fontSize: ResponsiveHelper.adaptiveTextSize(
                           context,
@@ -324,7 +325,7 @@ class _WelcomePageState extends State<WelcomePage>
                   ),
                 ),
                 child: Text(
-                  tr('welcome.button_guest'),
+                  "Lanjutkan sebagai Tamu",
                   style: TextStyle(
                     color: AppTheme.primaryBlue,
                     fontSize: ResponsiveHelper.adaptiveTextSize(context, 16),
@@ -359,7 +360,7 @@ class _WelcomePageState extends State<WelcomePage>
           ),
           const SizedBox(height: 16),
           Text(
-            tr('welcome.left_panel_title'),
+            "Pendamping Muslim Serba Ada",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: ResponsiveHelper.adaptiveTextSize(context, 22),
@@ -369,7 +370,7 @@ class _WelcomePageState extends State<WelcomePage>
           ),
           const SizedBox(height: 8),
           Text(
-            tr('welcome.left_panel_subtitle'),
+            "Waktu sholat, kiblat, Qur’an, dan fitur komunitas untuk mendukung ibadah harianmu.",
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: ResponsiveHelper.adaptiveTextSize(context, 14),
