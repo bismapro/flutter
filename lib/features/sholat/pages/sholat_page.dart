@@ -41,7 +41,7 @@ class _SholatPageState extends ConsumerState<SholatPage>
 
   // Alarm states
   final Map<String, bool> _wajibAlarms = {
-    'Subuh': false,
+    'Shubuh': false,
     'Dzuhur': false,
     'Ashar': false,
     'Maghrib': false,
@@ -133,7 +133,7 @@ class _SholatPageState extends ConsumerState<SholatPage>
       final states = await _alarmService.getAllAlarmStates();
       if (mounted) {
         setState(() {
-          _wajibAlarms['Subuh'] = states['Subuh'] ?? false;
+          _wajibAlarms['Shubuh'] = states['Shubuh'] ?? false;
           _wajibAlarms['Dzuhur'] = states['Dzuhur'] ?? false;
           _wajibAlarms['Ashar'] = states['Ashar'] ?? false;
           _wajibAlarms['Maghrib'] = states['Maghrib'] ?? false;
@@ -148,7 +148,7 @@ class _SholatPageState extends ConsumerState<SholatPage>
   void _updateAlarmTimes(dynamic jadwal) {
     if (jadwal != null) {
       _alarmService.updatePrayerTimes({
-        'Subuh': jadwal.wajib.shubuh ?? '00:00',
+        'Shubuh': jadwal.wajib.shubuh ?? '00:00',
         'Dzuhur': jadwal.wajib.dzuhur ?? '00:00',
         'Ashar': jadwal.wajib.ashar ?? '00:00',
         'Maghrib': jadwal.wajib.maghrib ?? '00:00',
@@ -1153,11 +1153,11 @@ class _SholatPageState extends ConsumerState<SholatPage>
     final progressData = _currentProgressData;
 
     final wajibList = {
-      'Subuh': {
+      'Shubuh': {
         // UPDATED: ubah dari 'Shubuh' ke 'Subuh'
         'time': jadwal?.wajib.shubuh ?? '--:--',
         'icon': Icons.wb_sunny_outlined,
-        'dbKey': 'subuh', // UPDATED: lowercase 'subuh' sesuai API
+        'dbKey': 'shubuh', // UPDATED: lowercase 'subuh' sesuai API
       },
       'Dzuhur': {
         'time': jadwal?.wajib.dzuhur ?? '--:--',

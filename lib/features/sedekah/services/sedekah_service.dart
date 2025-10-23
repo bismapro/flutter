@@ -1,6 +1,5 @@
 import 'package:dio/dio.dart';
 import 'package:test_flutter/core/utils/api_client.dart';
-import 'package:test_flutter/data/models/sedekah/sedekah.dart';
 
 class SedekahService {
   // Fetch sedekah
@@ -30,7 +29,7 @@ class SedekahService {
   }) async {
     try {
       final response = await ApiClient.dio.post(
-        '/sedekah/progres/add',
+        '/sedekah/progres',
         data: {
           'jenis_sedekah': jenisSedekah,
           'tanggal': tanggal,

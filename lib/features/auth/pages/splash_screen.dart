@@ -27,8 +27,8 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   bool _navigated = false;
   _Target _target = _Target.unknown;
 
-  ProviderSubscription<AsyncValue<void>>? _bootSub; // <— tambahkan
-  bool _bootDone = false; // <— tambahkan
+  // 🆕 Simplified: langsung gunakan flag boolean
+  bool _bootDone = false;
 
   late AnimationController _logoController;
   late AnimationController _textController;
@@ -44,59 +44,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   void initState() {
     super.initState();
 
-    // 1) Trigger cek status auth
+    // 1) Init animasi dulu
+    _initAnimations();
+
+    // 2) Jalankan bootstrap dan auth check secara paralel
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      ref.read(authProvider.notifier).checkAuthStatus();
+      _initializeApp();
     });
+  }
 
-    // 2) Listen auth → tentukan TARGET SAJA (tidak navigate di sini)
-    _authSub = ref.listenManual<Map<String, dynamic>>(authProvider, (
-      prev,
-      next,
-    ) {
-      final status = next['status'] as AuthState?;
-      switch (status) {
-        case AuthState.authenticated:
-          _target = _Target.home;
-          break;
-        case AuthState.unauthenticated:
-        case AuthState.isRegistered:
-        case AuthState.error:
-          _target = _Target.welcome;
-          break;
-        case AuthState.initial:
-        case AuthState.loading:
-        default:
-          _target = _Target.unknown;
-      }
-      _maybeNavigate(); // cek apakah animasi sudah selesai
-    });
-
-    // 2b) Listen bootstrap selesai
-    _bootSub = ref.listenManual<AsyncValue<void>>(
-      bootstrapProvider,
-      (prev, next) {
-        next.when(
-          data: (_) {
-            _bootDone = true;
-            _maybeNavigate();
-          },
-          loading: () {},
-          error: (_, __) {
-            _bootDone = true;
-            _maybeNavigate();
-          },
-        );
-      },
-      fireImmediately: false, // biar gak langsung dipanggil saat registrasi
-    );
-
-    // Trigger bootstrap (tanpa await): mulai paralel segera
-    // dengan cara menyentuh future-nya
-    // ignore: unused_local_variable
-    final _ = ref.read(bootstrapProvider.future);
-
-    // 3) Init animasi
+  void _initAnimations() {
     _logoController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -126,8 +83,68 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     _pulse = Tween<double>(begin: 1.0, end: 1.1).animate(
       CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
     );
+  }
 
+  // 🆕 Initialize app: bootstrap + auth check
+  Future<void> _initializeApp() async {
+    // Start animations immediately
     _startAnimations();
+
+    // Setup auth listener
+    _authSub = ref.listenManual<Map<String, dynamic>>(authProvider, (
+      prev,
+      next,
+    ) {
+      final status = next['status'] as AuthState?;
+      switch (status) {
+        case AuthState.authenticated:
+          _target = _Target.home;
+          break;
+        case AuthState.unauthenticated:
+        case AuthState.isRegistered:
+        case AuthState.error:
+          _target = _Target.welcome;
+          break;
+        case AuthState.initial:
+        case AuthState.loading:
+        default:
+          _target = _Target.unknown;
+      }
+      _maybeNavigate();
+    });
+
+    // 🆕 Wait for bootstrap to complete
+    try {
+      // Read bootstrap provider (will always execute)
+      final bootstrapAsync = ref.read(bootstrapProvider);
+
+      await bootstrapAsync.when(
+        data: (_) async {
+          _bootDone = true;
+          // After bootstrap, check auth status
+          await ref.read(authProvider.notifier).checkAuthStatus();
+          _maybeNavigate();
+        },
+        loading: () async {
+          // Wait for it to complete
+          await ref.read(bootstrapProvider.future);
+          _bootDone = true;
+          await ref.read(authProvider.notifier).checkAuthStatus();
+          _maybeNavigate();
+        },
+        error: (err, stack) async {
+          // Even on error, continue
+          _bootDone = true;
+          await ref.read(authProvider.notifier).checkAuthStatus();
+          _maybeNavigate();
+        },
+      );
+    } catch (e) {
+      // Fallback: if anything fails, still continue
+      _bootDone = true;
+      await ref.read(authProvider.notifier).checkAuthStatus();
+      _maybeNavigate();
+    }
   }
 
   // Jalankan animasi berurut dan tandai selesai
@@ -135,32 +152,60 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await _logoController.forward();
     await Future.delayed(const Duration(milliseconds: 200));
     await _textController.forward();
-    await _progressController.forward(); // selesai progress bar
+    await _progressController.forward();
 
     _animationsDone = true;
     _maybeNavigate();
   }
 
-  // Navigate hanya kalau KEDUA syarat terpenuhi: animasi selesai & target jelas
+  // 🆕 Navigate hanya kalau SEMUA syarat terpenuhi
   void _maybeNavigate() {
     if (!mounted || _navigated) return;
     if (!_animationsDone) return;
+    if (!_bootDone) return;
     if (_target == _Target.unknown) return;
-    if (!_bootDone) return; // <— pastikan bootstrap selesai
 
     _navigated = true;
-    final page = (_target == _Target.home)
-        ? const HomePage()
-        : const WelcomePage();
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => page));
+
+    // Add small delay for smooth transition
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+
+      final page = (_target == _Target.home)
+          ? const HomePage()
+          : const WelcomePage();
+
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (context, animation, secondaryAnimation) => page,
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            const begin = Offset(0.0, 0.1);
+            const end = Offset.zero;
+            const curve = Curves.easeInOut;
+
+            var tween = Tween(
+              begin: begin,
+              end: end,
+            ).chain(CurveTween(curve: curve));
+            var fadeAnimation = Tween<double>(
+              begin: 0.0,
+              end: 1.0,
+            ).animate(CurvedAnimation(parent: animation, curve: curve));
+
+            return SlideTransition(
+              position: animation.drive(tween),
+              child: FadeTransition(opacity: fadeAnimation, child: child),
+            );
+          },
+          transitionDuration: const Duration(milliseconds: 600),
+        ),
+      );
+    });
   }
 
   @override
   void dispose() {
     _authSub?.close();
-    _bootSub?.close();
     _logoController.dispose();
     _textController.dispose();
     _progressController.dispose();
@@ -207,7 +252,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     );
 
     final screenW = MediaQuery.sizeOf(context).width;
-    final isNarrow = screenW <= 360; // penting: 360 ikut kategori sempit
+    final isNarrow = screenW <= 360;
     final horizontalPad = isNarrow ? 16.0 : (screenW < 600 ? 24.0 : 32.0);
     final logoSize = _logoSize(context);
     final titleSize = ResponsiveHelper.adaptiveTextSize(context, 44);
@@ -279,7 +324,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
               ),
             ),
 
-            // Main content (selalu center + lebar dibatasi)
+            // Main content
             SafeArea(
               child: Center(
                 child: ConstrainedBox(
@@ -288,13 +333,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     padding: EdgeInsets.symmetric(horizontal: horizontalPad),
                     child: LayoutBuilder(
                       builder: (context, inner) {
-                        final innerW =
-                            inner.maxWidth; // lebar konten yang sesungguhnya
+                        final innerW = inner.maxWidth;
                         final barWidth = math.max(
                           200.0,
                           math.min(innerW * 0.7, 320.0),
                         );
-                        final canWrap = innerW <= 360; // penting: 360 ikut wrap
+                        final canWrap = innerW <= 360;
 
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
@@ -385,7 +429,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                                               height: _gapSmall(context),
                                             ),
                                             Text(
-                                              'Selamat datang di Shollover',
+                                              'Partner Ibadah Anda',
                                               textAlign: TextAlign.center,
                                               style: TextStyle(
                                                 fontSize: subtitleSize,
@@ -404,7 +448,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
                                   SizedBox(height: _gapMedium(context)),
 
-                                  // Feature icons : wrap pada ≤ 360 agar tetap center
+                                  // Feature icons
                                   AnimatedBuilder(
                                     animation: _textFade,
                                     builder: (context, child) {
@@ -570,7 +614,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   }
 
   Widget _buildFeatureIcon(IconData icon, double size) {
-    final box = size + 24; // container sedikit lebih besar dari icon
+    final box = size + 24;
     return Container(
       width: box,
       height: box,
