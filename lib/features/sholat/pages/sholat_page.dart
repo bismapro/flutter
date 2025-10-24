@@ -70,6 +70,8 @@ class _SholatPageState extends ConsumerState<SholatPage>
       Future.delayed(const Duration(seconds: 2), () async {
         final pending = await _alarmService.getPendingNotifications();
         logger.info('Active alarms: ${pending.length}');
+
+        await _alarmService.debugAlarmStatus();
       });
     }
   }
@@ -1260,26 +1262,42 @@ class _SholatPageState extends ConsumerState<SholatPage>
 
             final newState = !(_wajibAlarms[name] ?? false);
 
+            if (time == '--:--') {
+              showMessageToast(
+                context,
+                message: 'Waktu sholat belum tersedia',
+                type: ToastType.warning,
+              );
+              return;
+            }
+
             try {
               await _alarmService.setAlarm(name, newState, time);
 
-              setState(() {
-                _wajibAlarms[name] = newState;
-              });
+              final isEnabled = await _alarmService.isAlarmEnabled(name);
+              logger.info('Alarm verification for $name: $isEnabled');
 
-              showMessageToast(
-                context,
-                message: newState
-                    ? 'Alarm $name diaktifkan'
-                    : 'Alarm $name dinonaktifkan',
-                type: ToastType.success,
-              );
+              if (mounted) {
+                setState(() {
+                  _wajibAlarms[name] = newState;
+                });
+
+                showMessageToast(
+                  context,
+                  message: newState
+                      ? 'Alarm $name diaktifkan pada $time'
+                      : 'Alarm $name dinonaktifkan',
+                  type: ToastType.success,
+                );
+              }
             } catch (e) {
-              showMessageToast(
-                context,
-                message: 'Gagal mengatur alarm: $e',
-                type: ToastType.error,
-              );
+              if (mounted) {
+                showMessageToast(
+                  context,
+                  message: 'Gagal mengatur alarm: $e',
+                  type: ToastType.error,
+                );
+              }
             }
           },
         );

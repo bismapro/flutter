@@ -113,7 +113,8 @@ class AlarmService {
   Future<void> _loadSavedPrayerTimes() async {
     try {
       SharedPreferences prefs = await SharedPreferences.getInstance();
-      final prayerNames = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
+      // UPDATED: Gunakan penamaan yang konsisten dengan sholat_page.dart
+      final prayerNames = ['Shubuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
 
       for (String prayerName in prayerNames) {
         final savedTime = prefs.getString('time_$prayerName');
@@ -172,7 +173,8 @@ class AlarmService {
       SharedPreferences prefs = await SharedPreferences.getInstance();
       Map<String, bool> alarmStates = {};
 
-      final prayerNames = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
+      // UPDATED: Gunakan penamaan yang konsisten
+      final prayerNames = ['Shubuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
 
       for (String prayerName in prayerNames) {
         final key = _getAlarmKey(prayerName);
@@ -241,6 +243,16 @@ class AlarmService {
         scheduledTime = scheduledTime.add(const Duration(days: 1));
       }
 
+      // UPDATED: Convert to TZDateTime with proper timezone
+      final tz.TZDateTime tzScheduledTime = tz.TZDateTime(
+        tz.local,
+        scheduledTime.year,
+        scheduledTime.month,
+        scheduledTime.day,
+        hour,
+        minute,
+      );
+
       // Action button untuk stop alarm
       const AndroidNotificationAction stopAction = AndroidNotificationAction(
         stopAlarmActionId,
@@ -249,6 +261,7 @@ class AlarmService {
         showsUserInterface: true,
       );
 
+      // UPDATED: Nonaktifkan sound di scheduled notification
       final AndroidNotificationDetails androidDetails =
           AndroidNotificationDetails(
             'prayer_alarm_channel',
@@ -258,17 +271,18 @@ class AlarmService {
             priority: Priority.high,
             showWhen: true,
             enableVibration: true,
-            playSound: false, // Kita akan play adzan manual
+            playSound:
+                false, // UPDATED: Set false, biarkan timer checker yang play
             fullScreenIntent: true,
             category: AndroidNotificationCategory.alarm,
             actions: const <AndroidNotificationAction>[stopAction],
           );
 
       const DarwinNotificationDetails iosDetails = DarwinNotificationDetails(
-        sound: null,
+        sound: null, // UPDATED: Set null untuk iOS juga
         presentAlert: true,
         presentBadge: true,
-        presentSound: false,
+        presentSound: false, // UPDATED: Set false
         interruptionLevel: InterruptionLevel.critical,
       );
 
@@ -279,26 +293,35 @@ class AlarmService {
 
       final id = _getNotificationId(prayerName);
 
+      // UPDATED: Cancel existing notification first
+      await flutterLocalNotificationsPlugin.cancel(id);
+
       // Schedule dengan matchDateTimeComponents.time agar repeat setiap hari
       await flutterLocalNotificationsPlugin.zonedSchedule(
         id,
         '🕌 Waktu Sholat $prayerName',
         'Saatnya melaksanakan sholat $prayerName. Allahu Akbar!',
-        tz.TZDateTime.from(scheduledTime, tz.local),
+        tzScheduledTime,
         platformDetails,
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
         payload: prayerName,
-        matchDateTimeComponents: DateTimeComponents
-            .time, // PENTING: Ini membuat alarm repeat setiap hari
+        matchDateTimeComponents: DateTimeComponents.time,
       );
 
       logger.info(
-        'Notification scheduled for $prayerName at $time (repeating daily)',
+        'Notification scheduled for $prayerName at $time (ID: $id, Time: $tzScheduledTime, repeating daily)',
       );
+
+      // UPDATED: Verify notification is scheduled
+      final pending = await flutterLocalNotificationsPlugin
+          .pendingNotificationRequests();
+      final isScheduled = pending.any((n) => n.id == id);
+      logger.info('Notification verified for $prayerName: $isScheduled');
     } catch (e) {
       logger.severe('Error scheduling notification for $prayerName: $e');
+      rethrow;
     }
   }
 
@@ -326,6 +349,10 @@ class AlarmService {
   /// Start checker untuk mengecek waktu sholat setiap menit
   void _startPrayerTimeChecker() {
     _checkTimer?.cancel();
+
+    // UPDATED: Check immediately first
+    _checkPrayerTimes();
+
     _checkTimer = Timer.periodic(const Duration(minutes: 1), (timer) async {
       await _checkPrayerTimes();
     });
@@ -340,14 +367,19 @@ class AlarmService {
       final String currentTime =
           '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
 
+      logger.info('Checking prayer times at $currentTime');
+      logger.info('Prayer times to check: $_prayerTimes');
+
       for (String prayerName in _prayerTimes.keys) {
         final prayerTime = _prayerTimes[prayerName];
 
         if (prayerTime == currentTime) {
           bool isEnabled = await isAlarmEnabled(prayerName);
 
+          logger.info('Time match for $prayerName! Alarm enabled: $isEnabled');
+
           if (isEnabled) {
-            logger.info('Prayer time reached for $prayerName at $currentTime');
+            logger.info('Triggering alarm for $prayerName at $currentTime');
             await _playAdzan();
             await _showImmediateNotification(prayerName);
           }
@@ -430,7 +462,7 @@ class AlarmService {
       await audioPlayer.setVolume(1.0);
 
       // Play adzan
-      await audioPlayer.play(AssetSource('audio/adzan.mp3'));
+      await audioPlayer.play(AssetSource('assets/audio/adzan.mp3'));
 
       logger.info('Playing adzan...');
 
@@ -491,7 +523,8 @@ class AlarmService {
   /// Cancel all alarms
   Future<void> cancelAllAlarms() async {
     try {
-      final prayerNames = ['Subuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
+      // UPDATED: Gunakan penamaan yang konsisten
+      final prayerNames = ['Shubuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
 
       for (String prayerName in prayerNames) {
         await _cancelNotification(prayerName);
@@ -532,5 +565,38 @@ class AlarmService {
     _isInitialized = false;
     _isAdzanPlaying = false;
     logger.info('AlarmService disposed');
+  }
+
+  Future<void> debugAlarmStatus() async {
+    try {
+      logger.info('=== DEBUG ALARM STATUS ===');
+
+      // Check saved times
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      logger.info('Saved prayer times:');
+      final prayerNames = ['Shubuh', 'Dzuhur', 'Ashar', 'Maghrib', 'Isya'];
+      for (String name in prayerNames) {
+        final time = prefs.getString('time_$name');
+        final enabled = prefs.getBool(_getAlarmKey(name));
+        logger.info('  $name: time=$time, enabled=$enabled');
+      }
+
+      // Check memory state
+      logger.info('Memory prayer times: $_prayerTimes');
+
+      // Check pending notifications
+      final pending = await getPendingNotifications();
+      logger.info('Pending notifications: ${pending.length}');
+
+      // Check current time
+      final now = DateTime.now();
+      final currentTime =
+          '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+      logger.info('Current time: $currentTime');
+
+      logger.info('=== END DEBUG ===');
+    } catch (e) {
+      logger.severe('Error in debug: $e');
+    }
   }
 }
