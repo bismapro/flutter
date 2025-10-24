@@ -2,6 +2,6 @@
 <resources>
     <string name="app_name">Shollover</string>
     <!-- Work -->
-    <string name="default_web_client_id">721583416673-9av8qs0bqs2bsjpvsbiuh38ko7sae09n.apps.googleusercontent.com</string>
-    <!-- <string name="default_web_client_id">792758347753-u5at33fh8vis2o0vm1elumtjv4l72908.apps.googleusercontent.com</string> -->
+    <!-- <string name="default_web_client_id">721583416673-9av8qs0bqs2bsjpvsbiuh38ko7sae09n.apps.googleusercontent.com</string> -->
+    <string name="default_web_client_id">792758347753-u5at33fh8vis2o0vm1elumtjv4l72908.apps.googleusercontent.com</string>
 </resources>

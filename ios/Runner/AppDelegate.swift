@@ -10,8 +10,8 @@ import GoogleSignIn
     GeneratedPluginRegistrant.register(with: self)
 
     // Work
-    GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: "721583416673-da6ad404dc2neh83r68ldoqrsov5v4pm.apps.googleusercontent.com")
-    // GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: "792758347753-85shfp2g1r283jn7t7e3qk7vbs3bkbr6.apps.googleusercontent.com")
+    // GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: "721583416673-da6ad404dc2neh83r68ldoqrsov5v4pm.apps.googleusercontent.com")
+    GIDSignIn.sharedInstance.configuration = GIDConfiguration(clientID: "792758347753-85shfp2g1r283jn7t7e3qk7vbs3bkbr6.apps.googleusercontent.com")
 
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }

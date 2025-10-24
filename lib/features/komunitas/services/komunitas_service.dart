@@ -64,45 +64,13 @@ class KomunitasService {
       final response = await ApiClient.dio.get('/komunitas/postingan/$id');
 
       final responseData = response.data as Map<String, dynamic>;
-      final postinganData = responseData['data'] as Map<String, dynamic>;
-
-      // Get like status
-      bool isLiked = false;
-      try {
-        final likeResponse = await getLikeStatus(id);
-        isLiked = likeResponse['status'] as bool? ?? false;
-      } catch (e) {
-        // If like status fails, default to false
-        isLiked = false;
-      }
-
-      // Add liked status to postingan data
-      postinganData['liked'] = isLiked;
+      final postingan = responseData['data'] as Map<String, dynamic>;
 
       return {
         'status': responseData['status'],
         'message': responseData['message'],
-        'data': postinganData,
+        'data': postingan,
       };
-    } on DioException catch (e) {
-      final error = ApiClient.parseDioError(e);
-      throw Exception(error);
-    }
-  }
-
-  // Get like status (Updated return type)
-  static Future<Map<String, dynamic>> getLikeStatus(String postinganId) async {
-    try {
-      final response = await ApiClient.dio.get(
-        '/komunitas/postingan/$postinganId/like-status',
-      );
-
-      final responseData = response.data as Map<String, dynamic>;
-
-      // Assuming API returns { "status": true/false, "message": "..." }
-      final likeStatus = responseData['status'] as bool? ?? false;
-
-      return {'status': likeStatus, 'message': responseData['message']};
     } on DioException catch (e) {
       final error = ApiClient.parseDioError(e);
       throw Exception(error);
