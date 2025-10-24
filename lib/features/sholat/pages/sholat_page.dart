@@ -1146,7 +1146,215 @@ class _SholatPageState extends ConsumerState<SholatPage>
     );
   }
 
-  // ...existing code...
+  // UPDATED: Test Alarm Card
+  Widget _buildTestAlarmCard() {
+    // State untuk test alarm
+    bool isTestAlarmActive = false;
+    String testTime = '';
+
+    return StatefulBuilder(
+      builder: (context, setTestState) {
+        return Container(
+          margin: EdgeInsets.only(bottom: _px(context, 12)),
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.orange.shade400, Colors.deepOrange.shade600],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.orange.withValues(alpha: 0.3),
+                blurRadius: 8,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(16),
+              onTap: () async {
+                // Get time 1 minute from now
+                final now = DateTime.now();
+                final testDateTime = now.add(const Duration(minutes: 1));
+                testTime =
+                    '${testDateTime.hour.toString().padLeft(2, '0')}:${testDateTime.minute.toString().padLeft(2, '0')}';
+
+                final newState = !isTestAlarmActive;
+
+                try {
+                  // Set alarm dengan waktu +1 menit
+                  await _alarmService.setAlarm('Test', newState, testTime);
+
+                  // Verify
+                  final isEnabled = await _alarmService.isAlarmEnabled('Test');
+
+                  setTestState(() {
+                    isTestAlarmActive = newState;
+                  });
+
+                  if (mounted) {
+                    showMessageToast(
+                      context,
+                      message: newState
+                          ? '🧪 Test alarm set untuk $testTime (1 menit lagi)'
+                          : '🧪 Test alarm dimatikan',
+                      type: ToastType.success,
+                    );
+                  }
+
+                  logger.info(
+                    'Test alarm ${newState ? "enabled" : "disabled"} for $testTime',
+                  );
+                  logger.info('Verification: $isEnabled');
+
+                  // Show debug info
+                  await _alarmService.debugAlarmStatus();
+                } catch (e) {
+                  logger.severe('Error setting test alarm: $e');
+                  if (mounted) {
+                    showMessageToast(
+                      context,
+                      message: 'Gagal set test alarm: $e',
+                      type: ToastType.error,
+                    );
+                  }
+                }
+              },
+              child: Padding(
+                padding: EdgeInsets.all(_px(context, 16)),
+                child: Row(
+                  children: [
+                    // Icon
+                    Container(
+                      padding: EdgeInsets.all(_px(context, 12)),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Icon(
+                        Icons.science_rounded,
+                        color: Colors.white,
+                        size: _px(context, 28),
+                      ),
+                    ),
+                    SizedBox(width: _px(context, 16)),
+
+                    // Info
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Text(
+                                '🧪 TEST ALARM',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: _ts(context, 16),
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              SizedBox(width: _px(context, 8)),
+                              Container(
+                                padding: EdgeInsets.symmetric(
+                                  horizontal: _px(context, 8),
+                                  vertical: _px(context, 4),
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.3),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'DEBUG',
+                                  style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: _ts(context, 10),
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          SizedBox(height: _px(context, 4)),
+                          Text(
+                            testTime.isEmpty
+                                ? 'Tap untuk set alarm (+1 menit)'
+                                : 'Alarm: $testTime',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.9),
+                              fontSize: _ts(context, 14),
+                            ),
+                          ),
+                          SizedBox(height: _px(context, 4)),
+                          Text(
+                            'Akan bunyi 1 menit dari sekarang',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.7),
+                              fontSize: _ts(context, 12),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // Alarm Toggle
+                    Container(
+                      width: _px(context, 50),
+                      height: _px(context, 30),
+                      decoration: BoxDecoration(
+                        color: isTestAlarmActive
+                            ? Colors.white
+                            : Colors.white.withValues(alpha: 0.3),
+                        borderRadius: BorderRadius.circular(15),
+                      ),
+                      child: Stack(
+                        children: [
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 200),
+                            left: isTestAlarmActive
+                                ? _px(context, 22)
+                                : _px(context, 2),
+                            top: _px(context, 2),
+                            child: Container(
+                              width: _px(context, 26),
+                              height: _px(context, 26),
+                              decoration: BoxDecoration(
+                                color: isTestAlarmActive
+                                    ? Colors.orange.shade600
+                                    : Colors.white,
+                                shape: BoxShape.circle,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.2),
+                                    blurRadius: 4,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: Icon(
+                                Icons.alarm,
+                                color: isTestAlarmActive
+                                    ? Colors.white
+                                    : Colors.orange.shade600,
+                                size: _px(context, 16),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
   Widget _buildWajibTab(dynamic jadwal, bool small) {
     final state = ref.watch(sholatProvider);
@@ -1156,10 +1364,9 @@ class _SholatPageState extends ConsumerState<SholatPage>
 
     final wajibList = {
       'Shubuh': {
-        // UPDATED: ubah dari 'Shubuh' ke 'Subuh'
         'time': jadwal?.wajib.shubuh ?? '--:--',
         'icon': Icons.wb_sunny_outlined,
-        'dbKey': 'shubuh', // UPDATED: lowercase 'subuh' sesuai API
+        'dbKey': 'shubuh',
       },
       'Dzuhur': {
         'time': jadwal?.wajib.dzuhur ?? '--:--',
@@ -1186,9 +1393,17 @@ class _SholatPageState extends ConsumerState<SholatPage>
     return ListView.builder(
       padding: _hpad(context).add(EdgeInsets.only(bottom: _px(context, 16))),
       physics: const BouncingScrollPhysics(),
-      itemCount: wajibList.length,
+      // UPDATED: Tambah 1 untuk test card di debug mode
+      itemCount: kDebugMode ? wajibList.length + 1 : wajibList.length,
       itemBuilder: (_, i) {
-        final name = wajibList.keys.elementAt(i);
+        // UPDATED: Test card di posisi pertama (debug mode only)
+        if (kDebugMode && i == 0) {
+          return _buildTestAlarmCard();
+        }
+
+        // UPDATED: Adjust index jika ada test card
+        final actualIndex = kDebugMode ? i - 1 : i;
+        final name = wajibList.keys.elementAt(actualIndex);
         final jadwalData = wajibList[name]!;
         final dbKey = jadwalData['dbKey'] as String;
         final time = jadwalData['time'] as String;

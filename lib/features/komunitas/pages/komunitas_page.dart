@@ -503,8 +503,18 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
   // Show Post Options
   void _showPostOptions(Map<String, dynamic> post) {
     final authState = ref.watch(authProvider);
+
+    if (authState['status'] != AuthState.authenticated) {
+      showMessageToast(
+        context,
+        message: 'Anda harus login terlebih dahulu',
+        type: ToastType.error,
+      );
+      return;
+    }
+
     final currentUser = authState['user'];
-    final userId = currentUser['user']['id'] ?? currentUser['id'];
+    final userId = currentUser['id'] ?? currentUser['user']['id'];
     final isMyPost = userId != null && post['authorId'] == userId;
 
     showModalBottomSheet(
@@ -871,14 +881,13 @@ class _KomunitasPageState extends ConsumerState<KomunitasPage>
                                                 width: 18,
                                                 height: 18,
                                                 fit: BoxFit.cover,
-                                                errorBuilder: (_, _, _) =>
-                                                    Icon(
-                                                      categoryIcon,
-                                                      size: 18,
-                                                      color: isSelected
-                                                          ? Colors.white
-                                                          : categoryColor,
-                                                    ),
+                                                errorBuilder: (_, _, _) => Icon(
+                                                  categoryIcon,
+                                                  size: 18,
+                                                  color: isSelected
+                                                      ? Colors.white
+                                                      : categoryColor,
+                                                ),
                                               ),
                                             ),
                                           )

@@ -462,7 +462,7 @@ class AlarmService {
       await audioPlayer.setVolume(1.0);
 
       // Play adzan
-      await audioPlayer.play(AssetSource('assets/audio/adzan.mp3'));
+      await audioPlayer.play(AssetSource('audio/adzan.mp3'));
 
       logger.info('Playing adzan...');
 
