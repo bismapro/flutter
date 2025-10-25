@@ -24,6 +24,9 @@ jobs:
       - name: Run tests (optional)
         run: flutter test || true
 
+      - name: Create .env file
+        run: echo "API_URL=https://shollover.exaapk.com/api" >> .env && echo "STORAGE_URL=https://shollover.exaapk.com/storage" >> .env
+
       - name: Build APK for Android
         run: flutter build apk
 
