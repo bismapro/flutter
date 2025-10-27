@@ -3,35 +3,63 @@ name: Shollover CI/CD
 on:
   push:
     branches:
-      - dev
+      - main
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
+      - name: 🧭 Checkout source
         uses: actions/checkout@v4
 
-      - name: Setup Flutter
+      - name: ⚙️ Setup Flutter
         uses: subosito/flutter-action@v2
         with:
           flutter-version: "3.9.2"
 
-      - name: Install dependencies
+      - name: 📦 Install dependencies
         run: flutter pub get
 
-      - name: Run tests (optional)
+      - name: 🧪 Run tests (optional)
         run: flutter test || true
 
-      - name: Create .env file
-        run: echo "API_URL=https://shollover.exaapk.com/api" >> .env && echo "STORAGE_URL=https://shollover.exaapk.com/storage" >> .env
+      - name: 🌍 Create .env file
+        run: |
+          echo "API_URL=https://shollover.exaapk.com/api" >> .env
+          echo "STORAGE_URL=https://shollover.exaapk.com/storage" >> .env
 
-      - name: Build APK for Android
+      - name: 🔐 Decode release keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/shollover-release.jks
+
+      - name: 🧾 Generate key.properties
+        run: |
+          echo "storeFile=shollover-release.jks" > android/key.properties
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+
+      # - name: 🚀 Build release APK
+      #   env:
+      #     KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      #   run: |
+      #     flutter build apk --release \
+      #       --build-name=1.0.${{ github.run_number }} \
+      #       --build-number=${{ github.run_number }}
+
+      - name: 🚀 Build debug APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk
 
-      - name: Upload APK as artifact
-        uses: actions/upload-artifact@v4
+      - name: 🔗 Upload to Google Drive
+        uses: Jodebu/upload-to-google-drive@v1.0.3
         with:
-          name: Shollover App
-          path: build/app/outputs/flutter-apk/app-release.apk
+          filename: build/app/outputs/flutter-apk/app-release.apk
+          name: Shollover-App-${{ github.run_number }}.apk
+          folderId: ${{ secrets.GDRIVE_FOLDER_ID }}
+          credentials: ${{ secrets.GDRIVE_CREDENTIALS }}
