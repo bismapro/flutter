@@ -54,19 +54,48 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: flutter build apk
+        run: flutter build apk --release
 
-      - name: 🔗 Upload to Google Drive (manual)
+      - name: 🔗 Upload to Google Drive (service account)
+        env:
+          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
+          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
         run: |
-          echo '${{ secrets.GDRIVE_CREDENTIALS }}' > credentials.json
-          ACCESS_TOKEN=$(curl -s -X POST \
-            -H "Content-Type: application/json" \
-            -d @credentials.json \
-            "https://oauth2.googleapis.com/token" | jq -r '.access_token')
+          echo "$GDRIVE_CREDENTIALS" > credentials.json
+          
+          # Extract fields from service account JSON
+          CLIENT_EMAIL=$(jq -r '.client_email' credentials.json)
+          PRIVATE_KEY=$(jq -r '.private_key' credentials.json | sed 's/\\n/\n/g')
+
+          # Generate JWT claim set
+          IAT=$(date +%s)
+          EXP=$(($IAT + 3600))
+          HEADER=$(echo -n '{"alg":"RS256","typ":"JWT"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          CLAIM=$(echo -n "{\"iss\":\"$CLIENT_EMAIL\",\"scope\":\"https://www.googleapis.com/auth/drive.file\",\"aud\":\"https://oauth2.googleapis.com/token\",\"exp\":$EXP,\"iat\":$IAT}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          SIGNATURE=$(echo -n "$HEADER.$CLAIM" | openssl dgst -sha256 -sign <(echo "$PRIVATE_KEY") | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+          JWT="$HEADER.$CLAIM.$SIGNATURE"
+
+          # Exchange JWT for access token
+          ACCESS_TOKEN=$(curl -s -X POST https://oauth2.googleapis.com/token \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=$JWT" | jq -r '.access_token')
+
+          if [ "$ACCESS_TOKEN" == "null" ] || [ -z "$ACCESS_TOKEN" ]; then
+            echo "❌ Failed to get access token"
+            exit 1
+          fi
+
+          # Upload file
+          FILE_PATH="build/app/outputs/flutter-apk/app-release.apk"
+          if [ ! -f "$FILE_PATH" ]; then
+            echo "❌ File not found: $FILE_PATH"
+            exit 1
+          fi
 
           curl -X POST -L \
             -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -F "metadata={name : 'Shollover-App-${{ github.run_number }}.apk', parents:['${{ secrets.GDRIVE_FOLDER_ID }}']};type=application/json;charset=UTF-8" \
-            -F "file=@build/app/outputs/flutter-apk/app-debug.apk;type=application/vnd.android.package-archive" \
+            -F "metadata={name : 'Shollover-App-${{ github.run_number }}.apk', parents:['$GDRIVE_FOLDER_ID']};type=application/json;charset=UTF-8" \
+            -F "file=@$FILE_PATH;type=application/vnd.android.package-archive" \
             "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
+
 
