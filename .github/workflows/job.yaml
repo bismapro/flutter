@@ -1,10 +1,9 @@
-name: Build & Release Flutter APK
+name: Shollover CI/CD
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 jobs:
@@ -12,19 +11,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧩 Checkout repo
+      - name: 🧭 Checkout source
         uses: actions/checkout@v4
 
-      - name: 🔧 Setup Flutter
+      - name: ⚙️ Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.24.3' # sesuaikan versi kamu
+          flutter-version: "3.35.4"
 
-      - name: 📦 Get dependencies
+      - name: 📦 Install dependencies
         run: flutter pub get
 
-      # kalau belum mau release, tinggal comment step ini 👇
-      - name: 🏗️ Build release APK
+      - name: 🧪 Run tests (optional)
+        run: flutter test || true
+
+      - name: 🌍 Create .env file
+        run: |
+          echo "API_URL=https://shollover.exaapk.com/api" >> .env
+          echo "STORAGE_URL=https://shollover.exaapk.com/storage" >> .env
+
+      - name: 🔐 Decode release keystore
+        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/shollover-release.jks
+
+      - name: 🧾 Generate key.properties
+        run: |
+          echo "storeFile=shollover-release.jks" > android/key.properties
+          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
+          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
+          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
+
+      # - name: 🚀 Build release APK
+      #   env:
+      #     KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      #   run: |
+      #     flutter build apk --release \
+      #       --build-name=1.0.${{ github.run_number }} \
+      #       --build-number=${{ github.run_number }}
+
+      - name: 🚀 Build debug APK
+        env:
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release
 
       - name: 🏷️ Rename APK with build number
