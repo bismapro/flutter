@@ -1,101 +1,64 @@
-name: Shollover CI/CD
+name: Build & Release Flutter APK
 
 on:
   push:
-    branches:
-      - main
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 🧭 Checkout source
+      - name: 🧩 Checkout repo
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Flutter
+      - name: 🔧 Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: "3.35.4"
+          flutter-version: '3.24.3' # sesuaikan versi kamu
 
-      - name: 📦 Install dependencies
+      - name: 📦 Get dependencies
         run: flutter pub get
 
-      - name: 🧪 Run tests (optional)
-        run: flutter test || true
-
-      - name: 🌍 Create .env file
-        run: |
-          echo "API_URL=https://shollover.exaapk.com/api" >> .env
-          echo "STORAGE_URL=https://shollover.exaapk.com/storage" >> .env
-
-      - name: 🔐 Decode release keystore
-        run: echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/app/shollover-release.jks
-
-      - name: 🧾 Generate key.properties
-        run: |
-          echo "storeFile=shollover-release.jks" > android/key.properties
-          echo "storePassword=${{ secrets.KEYSTORE_PASSWORD }}" >> android/key.properties
-          echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
-          echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
-
-      # - name: 🚀 Build release APK
-      #   env:
-      #     KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      #   run: |
-      #     flutter build apk --release \
-      #       --build-name=1.0.${{ github.run_number }} \
-      #       --build-number=${{ github.run_number }}
-
-      - name: 🚀 Build debug APK
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+      # kalau belum mau release, tinggal comment step ini 👇
+      - name: 🏗️ Build release APK
         run: flutter build apk --release
 
-      - name: 🔗 Upload to Google Drive (service account)
-        env:
-          GDRIVE_CREDENTIALS: ${{ secrets.GDRIVE_CREDENTIALS }}
-          GDRIVE_FOLDER_ID: ${{ secrets.GDRIVE_FOLDER_ID }}
+      - name: 🏷️ Rename APK with build number
         run: |
-          echo "$GDRIVE_CREDENTIALS" > credentials.json
-          
-          # Extract fields from service account JSON
-          CLIENT_EMAIL=$(jq -r '.client_email' credentials.json)
-          PRIVATE_KEY=$(jq -r '.private_key' credentials.json | sed 's/\\n/\n/g')
+          mkdir output
+          cp build/app/outputs/flutter-apk/app-release.apk output/Shollover-${{ github.run_number }}.apk
 
-          # Generate JWT claim set
-          IAT=$(date +%s)
-          EXP=$(($IAT + 3600))
-          HEADER=$(echo -n '{"alg":"RS256","typ":"JWT"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-          CLAIM=$(echo -n "{\"iss\":\"$CLIENT_EMAIL\",\"scope\":\"https://www.googleapis.com/auth/drive.file\",\"aud\":\"https://oauth2.googleapis.com/token\",\"exp\":$EXP,\"iat\":$IAT}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-          SIGNATURE=$(echo -n "$HEADER.$CLAIM" | openssl dgst -sha256 -sign <(echo "$PRIVATE_KEY") | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-          JWT="$HEADER.$CLAIM.$SIGNATURE"
+      - name: 🚀 Create GitHub Release
+        id: create_release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ github.run_number }}
+          name: "Shollover Build #${{ github.run_number }}"
+          body: |
+            🚀 **New Shollover APK Build**
+            🕓 Build Time: ${{ github.event.head_commit.timestamp }}
+            👤 Triggered by: ${{ github.actor }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          # Exchange JWT for access token
-          ACCESS_TOKEN=$(curl -s -X POST https://oauth2.googleapis.com/token \
-            -H "Content-Type: application/x-www-form-urlencoded" \
-            -d "grant_type=urn:ietf:params:oauth:grant-type:jwt-bearer&assertion=$JWT" | jq -r '.access_token')
+      - name: 📤 Upload APK to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: output/Shollover-${{ github.run_number }}.apk
+          tag_name: v${{ github.run_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-          if [ "$ACCESS_TOKEN" == "null" ] || [ -z "$ACCESS_TOKEN" ]; then
-            echo "❌ Failed to get access token"
-            exit 1
-          fi
-
-          # Upload file
-          FILE_PATH="build/app/outputs/flutter-apk/app-release.apk"
-          if [ ! -f "$FILE_PATH" ]; then
-            echo "❌ File not found: $FILE_PATH"
-            exit 1
-          fi
-
-          curl -X POST -L \
-            -H "Authorization: Bearer $ACCESS_TOKEN" \
-            -F "metadata={name : 'Shollover-App-${{ github.run_number }}.apk', parents:['$GDRIVE_FOLDER_ID']};type=application/json;charset=UTF-8" \
-            -F "file=@$FILE_PATH;type=application/vnd.android.package-archive" \
-            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
-
-
+      - name: 💬 Comment with release link
+        if: github.event_name == 'pull_request' || github.event_name == 'push'
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          issue-number: ${{ github.event.pull_request.number || github.event.head_commit.id }}
+          body: |
+            ✅ Build complete!
+            📦 [Download APK from Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }})
