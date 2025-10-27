@@ -112,37 +112,52 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                           padding: EdgeInsets.symmetric(
                             vertical: _px(context, 20),
                           ),
-                          child: Row(
+                          child: Stack(
+                            alignment: Alignment.center,
                             children: [
-                              Expanded(
-                                child: Text(
-                                  'Profile',
-                                  style: TextStyle(
-                                    fontSize: _ts(context, 28),
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF2D3748),
-                                  ),
+                              // Back button (left)
+                              Align(
+                                alignment: Alignment.centerLeft,
+                                child: IconButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop();
+                                  },
+                                  icon: const Icon(Icons.arrow_back_rounded),
+                                  color: const Color(0xFF2D3748),
+                                  tooltip: 'Kembali',
                                 ),
                               ),
-                              // Refresh button (only for authenticated users)
+                              // Title (center)
+                              Text(
+                                'Profile',
+                                style: TextStyle(
+                                  fontSize: _ts(context, 28),
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF2D3748),
+                                ),
+                              ),
+                              // Refresh button (right) - only for authenticated users
                               if (isAuthenticated &&
                                   status != ProfileStatus.loading)
-                                Container(
-                                  decoration: BoxDecoration(
-                                    color: const Color(
-                                      0xFF1E88E5,
-                                    ).withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: IconButton(
-                                    onPressed: () {
-                                      ref
-                                          .read(profileProvider.notifier)
-                                          .loadUser();
-                                    },
-                                    icon: const Icon(Icons.refresh_rounded),
-                                    color: const Color(0xFF1E88E5),
-                                    tooltip: 'Refresh',
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: Container(
+                                    decoration: BoxDecoration(
+                                      color: const Color(
+                                        0xFF1E88E5,
+                                      ).withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: IconButton(
+                                      onPressed: () {
+                                        ref
+                                            .read(profileProvider.notifier)
+                                            .loadUser();
+                                      },
+                                      icon: const Icon(Icons.refresh_rounded),
+                                      color: const Color(0xFF1E88E5),
+                                      tooltip: 'Refresh',
+                                    ),
                                   ),
                                 ),
                             ],

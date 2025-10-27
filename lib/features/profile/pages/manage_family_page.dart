@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:test_flutter/app/theme.dart';
-import 'package:test_flutter/features/compass/pages/compass_page.dart';
 
 class FamilyMember {
   final String id;
