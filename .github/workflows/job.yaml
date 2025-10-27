@@ -57,9 +57,9 @@ jobs:
         run: flutter build apk
 
       - name: 🔗 Upload to Google Drive
-        uses: Jodebu/upload-to-google-drive@v1.0.3
+        uses: hinshun/gdrive-upload-action@v1
         with:
-          filename: build/app/outputs/flutter-apk/app-release.apk
-          name: Shollover-App-${{ github.run_number }}.apk
+          credentials: ${{ secrets.GDRIVE_CREDENTIALS_JSON }}
+          filename: build/app/outputs/flutter-apk/app-debug.apk
           folderId: ${{ secrets.GDRIVE_FOLDER_ID }}
-          credentials: ${{ secrets.GDRIVE_CREDENTIALS }}
+          name: Shollover-App-${{ github.run_number }}.apk
