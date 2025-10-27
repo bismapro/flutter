@@ -1,0 +1,81 @@
+{
+    "app" : {
+        "name": "Shollover"
+    },
+    "splash": {
+        "subtitle": "Partner Ibadah Anda"
+    },
+    "welcome": {
+        "title": "Tetap Terhubung dengan\nIbadahmu",
+        "description": "Waktu sholat, arah kiblat, kalender hijriah\ndan komunitas - semua dalam satu aplikasi",
+        "features_1": "Waktu sholat akurat",
+        "features_2": "Temukan teman baru dalam komunitas",
+        "features_3": "Baca Al-Qur’an",
+        "button_get_started": "Mulai Sekarang",
+        "button_guest": "Lanjutkan sebagai Tamu",
+        "left_panel_title": "Pendamping Muslim Serba Ada",
+        "left_panel_subtitle": "Waktu sholat, kiblat, Qur’an, dan fitur komunitas untuk mendukung ibadah harianmu."
+    },
+    "login": {
+        "title": "Selamat Datang Kembali",
+        "description": "Masuk untuk melanjutkan perjalanan islami Anda",
+        "email_hint": "Masukkan email Anda",
+        "email_validation_null": "Harap masukkan email",
+        "email_validation_invalid": "Harap masukkan email yang valid",
+        "password_hint": "Masukkan kata sandi Anda",
+        "password_validation_null": "Harap masukkan kata sandi",
+        "password_validation_short": "Kata sandi minimal 6 karakter",
+        "button_login": "Masuk",
+        "divider_text": "Atau lanjutkan dengan",
+        "button_google": "Lanjutkan dengan Google",
+        "button_forgot_password": "Lupa Kata Sandi?",
+        "no_account_yet": "Belum punya akun?",
+        "button_sign_up": "Daftar",
+        "toast_success": "Login berhasil! Selamat datang kembali.",
+        "left_panel_title": "Tumbuh dalam Iman",
+        "left_panel_subtitle": "Akses konten islami pilihan dan lanjutkan perjalananmu."
+    },
+
+    "signup": {
+        "title": "Buat Akun",
+        "subtitle": "Bergabunglah dengan komunitas Islami kami hari ini",
+        "left_panel_title": "Mulai Perjalananmu",
+        "left_panel_subtitle": "Buat akun untuk mengakses konten dan fitur Islami pilihan.",
+
+        "name_hint": "Masukkan nama lengkap Anda",
+        "name_label": "Nama Lengkap",
+        "name_validation_null": "Silakan masukkan nama Anda",
+        "name_validation_short": "Nama harus memiliki setidaknya 3 karakter",
+
+        "email_hint": "Masukkan email Anda",
+        "email_label": "Email",
+        "email_validation_null": "Silakan masukkan email Anda",
+        "email_validation_invalid": "Silakan masukkan email yang valid",
+
+        "password_hint": "Buat kata sandi",
+        "password_label": "Kata Sandi",
+        "password_validation_null": "Silakan masukkan kata sandi",
+        "password_validation_short": "Kata sandi harus memiliki setidaknya 6 karakter",
+
+        "confirm_password_hint": "Masukkan ulang kata sandi",
+        "confirm_password_label": "Konfirmasi Kata Sandi",
+        "confirm_password_validation_null": "Silakan konfirmasi kata sandi Anda",
+        "confirm_password_validation_mismatch": "Kata sandi tidak cocok",
+
+        "terms_text": "Saya setuju dengan ",
+        "terms_service": "Ketentuan Layanan",
+        "terms_and": " dan ",
+        "terms_privacy": "Kebijakan Privasi",
+        "terms_required": "Anda harus menyetujui Ketentuan Layanan dan Kebijakan Privasi",
+
+        "button_signup": "Daftar",
+        "button_google": "Lanjutkan dengan Google",
+        "divider_text": "Atau daftar dengan",
+
+        "toast_success": "Pendaftaran berhasil! Selamat bergabung.",
+        "toast_error": "Terjadi kesalahan. Silakan coba lagi.",
+
+        "already_account": "Sudah punya akun?",
+        "button_sign_in": "Masuk"
+    }
+}
