@@ -1,6 +1,0 @@
-workflows:
-  android-workflow:
-    name: Shollover Android
-    instance_type: mac_mini_m2
-    environment:
-      flutter: 3.9.2
