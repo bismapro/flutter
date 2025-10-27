@@ -56,10 +56,17 @@ jobs:
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk
 
-      - name: 🔗 Upload to Google Drive
-        uses: hinshun/gdrive-upload-action@v1
-        with:
-          credentials: ${{ secrets.GDRIVE_CREDENTIALS_JSON }}
-          filename: build/app/outputs/flutter-apk/app-debug.apk
-          folderId: ${{ secrets.GDRIVE_FOLDER_ID }}
-          name: Shollover-App-${{ github.run_number }}.apk
+      - name: 🔗 Upload to Google Drive (manual)
+        run: |
+          echo '${{ secrets.GDRIVE_CREDENTIALS }}' > credentials.json
+          ACCESS_TOKEN=$(curl -s -X POST \
+            -H "Content-Type: application/json" \
+            -d @credentials.json \
+            "https://oauth2.googleapis.com/token" | jq -r '.access_token')
+
+          curl -X POST -L \
+            -H "Authorization: Bearer $ACCESS_TOKEN" \
+            -F "metadata={name : 'Shollover-App-${{ github.run_number }}.apk', parents:['${{ secrets.GDRIVE_FOLDER_ID }}']};type=application/json;charset=UTF-8" \
+            -F "file=@build/app/outputs/flutter-apk/app-debug.apk;type=application/vnd.android.package-archive" \
+            "https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart"
+
