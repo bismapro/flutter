@@ -259,316 +259,326 @@ class _SholatPageState extends ConsumerState<SholatPage>
       backgroundColor: Colors.transparent,
       builder: (context) => StatefulBuilder(
         builder: (context, setModalState) {
-          return Container(
+          return Padding(
             padding: EdgeInsets.only(
               bottom: MediaQuery.of(context).viewInsets.bottom,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-            ),
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Handle bar
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Header
-                  Row(
+            child: Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: SafeArea(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              (jenis == 'wajib'
-                                      ? AppTheme.primaryBlue
-                                      : AppTheme.accentGreen)
-                                  .withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Icon(
-                          jadwalData['icon'] as IconData,
-                          color: jenis == 'wajib'
-                              ? AppTheme.primaryBlue
-                              : AppTheme.accentGreen,
-                          size: 24,
+                      // Handle bar
+                      Center(
+                        child: Container(
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Sholat $sholatName',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
-                                color: AppTheme.onSurface,
-                              ),
+                      const SizedBox(height: 20),
+
+                      // Header
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color:
+                                  (jenis == 'wajib'
+                                          ? AppTheme.primaryBlue
+                                          : AppTheme.accentGreen)
+                                      .withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                            Text(
-                              jadwalData['time'] as String,
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AppTheme.onSurfaceVariant,
-                              ),
+                            child: Icon(
+                              jadwalData['icon'] as IconData,
+                              color: jenis == 'wajib'
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.accentGreen,
+                              size: 24,
                             ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Tepat Waktu
-                  Text(
-                    'Tepat Waktu',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildOptionButton(
-                          context: context,
-                          label: 'Ya',
-                          icon: Icons.check_circle_outline_rounded,
-                          isSelected: tepatWaktu,
-                          onTap: () => setModalState(() => tepatWaktu = true),
-                          color: jenis == 'wajib'
-                              ? AppTheme.primaryBlue
-                              : AppTheme.accentGreen,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildOptionButton(
-                          context: context,
-                          label: 'Tidak',
-                          icon: Icons.cancel_outlined,
-                          isSelected: !tepatWaktu,
-                          onTap: () => setModalState(() => tepatWaktu = false),
-                          color: jenis == 'wajib'
-                              ? AppTheme.primaryBlue
-                              : AppTheme.accentGreen,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Berjamaah
-                  Text(
-                    'Berjamaah',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildOptionButton(
-                          context: context,
-                          label: 'Ya',
-                          icon: Icons.groups_rounded,
-                          isSelected: berjamaah,
-                          onTap: () => setModalState(() => berjamaah = true),
-                          color: jenis == 'wajib'
-                              ? AppTheme.primaryBlue
-                              : AppTheme.accentGreen,
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: _buildOptionButton(
-                          context: context,
-                          label: 'Tidak',
-                          icon: Icons.person_rounded,
-                          isSelected: !berjamaah,
-                          onTap: () => setModalState(() => berjamaah = false),
-                          color: jenis == 'wajib'
-                              ? AppTheme.primaryBlue
-                              : AppTheme.accentGreen,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Tempat
-                  Text(
-                    'Tempat',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppTheme.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      _buildPlaceChip(
-                        context: context,
-                        label: 'Masjid',
-                        icon: Icons.mosque_rounded,
-                        isSelected: tempat == 'Masjid',
-                        onTap: () => setModalState(() => tempat = 'Masjid'),
-                        color: jenis == 'wajib'
-                            ? AppTheme.primaryBlue
-                            : AppTheme.accentGreen,
-                      ),
-                      _buildPlaceChip(
-                        context: context,
-                        label: 'Rumah',
-                        icon: Icons.home_rounded,
-                        isSelected: tempat == 'Rumah',
-                        onTap: () => setModalState(() => tempat = 'Rumah'),
-                        color: jenis == 'wajib'
-                            ? AppTheme.primaryBlue
-                            : AppTheme.accentGreen,
-                      ),
-                      _buildPlaceChip(
-                        context: context,
-                        label: 'Kantor',
-                        icon: Icons.business_rounded,
-                        isSelected: tempat == 'Kantor',
-                        onTap: () => setModalState(() => tempat = 'Kantor'),
-                        color: jenis == 'wajib'
-                            ? AppTheme.primaryBlue
-                            : AppTheme.accentGreen,
-                      ),
-                      _buildPlaceChip(
-                        context: context,
-                        label: 'Lainnya',
-                        icon: Icons.location_on_rounded,
-                        isSelected: tempat == 'Lainnya',
-                        onTap: () => setModalState(() => tempat = 'Lainnya'),
-                        color: jenis == 'wajib'
-                            ? AppTheme.primaryBlue
-                            : AppTheme.accentGreen,
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Button Simpan dengan loading
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: (tempat.isEmpty || isLoading)
-                          ? null
-                          : () async {
-                              setModalState(
-                                () => isLoading = true,
-                              ); // UPDATED: set loading true
-
-                              try {
-                                // Simpan ke database via provider
-                                final response = await ref
-                                    .read(sholatProvider.notifier)
-                                    .addProgressSholat(
-                                      jenis: jenis,
-                                      sholat: jadwalData['dbKey'] as String,
-                                      isOnTime: tepatWaktu,
-                                      isJamaah: berjamaah,
-                                      lokasi: tempat,
-                                    );
-
-                                if (response != null && mounted) {
-                                  // Tutup modal
-                                  Navigator.pop(context, true);
-                                  _showCompletionFeedback(sholatName);
-
-                                  // Refresh data progress
-                                  await _fetchProgressData();
-                                }
-                              } catch (e) {
-                                logger.severe('Error saving progress: $e');
-
-                                // Ambil message dari exception
-                                String errorMessage = 'Gagal menyimpan data';
-
-                                if (e is Exception) {
-                                  final errorString = e.toString();
-                                  if (errorString.contains('Exception:')) {
-                                    errorMessage = errorString
-                                        .replaceAll('Exception:', '')
-                                        .trim();
-                                  }
-                                }
-
-                                if (mounted) {
-                                  showMessageToast(
-                                    context,
-                                    message: errorMessage,
-                                    type: ToastType.error,
-                                  );
-                                }
-                              } finally {
-                                if (mounted) {
-                                  setModalState(
-                                    () => isLoading = false,
-                                  ); // UPDATED: set loading false
-                                }
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: jenis == 'wajib'
-                            ? AppTheme.primaryBlue
-                            : AppTheme.accentGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                        disabledBackgroundColor: Colors.grey.shade300,
-                        disabledForegroundColor: Colors.grey.shade500,
-                      ),
-                      child: isLoading
-                          ? SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Sholat $sholatName',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppTheme.onSurface,
+                                  ),
                                 ),
-                              ),
-                            )
-                          : const Text(
-                              'Simpan',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
+                                Text(
+                                  jadwalData['time'] as String,
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: AppTheme.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
                             ),
-                    ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Tepat Waktu
+                      Text(
+                        'Tepat Waktu',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildOptionButton(
+                              context: context,
+                              label: 'Ya',
+                              icon: Icons.check_circle_outline_rounded,
+                              isSelected: tepatWaktu,
+                              onTap: () =>
+                                  setModalState(() => tepatWaktu = true),
+                              color: jenis == 'wajib'
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.accentGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildOptionButton(
+                              context: context,
+                              label: 'Tidak',
+                              icon: Icons.cancel_outlined,
+                              isSelected: !tepatWaktu,
+                              onTap: () =>
+                                  setModalState(() => tepatWaktu = false),
+                              color: jenis == 'wajib'
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.accentGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Berjamaah
+                      Text(
+                        'Berjamaah',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _buildOptionButton(
+                              context: context,
+                              label: 'Ya',
+                              icon: Icons.groups_rounded,
+                              isSelected: berjamaah,
+                              onTap: () =>
+                                  setModalState(() => berjamaah = true),
+                              color: jenis == 'wajib'
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.accentGreen,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: _buildOptionButton(
+                              context: context,
+                              label: 'Tidak',
+                              icon: Icons.person_rounded,
+                              isSelected: !berjamaah,
+                              onTap: () =>
+                                  setModalState(() => berjamaah = false),
+                              color: jenis == 'wajib'
+                                  ? AppTheme.primaryBlue
+                                  : AppTheme.accentGreen,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 20),
+
+                      // Tempat
+                      Text(
+                        'Tempat',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _buildPlaceChip(
+                            context: context,
+                            label: 'Masjid',
+                            icon: Icons.mosque_rounded,
+                            isSelected: tempat == 'Masjid',
+                            onTap: () => setModalState(() => tempat = 'Masjid'),
+                            color: jenis == 'wajib'
+                                ? AppTheme.primaryBlue
+                                : AppTheme.accentGreen,
+                          ),
+                          _buildPlaceChip(
+                            context: context,
+                            label: 'Rumah',
+                            icon: Icons.home_rounded,
+                            isSelected: tempat == 'Rumah',
+                            onTap: () => setModalState(() => tempat = 'Rumah'),
+                            color: jenis == 'wajib'
+                                ? AppTheme.primaryBlue
+                                : AppTheme.accentGreen,
+                          ),
+                          _buildPlaceChip(
+                            context: context,
+                            label: 'Kantor',
+                            icon: Icons.business_rounded,
+                            isSelected: tempat == 'Kantor',
+                            onTap: () => setModalState(() => tempat = 'Kantor'),
+                            color: jenis == 'wajib'
+                                ? AppTheme.primaryBlue
+                                : AppTheme.accentGreen,
+                          ),
+                          _buildPlaceChip(
+                            context: context,
+                            label: 'Lainnya',
+                            icon: Icons.location_on_rounded,
+                            isSelected: tempat == 'Lainnya',
+                            onTap: () =>
+                                setModalState(() => tempat = 'Lainnya'),
+                            color: jenis == 'wajib'
+                                ? AppTheme.primaryBlue
+                                : AppTheme.accentGreen,
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Button Simpan dengan loading
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: (tempat.isEmpty || isLoading)
+                              ? null
+                              : () async {
+                                  setModalState(
+                                    () => isLoading = true,
+                                  ); // UPDATED: set loading true
+
+                                  try {
+                                    // Simpan ke database via provider
+                                    final response = await ref
+                                        .read(sholatProvider.notifier)
+                                        .addProgressSholat(
+                                          jenis: jenis,
+                                          sholat: jadwalData['dbKey'] as String,
+                                          isOnTime: tepatWaktu,
+                                          isJamaah: berjamaah,
+                                          lokasi: tempat,
+                                        );
+
+                                    if (response != null && mounted) {
+                                      // Tutup modal
+                                      Navigator.pop(context, true);
+                                      _showCompletionFeedback(sholatName);
+
+                                      // Refresh data progress
+                                      await _fetchProgressData();
+                                    }
+                                  } catch (e) {
+                                    logger.severe('Error saving progress: $e');
+
+                                    // Ambil message dari exception
+                                    String errorMessage =
+                                        'Gagal menyimpan data';
+
+                                    if (e is Exception) {
+                                      final errorString = e.toString();
+                                      if (errorString.contains('Exception:')) {
+                                        errorMessage = errorString
+                                            .replaceAll('Exception:', '')
+                                            .trim();
+                                      }
+                                    }
+
+                                    if (mounted) {
+                                      showMessageToast(
+                                        context,
+                                        message: errorMessage,
+                                        type: ToastType.error,
+                                      );
+                                    }
+                                  } finally {
+                                    if (mounted) {
+                                      setModalState(
+                                        () => isLoading = false,
+                                      ); // UPDATED: set loading false
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: jenis == 'wajib'
+                                ? AppTheme.primaryBlue
+                                : AppTheme.accentGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                            disabledBackgroundColor: Colors.grey.shade300,
+                            disabledForegroundColor: Colors.grey.shade500,
+                          ),
+                          child: isLoading
+                              ? SizedBox(
+                                  height: 20,
+                                  width: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                              : const Text(
+                                  'Simpan',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
-                ],
+                ),
               ),
             ),
           );
@@ -1665,191 +1675,213 @@ class _SholatPageState extends ConsumerState<SholatPage>
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      builder: (context) => Padding(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Handle bar
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade300,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade300,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
 
-            // Header dengan icon
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color:
-                        (jenis == 'wajib'
-                                ? AppTheme.primaryBlue
-                                : AppTheme.accentGreen)
-                            .withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    jadwalData['icon'] as IconData,
-                    color: jenis == 'wajib'
-                        ? AppTheme.primaryBlue
-                        : AppTheme.accentGreen,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header dengan icon
+                  Row(
                     children: [
-                      Text(
-                        'Sholat $name',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
+                      Container(
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color:
+                              (jenis == 'wajib'
+                                      ? AppTheme.primaryBlue
+                                      : AppTheme.accentGreen)
+                                  .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Icon(
+                          jadwalData['icon'] as IconData,
+                          color: jenis == 'wajib'
+                              ? AppTheme.primaryBlue
+                              : AppTheme.accentGreen,
+                          size: 24,
                         ),
                       ),
-                      Text(
-                        jadwalData['time'] as String,
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey.shade600,
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Sholat $name',
+                              style: const TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            Text(
+                              jadwalData['time'] as String,
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // Badge "Completed"
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.green.withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.check_circle,
+                              color: Colors.green,
+                              size: 16,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Selesai',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
-                ),
-                // Badge "Completed"
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: Colors.green.withValues(alpha: 0.3),
+                  const SizedBox(height: 24),
+
+                  // Detail Progress
+                  if (sholatProgress != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade50,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade200),
+                      ),
+                      child: Column(
+                        children: [
+                          _buildInfoRow(
+                            'Tepat Waktu',
+                            sholatProgress['is_on_time'] == true
+                                ? 'Ya'
+                                : 'Tidak',
+                            Icons.access_time,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInfoRow(
+                            'Berjamaah',
+                            sholatProgress['is_jamaah'] == true
+                                ? 'Ya'
+                                : 'Tidak',
+                            Icons.groups,
+                          ),
+                          const SizedBox(height: 12),
+                          _buildInfoRow(
+                            'Lokasi',
+                            sholatProgress['lokasi'] as String? ?? '-',
+                            Icons.location_on,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.check_circle, color: Colors.green, size: 16),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Selesai',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.green,
-                          fontWeight: FontWeight.w600,
+                  ],
+                  const SizedBox(height: 24),
+
+                  // Button Hapus (hanya untuk hari ini)
+                  if (_isToday)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          _showDeleteConfirmation(
+                            context,
+                            name,
+                            jenis,
+                            progressId,
+                          );
+                        },
+                        icon: const Icon(Icons.delete_outline),
+                        label: const Text('Hapus Progress'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ],
+                    )
+                  else
+                    // Info jika bukan hari ini
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.shade50,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.blue.shade200),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.info_outline,
+                            color: Colors.blue.shade700,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Progress hanya bisa dihapus untuk hari ini',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.blue.shade700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
-            const SizedBox(height: 24),
-
-            // Detail Progress
-            if (sholatProgress != null) ...[
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.grey.shade200),
-                ),
-                child: Column(
-                  children: [
-                    _buildInfoRow(
-                      'Tepat Waktu',
-                      sholatProgress['is_on_time'] == true ? 'Ya' : 'Tidak',
-                      Icons.access_time,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoRow(
-                      'Berjamaah',
-                      sholatProgress['is_jamaah'] == true ? 'Ya' : 'Tidak',
-                      Icons.groups,
-                    ),
-                    const SizedBox(height: 12),
-                    _buildInfoRow(
-                      'Lokasi',
-                      sholatProgress['lokasi'] as String? ?? '-',
-                      Icons.location_on,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-            const SizedBox(height: 24),
-
-            // Button Hapus (hanya untuk hari ini)
-            if (_isToday)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    _showDeleteConfirmation(context, name, jenis, progressId);
-                  },
-                  icon: const Icon(Icons.delete_outline),
-                  label: const Text('Hapus Progress'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.red,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-              )
-            else
-              // Info jika bukan hari ini
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade50,
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.shade200),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: Colors.blue.shade700,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'Progress hanya bisa dihapus untuk hari ini',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.blue.shade700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
-          ],
+          ),
         ),
       ),
     );
