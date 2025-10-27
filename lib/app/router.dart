@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:test_flutter/features/artikel/pages/artikel_detail_page.dart';
 import 'package:test_flutter/features/artikel/pages/artikel_page.dart';
+import 'package:test_flutter/features/auth/pages/forgot_password.dart';
 import 'package:test_flutter/features/auth/pages/login_page.dart';
 import 'package:test_flutter/features/auth/pages/signup_page.dart';
 import 'package:test_flutter/features/auth/pages/splash_screen.dart';
@@ -21,6 +22,7 @@ class AppRoutes {
   static const String welcome = '/welcome';
   static const String login = '/login';
   static const String signup = '/signup';
+  static const String forgotPassword = '/forgot-password';
   static const String home = '/home';
   static const String qiblaCompass = '/qibla-compass';
   static const String quran = '/quran';
@@ -46,6 +48,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const LoginPage());
       case signup:
         return MaterialPageRoute(builder: (_) => const SignupPage());
+      case forgotPassword:
+        return MaterialPageRoute(builder: (_) => const ForgotPasswordPage());
       case home:
         return MaterialPageRoute(builder: (_) => const HomePage());
       case qiblaCompass:
@@ -54,7 +58,10 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const QuranPage());
       case surahDetail:
         return MaterialPageRoute(
-          builder: (_) => SurahDetailPage(surah: settings.arguments as dynamic, allSurahs: []),
+          builder: (_) => SurahDetailPage(
+            surah: settings.arguments as dynamic,
+            allSurahs: [],
+          ),
         );
       case sholat:
         return MaterialPageRoute(builder: (_) => const SholatPage());

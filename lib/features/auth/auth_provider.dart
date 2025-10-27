@@ -12,6 +12,7 @@ enum AuthState {
   unauthenticated,
   error,
   isRegistered,
+  forgotPasswordSent,
 }
 
 class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
@@ -129,8 +130,6 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       final response = await AuthService.login(email, password);
       final data = response['data'];
 
-      logger.fine('Login response: $data');
-
       if (data == null) {
         throw Exception('Invalid response from server');
       }
@@ -193,8 +192,6 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       // Call Google Sign-In service
       final response = await GoogleAuthService.signInWithGoogle();
       final data = response['data'];
-
-      logger.fine('Google login response: $data');
 
       if (data == null) {
         throw Exception('Invalid response from server');
@@ -264,19 +261,47 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       state = {...state, 'status': AuthState.loading, 'error': null};
 
       // Call API
-      await AuthService.register(name, email, password, confirmationPassword);
+      final response = await AuthService.register(
+        name,
+        email,
+        password,
+        confirmationPassword,
+      );
 
-      // Update state to registered (let UI navigate to login)
-      state = {'status': AuthState.isRegistered, 'user': null, 'error': null};
-    } catch (e) {
-      String errorMessage;
-      if (e is Exception) {
-        errorMessage = e.toString().replaceFirst('Exception: ', '');
-      } else {
-        errorMessage = e.toString();
+      final data = response['data'];
+
+      if (data == null) {
+        throw Exception('Invalid response from server');
       }
 
-      state = {'status': AuthState.error, 'user': null, 'error': errorMessage};
+      final tokenStr = _normalizeToken(data['token']);
+
+      if (tokenStr == null || tokenStr.isEmpty) {
+        throw Exception('No token received from server');
+      }
+
+      await StorageHelper.saveToken(tokenStr);
+
+      // Save user data
+      if (data['user'] != null) {
+        final user = data['user'];
+        await StorageHelper.saveUser({
+          "id": user['id']?.toString() ?? '',
+          "name": user['name']?.toString() ?? '',
+          "email": user['email']?.toString() ?? '',
+          "role": user['role']?.toString() ?? 'user', //default role user
+          "phone": user['phone']?.toString() ?? '',
+        });
+      }
+
+      state = {
+        'status': AuthState.authenticated,
+        'user': data['user'],
+        'error': null,
+      };
+    } catch (e) {
+      logger.fine('Register error: ${e.toString()}');
+      state = {'status': AuthState.error, 'user': null, 'error': e.toString()};
     }
   }
 
@@ -308,6 +333,33 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
         'status': AuthState.error,
         'user': state['user'],
         'error': 'Failed to logout',
+      };
+    }
+  }
+
+  // Forgot Password
+  Future<void> forgotPassword(String email) async {
+    state = {...state, 'status': AuthState.loading, 'error': null};
+    logger.fine('Sending forgot password request for: $email');
+
+    try {
+      final result = await AuthService.forgotPassword(email);
+
+      state = {
+        'status': AuthState.forgotPasswordSent,
+        'user': null,
+        'error': null,
+        'message':
+            result['message'] ?? 'Link verifikasi telah dikirim ke email Anda.',
+      };
+
+      logger.fine('Forgot password link sent successfully');
+    } catch (e) {
+      logger.fine('Forgot password error: ${e.toString()}');
+      state = {
+        'status': AuthState.error,
+        'user': null,
+        'error': e.toString().replaceFirst('Exception: ', ''),
       };
     }
   }
