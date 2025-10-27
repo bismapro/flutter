@@ -40,27 +40,21 @@ jobs:
           echo "keyAlias=${{ secrets.KEY_ALIAS }}" >> android/key.properties
           echo "keyPassword=${{ secrets.KEY_PASSWORD }}" >> android/key.properties
 
-      # - name: 🚀 Build release APK
-      #   env:
-      #     KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-      #     KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-      #     KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-      #   run: |
-      #     flutter build apk --release \
-      #       --build-name=1.0.${{ github.run_number }} \
-      #       --build-number=${{ github.run_number }}
-
+      # 🏗️ Build APK (uncomment release build pas mau release beneran)
       - name: 🚀 Build debug APK
-        env:
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
         run: flutter build apk --release
 
       - name: 🏷️ Rename APK with build number
         run: |
-          mkdir output
+          mkdir -p output
           cp build/app/outputs/flutter-apk/app-release.apk output/Shollover-${{ github.run_number }}.apk
+
+      - name: 🧹 Delete existing release (if any)
+        uses: dev-drprasad/delete-tag-and-release@v1.1
+        with:
+          tag_name: v${{ github.run_number }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: 🚀 Create GitHub Release
         id: create_release
@@ -80,15 +74,11 @@ jobs:
         with:
           files: output/Shollover-${{ github.run_number }}.apk
           tag_name: v${{ github.run_number }}
+          overwrite_files: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: 💬 Comment with release link
-        if: github.event_name == 'pull_request' || github.event_name == 'push'
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
-          issue-number: ${{ github.event.pull_request.number || github.event.head_commit.id }}
-          body: |
-            ✅ Build complete!
-            📦 [Download APK from Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }})
+      - name: 💬 Build summary
+        run: |
+          echo "✅ **Build complete!**" >> $GITHUB_STEP_SUMMARY
+          echo "📦 [Download APK from Release](https://github.com/${{ github.repository }}/releases/tag/v${{ github.run_number }})" >> $GITHUB_STEP_SUMMARY
