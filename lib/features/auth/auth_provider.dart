@@ -13,6 +13,7 @@ enum AuthState {
   error,
   isRegistered,
   forgotPasswordSent,
+  passwordReset,
 }
 
 class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
@@ -356,6 +357,44 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
       logger.fine('Forgot password link sent successfully');
     } catch (e) {
       logger.fine('Forgot password error: ${e.toString()}');
+      state = {
+        'status': AuthState.error,
+        'user': null,
+        'error': e.toString().replaceFirst('Exception: ', ''),
+      };
+    }
+  }
+
+  // Reset Password
+  Future<void> resetPassword({
+    required String token,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    state = {...state, 'status': AuthState.loading, 'error': null};
+    logger.fine('Resetting password for: $email');
+
+    try {
+      final result = await AuthService.resetPassword(
+        token: token,
+        email: email,
+        password: password,
+        passwordConfirmation: passwordConfirmation,
+      );
+
+      state = {
+        'status': AuthState.passwordReset,
+        'user': null,
+        'error': null,
+        'message':
+            result['message'] ??
+            'Password berhasil direset. Silakan login dengan password baru Anda.',
+      };
+
+      logger.fine('Password reset successfully');
+    } catch (e) {
+      logger.fine('Reset password error: ${e.toString()}');
       state = {
         'status': AuthState.error,
         'user': null,
