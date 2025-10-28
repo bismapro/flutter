@@ -102,7 +102,7 @@ class _CompassPageState extends State<CompassPage> {
     try {
       // Load lokasi dari LocationService
       await _loadLocationFromService();
-      
+
       if (_hasPermission) {
         await _getCurrentLocation();
       }
@@ -119,17 +119,24 @@ class _CompassPageState extends State<CompassPage> {
   /// Load lokasi dari LocationService
   Future<void> _loadLocationFromService() async {
     setState(() => _status = 'Mengambil lokasi dari cache...');
-    
+
     try {
       // Coba ambil dari cache dulu
       final cachedLocation = await LocationService.getLocation();
-      
+
       if (cachedLocation != null) {
         setState(() {
           _location = cachedLocation['name'] as String;
-          _cityName = (cachedLocation['name'] as String).split(',').first.trim();
-          _countryName = (cachedLocation['name'] as String).split(',').last.trim().toUpperCase();
-          
+          _cityName = (cachedLocation['name'] as String)
+              .split(',')
+              .first
+              .trim();
+          _countryName = (cachedLocation['name'] as String)
+              .split(',')
+              .last
+              .trim()
+              .toUpperCase();
+
           // Set position dari cache
           _currentPosition = Position(
             latitude: cachedLocation['lat'] as double,
@@ -143,18 +150,17 @@ class _CompassPageState extends State<CompassPage> {
             altitudeAccuracy: 0,
             headingAccuracy: 0,
           );
-          
+
           _hasPermission = true;
         });
-        
+
         // Calculate qibla dari cached location
         _calculateQiblaDirection();
       }
-      
+
       // Kemudian request lokasi terbaru
       setState(() => _status = 'Memperbarui lokasi...');
       await _checkLocationPermissions();
-      
     } catch (e) {
       logger.warning('Error loading location from service: $e');
       await _checkLocationPermissions();
@@ -210,12 +216,16 @@ class _CompassPageState extends State<CompassPage> {
     try {
       // Gunakan LocationService untuk mendapatkan lokasi
       final locationData = await LocationService.getCurrentLocation();
-      
+
       setState(() {
         _location = locationData['name'] as String;
         _cityName = (locationData['name'] as String).split(',').first.trim();
-        _countryName = (locationData['name'] as String).split(',').last.trim().toUpperCase();
-        
+        _countryName = (locationData['name'] as String)
+            .split(',')
+            .last
+            .trim()
+            .toUpperCase();
+
         _currentPosition = Position(
           latitude: locationData['lat'] as double,
           longitude: locationData['long'] as double,
@@ -228,7 +238,7 @@ class _CompassPageState extends State<CompassPage> {
           altitudeAccuracy: 0,
           headingAccuracy: 0,
         );
-        
+
         _status = 'Menghitung arah Kiblat...';
       });
 
@@ -397,8 +407,7 @@ class _CompassPageState extends State<CompassPage> {
     final titleSize = ResponsiveHelper.adaptiveTextSize(context, 28);
     final subtitleSize = ResponsiveHelper.adaptiveTextSize(context, 15);
     final useTwoColumns =
-        MediaQuery.of(context).size.width >=
-        ResponsiveHelper.largeScreenSize;
+        MediaQuery.of(context).size.width >= ResponsiveHelper.largeScreenSize;
 
     return Scaffold(
       body: Container(
@@ -431,6 +440,16 @@ class _CompassPageState extends State<CompassPage> {
                   ),
                   child: Row(
                     children: [
+                      // Back button
+                      IconButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                        icon: const Icon(Icons.arrow_back_rounded),
+                        color: AppTheme.onSurface,
+                        tooltip: 'Kembali',
+                      ),
+                      const SizedBox(width: 12),
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -726,9 +745,7 @@ class _CompassPageState extends State<CompassPage> {
           ),
           const SizedBox(height: 6),
           Text(
-            _countryName.isNotEmpty
-                ? _countryName
-                : '—',
+            _countryName.isNotEmpty ? _countryName : '—',
             style: TextStyle(
               fontSize: ResponsiveHelper.adaptiveTextSize(context, 13),
               fontWeight: FontWeight.w600,

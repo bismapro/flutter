@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:quran/quran.dart' as quran;
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/quran/surah.dart';
@@ -37,6 +38,10 @@ class _SurahDetailPageState extends State<SurahDetailPage>
   late PageController _pageController;
   final ScrollController _scrollController = ScrollController();
   final Map<int, GlobalKey> _verseKeys = {};
+
+  // Cache untuk detail surah yang sudah dimuat
+  final Map<int, Map<String, dynamic>> _surahDetailsCache = {};
+  bool _isLoadingDetails = false;
 
   bool get _showTabs =>
       widget.allSurahs.isNotEmpty && widget.allSurahs.length > 1;
@@ -81,6 +86,8 @@ class _SurahDetailPageState extends State<SurahDetailPage>
       print('📖 Reason: allSurahs.length = ${widget.allSurahs.length}');
     }
 
+    // Load initial surah details
+    _loadSurahDetails(_currentSurah.nomor);
     _loadSelectedQori();
     _checkDownloadStatus();
     _listenToCurrentVerse();
@@ -99,6 +106,53 @@ class _SurahDetailPageState extends State<SurahDetailPage>
 
   Surah get _currentSurah =>
       _showTabs ? widget.allSurahs[_currentSurahIndex] : widget.surah;
+
+  // Load detail surah dari JSON file
+  Future<Map<String, dynamic>?> _loadSurahDetails(int surahNumber) async {
+    // Check cache first
+    if (_surahDetailsCache.containsKey(surahNumber)) {
+      return _surahDetailsCache[surahNumber];
+    }
+
+    setState(() => _isLoadingDetails = true);
+
+    try {
+      final String jsonString = await rootBundle.loadString(
+        'assets/quran/surah/$surahNumber.json',
+      );
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
+
+      // Cache the result
+      _surahDetailsCache[surahNumber] = jsonData;
+
+      print('✅ Loaded surah $surahNumber details from JSON');
+
+      if (mounted) {
+        setState(() => _isLoadingDetails = false);
+      }
+
+      return jsonData;
+    } catch (e) {
+      print('❌ Error loading surah $surahNumber details: $e');
+
+      if (mounted) {
+        setState(() => _isLoadingDetails = false);
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading surah details: $e'),
+            backgroundColor: Colors.red.shade400,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            margin: const EdgeInsets.all(16),
+          ),
+        );
+      }
+      return null;
+    }
+  }
 
   Future<void> _loadSelectedQori() async {
     final prefs = await SharedPreferences.getInstance();
@@ -292,6 +346,8 @@ class _SurahDetailPageState extends State<SurahDetailPage>
     });
     _tabController.animateTo(index);
 
+    // Load new surah details
+    _loadSurahDetails(_currentSurah.nomor);
     _loadSelectedQori();
     _checkDownloadStatus();
 
@@ -513,7 +569,7 @@ class _SurahDetailPageState extends State<SurahDetailPage>
           fontWeight: FontWeight.w500,
         ),
         dividerColor: Colors.transparent,
-        tabAlignment: TabAlignment.start, // ← Add this for better scrolling
+        tabAlignment: TabAlignment.start,
         onTap: (index) {
           _pageController.animateToPage(
             index,
@@ -527,8 +583,8 @@ class _SurahDetailPageState extends State<SurahDetailPage>
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 4),
               child: Row(
-                mainAxisSize: MainAxisSize.min, // ← Important for centering
-                mainAxisAlignment: MainAxisAlignment.center, // ← Center content
+                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Container(
                     width: 32,
@@ -566,12 +622,40 @@ class _SurahDetailPageState extends State<SurahDetailPage>
   }
 
   Widget _buildAyahsList(Surah surah, bool isTablet, bool isDesktop) {
-    final totalVerses = quran.getVerseCount(surah.nomor);
+    // Get cached details
+    final surahDetails = _surahDetailsCache[surah.nomor];
+
+    if (_isLoadingDetails || surahDetails == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: AppTheme.primaryBlue),
+            const SizedBox(height: 16),
+            Text(
+              'Loading ayahs...',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                color: AppTheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final List<dynamic> ayahs = surahDetails['ayat'] ?? [];
+    final totalVerses = ayahs.length;
 
     _verseKeys.clear();
     for (int i = 1; i <= totalVerses; i++) {
       _verseKeys[i] = GlobalKey();
     }
+
+    // Check if should show Bismillah
+    // Show Bismillah for all surahs except Al-Fatihah (1) and At-Taubah (9)
+    final showBismillah = surah.nomor != 1 && surah.nomor != 9;
 
     return ListView.builder(
       key: ValueKey('surah_${surah.nomor}'),
@@ -581,20 +665,23 @@ class _SurahDetailPageState extends State<SurahDetailPage>
         vertical: isTablet ? 12 : 8,
       ),
       physics: const BouncingScrollPhysics(),
-      itemCount: totalVerses,
+      itemCount: showBismillah ? totalVerses + 1 : totalVerses,
       itemBuilder: (context, index) {
-        final verseNumber = index + 1;
-        final arabicText = quran.getVerse(
-          surah.nomor,
-          verseNumber,
-          verseEndSymbol: false,
-        );
-        final translation = quran.getVerseTranslation(
-          surah.nomor,
-          verseNumber,
-          translation: quran.Translation.indonesian,
-        );
-        final verseEndSymbol = quran.getVerseEndSymbol(verseNumber);
+        // Show Bismillah as first item
+        if (showBismillah && index == 0) {
+          return _buildBismillahCard(isTablet, isDesktop);
+        }
+
+        // Adjust index if Bismillah is shown
+        final ayahIndex = showBismillah ? index - 1 : index;
+        final ayah = ayahs[ayahIndex];
+        final verseNumber = ayah['nomorAyat'] as int;
+        final arabicText = ayah['teksArab'] as String;
+        final translation = ayah['teksIndonesia'] as String;
+        final transliteration = ayah['teksLatin'] as String? ?? '';
+
+        // Generate verse end symbol
+        final verseEndSymbol = _toArabicNumber(verseNumber);
         final isCurrentlyPlaying = _currentPlayingVerse == verseNumber;
 
         return AyahCard(
@@ -603,6 +690,7 @@ class _SurahDetailPageState extends State<SurahDetailPage>
           verseNumber: verseNumber,
           arabicText: arabicText,
           translation: translation,
+          transliteration: transliteration,
           verseEndSymbol: verseEndSymbol,
           onPlayVerse: () {},
           isTablet: isTablet,
@@ -611,5 +699,85 @@ class _SurahDetailPageState extends State<SurahDetailPage>
         );
       },
     );
+  }
+
+  // Build Bismillah card
+  Widget _buildBismillahCard(bool isTablet, bool isDesktop) {
+    return Container(
+      margin: EdgeInsets.only(bottom: isTablet ? 20 : 16),
+      padding: EdgeInsets.all(
+        isDesktop
+            ? 32
+            : isTablet
+            ? 28
+            : 24,
+      ),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppTheme.primaryBlue.withOpacity(0.08),
+            AppTheme.accentGreen.withOpacity(0.05),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(isTablet ? 22 : 20),
+        border: Border.all(
+          color: AppTheme.primaryBlue.withOpacity(0.15),
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        children: [
+          SizedBox(height: isTablet ? 8 : 6),
+          // Bismillah text
+          Text(
+            'بِسْمِ اللّٰهِ الرَّحْمٰنِ الرَّحِيْمِ',
+            style: TextStyle(
+              fontFamily: 'AmiriQuran',
+              fontSize: isDesktop
+                  ? 28
+                  : isTablet
+                  ? 26
+                  : 24,
+              height: 2.0,
+              color: AppTheme.primaryBlue,
+              fontWeight: FontWeight.w600,
+            ),
+            textAlign: TextAlign.center,
+            textDirection: TextDirection.rtl,
+          ),
+
+          SizedBox(height: isTablet ? 16 : 12),
+
+          // Translation
+          Text(
+            'Dengan nama Allah Yang Maha Pengasih lagi Maha Penyayang',
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: isDesktop
+                  ? 15
+                  : isTablet
+                  ? 14
+                  : 13,
+              color: AppTheme.onSurface.withOpacity(0.75),
+              fontWeight: FontWeight.w500,
+              fontStyle: FontStyle.italic,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Helper function to convert number to Arabic numerals (without ۝ symbol)
+  String _toArabicNumber(int number) {
+    const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number
+        .toString()
+        .split('')
+        .map((digit) => arabicNumbers[int.parse(digit)])
+        .join('');
   }
 }

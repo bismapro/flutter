@@ -22,8 +22,11 @@ import 'package:test_flutter/features/sholat/pages/sholat_page.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import '../../../app/theme.dart';
 
+// GlobalKey untuk akses state
+final GlobalKey<_HomePageState> homePageKey = GlobalKey<_HomePageState>();
+
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  HomePage({Key? key}) : super(key: homePageKey);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -32,13 +35,23 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomeTabContent(),
-    SholatPage(),
-    QuranPage(),
-    MonitoringPage(),
-    KomunitasPage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const HomeTabContent(),
+      const SholatPage(),
+      const QuranPage(),
+      const MonitoringPage(),
+      const KomunitasPage(),
+    ];
+  }
+
+  void navigateToTab(int index) {
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,8 +106,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       ResponsiveHelper.isExtraLargeScreen(c);
 
   Timer? _timer;
-
-  // ...existing code...
 
   @override
   void initState() {
@@ -157,6 +168,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     await ref
         .read(homeProvider.notifier)
         .fetchJadwalSholat(forceRefresh: true, useCurrentLocation: true);
+  }
+
+  void _navigateToTab(int index) {
+    homePageKey.currentState?.navigateToTab(index);
   }
 
   @override
@@ -433,7 +448,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       ),
       physics: const BouncingScrollPhysics(),
       children: [
-        // Quick Access header (tanpa tombol See All)
+        // Quick Access header
         Row(
           children: [
             Container(
@@ -456,7 +471,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             const SizedBox(width: 12),
             Flexible(
               child: Text(
-                'Quick Access',
+                'All Features',
                 style: TextStyle(
                   fontSize: _t(context, 20),
                   fontWeight: FontWeight.bold,
@@ -468,7 +483,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             ),
           ],
         ),
-        // Grid menu (menggantikan horizontal list)
+        SizedBox(height: _px(context, 16)),
+
+        // Grid menu
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -477,69 +494,85 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           crossAxisSpacing: _px(context, 16),
           childAspectRatio: _getChildAspectRatio(context),
           children: [
-            // _buildEnhancedFeatureButton(
-            //   context,
-            //   FlutterIslamicIcons.quran2,
-            //   'Al-Quran',
-            //   AppTheme.accentGreen,
-            //   onTap: () => Navigator.pushNamed(context, '/quran'),
-            // ),
-            // _buildEnhancedFeatureButton(
-            //   context,
-            //   FlutterIslamicIcons.prayingPerson,
-            //   'Sholat',
-            //   AppTheme.accentGreen,
-            //   onTap: () => Navigator.pushNamed(context, '/sholat'),
-            // ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.ramadan,
-              'Puasa',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/puasa'),
+              FlutterIslamicIcons.family,
+              'Monitoring',
+              AppTheme.primaryBlueLight,
+              onTap: () => _navigateToTab(3),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.qibla,
-              'Qibla',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/qibla-compass'),
+              FlutterIslamicIcons.prayer,
+              'Tahajud',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/tahajud'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.prayingPerson,
+              'Sholat',
+              AppTheme.primaryBlueLight,
+              onTap: () => _navigateToTab(1),
             ),
             _buildEnhancedFeatureButton(
               context,
               FlutterIslamicIcons.zakat,
               'Sedekah',
-              AppTheme.accentGreen,
+              AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/zakat'),
             ),
-            // _buildEnhancedFeatureButton(
-            //   context,
-            //   FlutterIslamicIcons.family,
-            //   'Monitoring',
-            //   AppTheme.accentGreen,
-            //   onTap: () => Navigator.pushNamed(context, '/monitoring'),
-            // ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.prayer,
-              'Tahajud',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/tahajud'),
+              FlutterIslamicIcons.ramadan,
+              'Puasa',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/puasa'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.kaaba,
+              'Haji',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/haji'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.quran2,
+              'Al-Quran',
+              AppTheme.primaryBlueLight,
+              onTap: () => _navigateToTab(2),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.allah,
+              'Syahadat',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/syahadat'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.qibla,
+              'Qibla',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/qibla-compass'),
             ),
             _buildEnhancedFeatureButton(
               context,
               Icons.article,
               'Artikel',
-              AppTheme.accentGreen,
+              AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/article'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              Icons.forum_outlined,
+              'Komunitas',
+              AppTheme.primaryBlueLight,
+              onTap: () => _navigateToTab(4),
             ),
           ],
         ),
-
-        SizedBox(height: _px(context, 32)),
-
-        // Syahadat Section
-        _buildSyahadatSection(context),
 
         SizedBox(height: _px(context, 32)),
 
@@ -593,329 +626,24 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     );
   }
 
-  // Method helper untuk menentukan jumlah kolom grid
+  // ...existing code... (method lainnya tetap sama)
+
   // Method helper untuk menentukan jumlah kolom grid
   int _getGridColumns(BuildContext context) {
     final w = ResponsiveHelper.getScreenWidth(context);
     if (w < 360) return 3;
-    if (w < ResponsiveHelper.mediumScreenSize) return 4; // <600
-    if (w < ResponsiveHelper.largeScreenSize) return 5; // <900
+    if (w < ResponsiveHelper.mediumScreenSize) return 4;
+    if (w < ResponsiveHelper.largeScreenSize) return 5;
     return 6;
   }
 
-  // Method helper untuk aspect ratio yang lebih baik
   double _getChildAspectRatio(BuildContext context) {
     final w = ResponsiveHelper.getScreenWidth(context);
-    if (w < 360) return 0.85; // Lebih tinggi untuk screen kecil
+    if (w < 360) return 0.85;
     if (w < ResponsiveHelper.mediumScreenSize) return 0.90;
     if (w < ResponsiveHelper.largeScreenSize) return 0.95;
     return 1.0;
   }
-
-  // Method untuk Syahadat Section (dipindahkan dari AllFeaturesSheet)
-  Widget _buildSyahadatSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Header
-        Row(
-          children: [
-            Container(
-              padding: EdgeInsets.all(_px(context, 8)),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppTheme.accentGreen.withValues(alpha: 0.15),
-                    AppTheme.primaryBlue.withValues(alpha: 0.15),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(
-                FlutterIslamicIcons.solidKaaba,
-                color: AppTheme.accentGreen,
-                size: _px(context, 20),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              'Dua Kalimat Syahadat',
-              style: TextStyle(
-                fontSize: _t(context, 20),
-                fontWeight: FontWeight.bold,
-                color: AppTheme.onSurface,
-                letterSpacing: -0.5,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: _px(context, 16)),
-
-        // Syahadat Container
-        Container(
-          width: double.infinity,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                AppTheme.accentGreen.withValues(alpha: 0.05),
-                AppTheme.primaryBlue.withValues(alpha: 0.05),
-              ],
-            ),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(
-              color: AppTheme.accentGreen.withValues(alpha: 0.2),
-              width: 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.accentGreen.withValues(alpha: 0.08),
-                blurRadius: 15,
-                offset: const Offset(0, 4),
-                spreadRadius: -3,
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              // Syahadat Pertama
-              _buildSyahadatCard(
-                context,
-                number: '1',
-                title: 'Syahadat Pertama (Tauhid)',
-                arabicText: 'أَشْهَدُ أَنْ لاَ إِلَهَ إِلاَّ اللهُ',
-                transliteration: 'Asyhadu an laa ilaaha illallah',
-                translation: 'Aku bersaksi bahwa tidak ada Tuhan selain Allah',
-                isFirst: true,
-              ),
-
-              // Divider
-              Padding(
-                padding: EdgeInsets.symmetric(horizontal: _px(context, 20)),
-                child: Divider(
-                  color: AppTheme.accentGreen.withValues(alpha: 0.2),
-                  thickness: 1,
-                ),
-              ),
-
-              // Syahadat Kedua
-              _buildSyahadatCard(
-                context,
-                number: '2',
-                title: 'Syahadat Kedua (Risalah)',
-                arabicText: 'أَشْهَدُ أَنَّ مُحَمَّدًا رَسُوْلُ اللهُ',
-                transliteration: 'Wa asyhadu anna Muhammadar Rasulullah',
-                translation:
-                    'Dan aku bersaksi bahwa Muhammad adalah utusan Allah',
-                isFirst: false,
-              ),
-            ],
-          ),
-        ),
-
-        SizedBox(height: _px(context, 12)),
-
-        // Info footer
-        Container(
-          padding: EdgeInsets.all(_px(context, 12)),
-          decoration: BoxDecoration(
-            color: AppTheme.accentGreen.withValues(alpha: 0.05),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppTheme.accentGreen.withValues(alpha: 0.1),
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.info_outline_rounded,
-                color: AppTheme.accentGreen,
-                size: _px(context, 18),
-              ),
-              SizedBox(width: _px(context, 8)),
-              Expanded(
-                child: Text(
-                  'Membaca syahadat adalah rukun Islam yang pertama',
-                  style: TextStyle(
-                    fontSize: _t(context, 12),
-                    color: AppTheme.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSyahadatCard(
-    BuildContext context, {
-    required String number,
-    required String title,
-    required String arabicText,
-    required String transliteration,
-    required String translation,
-    required bool isFirst,
-  }) {
-    return Container(
-      padding: EdgeInsets.all(_px(context, 20)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Number badge and title
-          Row(
-            children: [
-              Container(
-                width: _px(context, 32),
-                height: _px(context, 32),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      AppTheme.accentGreen,
-                      AppTheme.accentGreen.withValues(alpha: 0.8),
-                    ],
-                  ),
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppTheme.accentGreen.withValues(alpha: 0.3),
-                      blurRadius: 8,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Text(
-                    number,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: _t(context, 16),
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              SizedBox(width: _px(context, 12)),
-              Expanded(
-                child: Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: _t(context, 14),
-                    fontWeight: FontWeight.w600,
-                    color: AppTheme.onSurface,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: _px(context, 16)),
-
-          // Arabic text
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.all(_px(context, 16)),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Text(
-              arabicText,
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: _t(context, 24),
-                fontWeight: FontWeight.w600,
-                color: AppTheme.accentGreen,
-                height: 2.0,
-                fontFamily: 'Arabic',
-              ),
-            ),
-          ),
-          SizedBox(height: _px(context, 12)),
-
-          // Transliteration
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: _px(context, 12),
-              vertical: _px(context, 8),
-            ),
-            decoration: BoxDecoration(
-              color: AppTheme.primaryBlue.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  Icons.translate_rounded,
-                  size: _px(context, 16),
-                  color: AppTheme.primaryBlue,
-                ),
-                SizedBox(width: _px(context, 8)),
-                Expanded(
-                  child: Text(
-                    transliteration,
-                    style: TextStyle(
-                      fontSize: _t(context, 14),
-                      fontStyle: FontStyle.italic,
-                      color: AppTheme.primaryBlue,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: _px(context, 8)),
-
-          // Translation
-          Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(
-              horizontal: _px(context, 12),
-              vertical: _px(context, 8),
-            ),
-            decoration: BoxDecoration(
-              color: AppTheme.accentGreen.withValues(alpha: 0.05),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(
-                  Icons.description_outlined,
-                  size: _px(context, 16),
-                  color: AppTheme.accentGreen,
-                ),
-                SizedBox(width: _px(context, 8)),
-                Expanded(
-                  child: Text(
-                    translation,
-                    style: TextStyle(
-                      fontSize: _t(context, 13),
-                      color: AppTheme.onSurface,
-                      height: 1.5,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ...existing code...
 
   Widget _buildArticlesSection(
     BuildContext context,
@@ -923,27 +651,22 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     HomeStatus status,
     String? error,
   ) {
-    // Show loading state only when no articles and loading
     if (status == HomeStatus.loading && articles.isEmpty) {
       return _buildArticlesLoadingState(context);
     }
 
-    // Show error state only when no articles and error occurred
     if (status == HomeStatus.error && articles.isEmpty) {
       return _buildArticlesErrorState(context, error ?? 'Unknown error');
     }
 
-    // Show empty state when no articles available
     if (articles.isEmpty) {
       return _buildArticlesEmptyState(context);
     }
 
     final storageUrl = AppConfig.storageUrl;
 
-    // Show articles (even if offline/error, as long as we have cached data)
     return Column(
       children: [
-        // Articles list
         ...articles.take(3).map((article) {
           return _buildEnhancedArticleCard(
             article: article,
@@ -1071,7 +794,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     );
   }
 
-  // ...existing code...
   Widget _buildArticlesLoadingState(BuildContext context) {
     return Column(
       children: List.generate(3, (index) {
@@ -1167,7 +889,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 
     final w = ResponsiveHelper.getScreenWidth(context);
 
-    // Adjust sizes based on screen width
     final iconContainerSize = w < 360 ? px(52) : px(64);
     final iconSize = w < 360 ? px(24) : px(28);
     final fontSize = w < 360 ? ts(11) : ts(13);
@@ -1282,7 +1003,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     final imgW = px(100);
     final imgH = px(90);
 
-    // Determine if this is a video article
     final isVideo = article.tipe.toLowerCase() == 'video';
 
     return Container(
@@ -1313,7 +1033,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           padding: EdgeInsets.all(px(12)),
           child: Row(
             children: [
-              // Image/Thumbnail
               Container(
                 width: imgW,
                 height: imgH,
@@ -1331,7 +1050,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                   borderRadius: BorderRadius.circular(12),
                   child: Stack(
                     children: [
-                      // Image/Thumbnail
                       Image.network(
                         imageUrl,
                         width: imgW,
@@ -1351,7 +1069,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                         },
                       ),
 
-                      // Video play button overlay
                       if (isVideo)
                         Positioned.fill(
                           child: Container(
@@ -1376,7 +1093,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           ),
                         ),
 
-                      // Category badge
                       Positioned(
                         top: 6,
                         left: 6,
@@ -1424,7 +1140,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Title with video indicator
                     Row(
                       children: [
                         Expanded(
@@ -1469,7 +1184,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                             color: AppTheme.onSurfaceVariant,
                           ),
                         ),
-
                         const Spacer(),
                         Icon(
                           Icons.arrow_forward_ios_rounded,

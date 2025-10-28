@@ -19,12 +19,15 @@ class _MyAppState extends ConsumerState<MyApp> {
       const SystemUiOverlayStyle(
         statusBarColor: Colors.transparent,
         statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
       ),
     );
 
     return MaterialApp(
       title: 'Shollover',
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.lightTheme,
+      themeMode: ThemeMode.light,
       home: const SplashScreen(),
       onGenerateRoute: AppRoutes.generateRoute,
       debugShowCheckedModeBanner: false,

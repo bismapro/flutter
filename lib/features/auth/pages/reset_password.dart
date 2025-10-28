@@ -6,19 +6,27 @@ import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/features/auth/auth_provider.dart';
 import '../../../app/theme.dart';
 
-class LoginPage extends ConsumerStatefulWidget {
-  const LoginPage({super.key});
+class ResetPasswordPage extends ConsumerStatefulWidget {
+  final String token;
+  final String email;
+
+  const ResetPasswordPage({
+    super.key,
+    required this.token,
+    required this.email,
+  });
 
   @override
-  ConsumerState<LoginPage> createState() => _LoginPageState();
+  ConsumerState<ResetPasswordPage> createState() => _ResetPasswordPageState();
 }
 
-class _LoginPageState extends ConsumerState<LoginPage>
+class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage>
     with TickerProviderStateMixin {
-  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   late AnimationController _fadeController;
   late AnimationController _slideController;
@@ -55,38 +63,45 @@ class _LoginPageState extends ConsumerState<LoginPage>
 
   @override
   void dispose() {
-    _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _fadeController.dispose();
     _slideController.dispose();
     super.dispose();
   }
 
-  Future<void> _handleLogin() async {
-    if (_formKey.currentState!.validate()) {
-      final email = _emailController.text.trim();
-      final password = _passwordController.text.trim();
-      ref.read(authProvider.notifier).login(email, password);
-    }
-  }
-
-  double _gapSmall(BuildContext context) =>
-      ResponsiveHelper.isSmallScreen(context) ? 12 : 16;
-  double _gapMedium(BuildContext context) =>
-      ResponsiveHelper.isSmallScreen(context) ? 20 : 28;
-  double _fieldHeight(BuildContext context) =>
-      ResponsiveHelper.isSmallScreen(context) ? 52 : 56;
-
   @override
   Widget build(BuildContext context) {
-    final isSmall = ResponsiveHelper.isSmallScreen(context);
-    final isMedium = ResponsiveHelper.isMediumScreen(context);
-    final isLarge = ResponsiveHelper.isLargeScreen(context);
-    final isXL = ResponsiveHelper.isExtraLargeScreen(context);
+    // Responsiveness
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isXL = screenWidth >= ResponsiveHelper.extraLargeScreenSize;
+    final isLarge = screenWidth >= ResponsiveHelper.largeScreenSize;
+    final isMedium = screenWidth >= ResponsiveHelper.mediumScreenSize;
+    final isSmall = screenWidth < ResponsiveHelper.mediumScreenSize;
 
+    final logoSize = isSmall
+        ? 70.0
+        : isMedium
+        ? 85.0
+        : 95.0;
+    final cardRadius = isXL ? 32.0 : 28.0;
+    final fieldRadius = 16.0;
+
+    // Lebar maksimum kartu/form
+    final maxFormWidth = isXL
+        ? 520.0
+        : isLarge
+        ? 480.0
+        : 440.0;
+
+    // Padding global responsif
+    final pagePadding = ResponsiveHelper.getResponsivePadding(context);
+
+    // Listen to auth state changes
     ref.listen(authProvider, (previous, next) {
       final status = next['status'];
       final error = next['error'];
+      final message = next['message'];
 
       if (status == AuthState.error && error != null) {
         showMessageToast(
@@ -96,17 +111,22 @@ class _LoginPageState extends ConsumerState<LoginPage>
           duration: const Duration(seconds: 4),
         );
         ref.read(authProvider.notifier).clearError();
-      } else if (status == AuthState.authenticated) {
+      } else if (status == AuthState.passwordReset) {
         showMessageToast(
           context,
-          message: 'Login berhasil! Selamat datang kembali.',
+          message:
+              message?.toString() ??
+              'Password berhasil direset. Silakan login dengan password baru.',
           type: ToastType.success,
-          duration: const Duration(seconds: 3),
+          duration: const Duration(seconds: 5),
         );
 
-        WidgetsBinding.instance.addPostFrameCallback((_) {
+        // Navigate to login after showing success
+        Future.delayed(const Duration(seconds: 2), () {
           if (mounted) {
-            Navigator.of(context).pushReplacementNamed('/home');
+            Navigator.of(
+              context,
+            ).pushNamedAndRemoveUntil('/login', (route) => false);
           }
         });
       }
@@ -115,25 +135,6 @@ class _LoginPageState extends ConsumerState<LoginPage>
     // Watch auth state for UI updates
     final authState = ref.watch(authProvider);
     final isLoading = authState['status'] == AuthState.loading;
-
-    // Dimensi responsif
-    final logoSize = isSmall
-        ? 70.0
-        : isMedium
-        ? 85.0
-        : 95.0;
-    final cardRadius = isXL ? 32.0 : 28.0;
-    final fieldRadius = 16.0;
-
-    // Lebar maksimum kartu/form agar nyaman di tablet/desktop
-    final maxFormWidth = isXL
-        ? 520.0
-        : isLarge
-        ? 480.0
-        : 440.0;
-
-    // Padding global responsif
-    final pagePadding = ResponsiveHelper.getResponsivePadding(context);
 
     // Body
     return Scaffold(
@@ -238,7 +239,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               ],
                             ).createShader(bounds),
                             child: Text(
-                              "Selamat Datang Kembali",
+                              "Reset Password",
                               style: TextStyle(
                                 fontSize: ResponsiveHelper.adaptiveTextSize(
                                   context,
@@ -252,7 +253,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                           ),
                           SizedBox(height: isSmall ? 6 : 8),
                           Text(
-                            "Masuk untuk melanjutkan perjalanan islami Anda",
+                            "Masukkan password baru Anda untuk\nmelanjutkan",
                             style: TextStyle(
                               fontSize: ResponsiveHelper.adaptiveTextSize(
                                 context,
@@ -270,7 +271,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                   ],
                 );
 
-                // ——— Kartu Form Login ———
+                // ——— Kartu Form Reset Password ———
                 final formCard = Center(
                   child: ConstrainedBox(
                     constraints: BoxConstraints(
@@ -306,10 +307,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                             key: _formKey,
                             child: Column(
                               children: [
-                                // Email
+                                // Password Baru
                                 TextFormField(
-                                  controller: _emailController,
-                                  keyboardType: TextInputType.emailAddress,
+                                  controller: _passwordController,
+                                  obscureText: !_isPasswordVisible,
                                   style: TextStyle(
                                     fontSize: ResponsiveHelper.adaptiveTextSize(
                                       context,
@@ -317,11 +318,25 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                     ),
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: 'Email',
-                                    hintText: "Masukkan email Anda",
+                                    labelText: 'Password Baru',
+                                    hintText: "Masukkan password baru",
                                     prefixIcon: Icon(
-                                      Icons.email_outlined,
+                                      Icons.lock_outline,
                                       color: AppTheme.primaryBlue,
+                                    ),
+                                    suffixIcon: IconButton(
+                                      icon: Icon(
+                                        _isPasswordVisible
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
+                                        color: AppTheme.onSurfaceVariant,
+                                      ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _isPasswordVisible =
+                                              !_isPasswordVisible;
+                                        });
+                                      },
                                     ),
                                     filled: true,
                                     fillColor: AppTheme.primaryBlue.withValues(
@@ -360,22 +375,20 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return "Harap masukkan email";
+                                      return "Harap masukkan password baru";
                                     }
-                                    if (!RegExp(
-                                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                                    ).hasMatch(value)) {
-                                      return "Harap masukkan email yang valid";
+                                    if (value.length < 6) {
+                                      return "Password minimal 6 karakter";
                                     }
                                     return null;
                                   },
                                 ),
                                 SizedBox(height: _gapSmall(context) + 4),
 
-                                // Password
+                                // Konfirmasi Password
                                 TextFormField(
-                                  controller: _passwordController,
-                                  obscureText: !_isPasswordVisible,
+                                  controller: _confirmPasswordController,
+                                  obscureText: !_isConfirmPasswordVisible,
                                   style: TextStyle(
                                     fontSize: ResponsiveHelper.adaptiveTextSize(
                                       context,
@@ -383,28 +396,28 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                     ),
                                   ),
                                   decoration: InputDecoration(
-                                    labelText: 'Password',
-                                    hintText: "Masukkan kata sandi Anda",
+                                    labelText: 'Konfirmasi Password',
+                                    hintText: "Masukkan ulang password baru",
                                     prefixIcon: Icon(
-                                      Icons.lock_outlined,
-                                      color: AppTheme.accentGreen,
+                                      Icons.lock_outline,
+                                      color: AppTheme.primaryBlue,
                                     ),
                                     suffixIcon: IconButton(
-                                      onPressed: () {
-                                        setState(() {
-                                          _isPasswordVisible =
-                                              !_isPasswordVisible;
-                                        });
-                                      },
                                       icon: Icon(
-                                        _isPasswordVisible
-                                            ? Icons.visibility_rounded
-                                            : Icons.visibility_off_rounded,
+                                        _isConfirmPasswordVisible
+                                            ? Icons.visibility_off_outlined
+                                            : Icons.visibility_outlined,
                                         color: AppTheme.onSurfaceVariant,
                                       ),
+                                      onPressed: () {
+                                        setState(() {
+                                          _isConfirmPasswordVisible =
+                                              !_isConfirmPasswordVisible;
+                                        });
+                                      },
                                     ),
                                     filled: true,
-                                    fillColor: AppTheme.accentGreen.withValues(
+                                    fillColor: AppTheme.primaryBlue.withValues(
                                       alpha: 0.05,
                                     ),
                                     border: OutlineInputBorder(
@@ -424,7 +437,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                         fieldRadius,
                                       ),
                                       borderSide: BorderSide(
-                                        color: AppTheme.accentGreen,
+                                        color: AppTheme.primaryBlue,
                                         width: 2,
                                       ),
                                     ),
@@ -440,55 +453,41 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                   validator: (value) {
                                     if (value == null || value.isEmpty) {
-                                      return "Harap masukkan kata sandi";
+                                      return "Harap konfirmasi password";
                                     }
-                                    if (value.length < 6) {
-                                      return "Kata sandi minimal 6 karakter";
+                                    if (value != _passwordController.text) {
+                                      return "Password tidak cocok";
                                     }
                                     return null;
                                   },
                                 ),
-                                SizedBox(height: 8),
+                                SizedBox(height: _gapSmall(context) + 8),
 
-                                // Forgot Password
-                                Align(
-                                  alignment: Alignment.centerRight,
-                                  child: TextButton(
-                                    onPressed: () {
-                                      Navigator.of(
-                                        context,
-                                      ).pushReplacementNamed(
-                                        '/forgot-password',
-                                      );
-                                    },
-                                    style: TextButton.styleFrom(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 8,
-                                        vertical: 4,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      "Lupa Kata Sandi?",
-                                      style: TextStyle(
-                                        color: AppTheme.primaryBlue,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize:
-                                            ResponsiveHelper.adaptiveTextSize(
-                                              context,
-                                              14,
-                                            ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: _gapSmall(context)),
-
-                                // Login Button
+                                // Submit Button
                                 SizedBox(
                                   width: double.infinity,
                                   height: _fieldHeight(context),
                                   child: ElevatedButton(
-                                    onPressed: isLoading ? null : _handleLogin,
+                                    onPressed: isLoading
+                                        ? null
+                                        : () async {
+                                            if (_formKey.currentState!
+                                                .validate()) {
+                                              await ref
+                                                  .read(authProvider.notifier)
+                                                  .resetPassword(
+                                                    token: widget.token,
+                                                    email: widget.email,
+                                                    password:
+                                                        _passwordController.text
+                                                            .trim(),
+                                                    passwordConfirmation:
+                                                        _confirmPasswordController
+                                                            .text
+                                                            .trim(),
+                                                  );
+                                            }
+                                          },
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AppTheme.primaryBlue,
                                       foregroundColor: Colors.white,
@@ -520,7 +519,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Text(
-                                                "Masuk",
+                                                "Reset Password",
                                                 style: TextStyle(
                                                   fontSize:
                                                       ResponsiveHelper.adaptiveTextSize(
@@ -533,7 +532,7 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                               ),
                                               const SizedBox(width: 8),
                                               const Icon(
-                                                Icons.arrow_forward_rounded,
+                                                Icons.check_circle_outline,
                                                 size: 20,
                                               ),
                                             ],
@@ -549,8 +548,8 @@ class _LoginPageState extends ConsumerState<LoginPage>
                   ),
                 );
 
-                // ——— Social Login Section ———
-                final social = FadeTransition(
+                // ——— Link ke Login ———
+                final loginLink = FadeTransition(
                   opacity: _fadeAnimation,
                   child: Center(
                     child: ConstrainedBox(
@@ -561,135 +560,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                         children: [
                           SizedBox(height: _gapMedium(context)),
                           Row(
-                            children: [
-                              Expanded(child: Divider(color: Colors.grey[300])),
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                child: Text(
-                                  "Atau lanjutkan dengan",
-                                  style: TextStyle(fontSize: 14),
-                                ),
-                              ),
-                              Expanded(child: Divider(color: Colors.grey[300])),
-                            ],
-                          ),
-                          SizedBox(height: _gapSmall(context) + 8),
-                          SizedBox(
-                            width: double.infinity,
-                            height: _fieldHeight(context),
-                            child: OutlinedButton(
-                              onPressed: isLoading
-                                  ? null
-                                  : () async {
-                                      try {
-                                        await ref
-                                            .read(authProvider.notifier)
-                                            .loginWithGoogle();
-                                      } catch (e) {
-                                        if (mounted) {
-                                          showMessageToast(
-                                            context,
-                                            message: e.toString().replaceFirst(
-                                              'Exception: ',
-                                              '',
-                                            ),
-                                            type: ToastType.error,
-                                          );
-                                        }
-                                      }
-                                    },
-                              style: OutlinedButton.styleFrom(
-                                side: BorderSide(
-                                  color: Colors.grey[300]!,
-                                  width: 2,
-                                ),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(
-                                    fieldRadius,
-                                  ),
-                                ),
-                                backgroundColor: Colors.white,
-                                disabledBackgroundColor: Colors.grey[100],
-                              ),
-                              child: isLoading
-                                  ? const SizedBox(
-                                      width: 24,
-                                      height: 24,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2.5,
-                                        valueColor:
-                                            AlwaysStoppedAnimation<Color>(
-                                              Colors.black54,
-                                            ),
-                                      ),
-                                    )
-                                  : Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.g_mobiledata_rounded,
-                                          size: isSmall ? 26 : 28,
-                                          color: AppTheme.onSurface,
-                                        ),
-                                        SizedBox(width: 8),
-                                        Text(
-                                          "Lanjutkan dengan Google",
-                                          style: TextStyle(
-                                            fontSize:
-                                                ResponsiveHelper.adaptiveTextSize(
-                                                  context,
-                                                  16,
-                                                ),
-                                            fontWeight: FontWeight.w600,
-                                            color: AppTheme.onSurface,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                );
-
-                // ——— Sign Up Link ———
-                final signup = Padding(
-                  padding: EdgeInsets.only(
-                    top: _gapMedium(context),
-                    left: 4,
-                    right: 4,
-                    bottom: isSmall ? 8 : 0,
-                  ),
-                  child: FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: useTwoColumns ? maxFormWidth : 600,
-                        ),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 16,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16),
-                            border: Border.all(
-                              color: AppTheme.primaryBlue.withValues(
-                                alpha: 0.1,
-                              ),
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                "Belum punya akun?",
+                                "Sudah punya akun? ",
                                 style: TextStyle(
                                   color: AppTheme.onSurfaceVariant,
                                   fontSize: ResponsiveHelper.adaptiveTextSize(
@@ -698,136 +572,78 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                   ),
                                 ),
                               ),
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.pushReplacementNamed(
-                                    context,
-                                    '/signup',
-                                  );
-                                },
+                              TextButton(
+                                onPressed: () => Navigator.of(context)
+                                    .pushNamedAndRemoveUntil(
+                                      '/login',
+                                      (route) => false,
+                                    ),
+                                style: TextButton.styleFrom(
+                                  padding: EdgeInsets.zero,
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
                                 child: Text(
-                                  " Daftar",
+                                  "Masuk",
                                   style: TextStyle(
                                     color: AppTheme.primaryBlue,
-                                    fontWeight: FontWeight.bold,
                                     fontSize: ResponsiveHelper.adaptiveTextSize(
                                       context,
                                       14,
                                     ),
+                                    fontWeight: FontWeight.w600,
                                   ),
                                 ),
                               ),
                             ],
                           ),
-                        ),
+                        ],
                       ),
                     ),
                   ),
                 );
 
-                // ——— Panel kiri (hiasan) untuk layar besar ———
-                final leftPane = AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeOut,
-                  padding: EdgeInsets.all(isXL ? 32 : 24),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.35),
-                    borderRadius: BorderRadius.circular(24),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.mosque_rounded,
-                        size: isXL ? 120 : 96,
-                        color: AppTheme.primaryBlue.withValues(alpha: 0.9),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        "Tumbuh dalam Iman",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.adaptiveTextSize(
-                            context,
-                            22,
-                          ),
-                          fontWeight: FontWeight.w700,
-                          color: AppTheme.onSurface,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        "Akses konten islami pilihan dan lanjutkan perjalananmu.",
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          fontSize: ResponsiveHelper.adaptiveTextSize(
-                            context,
-                            14,
-                          ),
-                          color: AppTheme.onSurfaceVariant,
-                          height: 1.4,
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-
-                // ——— Susun final layout ———
+                // ——— Layout ———
                 if (useTwoColumns) {
-                  // Desktop/large tablet: 2 kolom
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      appBar,
-                      Expanded(
-                        child: Row(
-                          children: [
-                            // kiri
-                            Expanded(
-                              flex: 6,
-                              child: Padding(
-                                padding: EdgeInsets.only(
-                                  right: pagePadding.right / 2,
-                                ),
-                                child: leftPane,
-                              ),
-                            ),
-                            // kanan (form)
-                            Expanded(
-                              flex: 5,
-                              child: SingleChildScrollView(
-                                padding: EdgeInsets.symmetric(
-                                  horizontal: pagePadding.horizontal / 2,
-                                  vertical: 12,
-                                ),
-                                child: Column(
-                                  children: [header, formCard, social, signup],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-                } else {
-                  // Mobile/tablet kecil: 1 kolom
+                  // Untuk layar besar: 2 kolom
                   return Column(
                     children: [
                       appBar,
                       Expanded(
                         child: SingleChildScrollView(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 4,
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [header, formCard, social, signup],
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Kolom kiri: header
+                              Expanded(
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 24),
+                                  child: header,
+                                ),
+                              ),
+                              // Kolom kanan: form
+                              Expanded(
+                                child: Column(children: [formCard, loginLink]),
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ],
+                  );
+                } else {
+                  // Untuk layar kecil: 1 kolom
+                  return SingleChildScrollView(
+                    child: Column(
+                      children: [
+                        appBar,
+                        header,
+                        formCard,
+                        loginLink,
+                        SizedBox(height: _gapLarge(context)),
+                      ],
+                    ),
                   );
                 }
               },
@@ -837,4 +653,14 @@ class _LoginPageState extends ConsumerState<LoginPage>
       ),
     );
   }
+
+  // Responsive helper methods
+  double _gapSmall(BuildContext context) =>
+      ResponsiveHelper.getScreenHeight(context) * 0.015;
+  double _gapMedium(BuildContext context) =>
+      ResponsiveHelper.getScreenHeight(context) * 0.025;
+  double _gapLarge(BuildContext context) =>
+      ResponsiveHelper.getScreenHeight(context) * 0.04;
+  double _fieldHeight(BuildContext context) =>
+      ResponsiveHelper.getScreenHeight(context) * 0.065;
 }

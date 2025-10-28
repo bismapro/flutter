@@ -172,7 +172,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
       if (!mounted) return;
 
       final page = (_target == _Target.home)
-          ? const HomePage()
+          ? HomePage()
           : const WelcomePage();
 
       Navigator.of(context).pushReplacement(

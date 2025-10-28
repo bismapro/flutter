@@ -35,7 +35,8 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     state = state.copyWith(status: ProfileStatus.loading);
     try {
       final response = await ProfileService.updateProfile(name, email, phone);
-      final updatedUser = response['data'];
+      final data = response['data'];
+      final updatedUser = data['user'];
 
       // Simpan user yang sudah diperbarui ke local storage
       await StorageHelper.saveUser(updatedUser as Map<String, dynamic>);

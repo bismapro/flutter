@@ -1,6 +1,7 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:quran/quran.dart' as quran;
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/quran/juz.dart';
 import 'package:test_flutter/features/quran/widgets/ayah_card.dart';
@@ -23,6 +24,10 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
   late PageController _pageController;
   final ScrollController _scrollController = ScrollController();
   final Map<String, GlobalKey> _verseKeys = {};
+
+  // Cache untuk detail juz yang sudah dimuat
+  final Map<int, List<JuzSurahData>> _juzDetailsCache = {};
+  bool _isLoadingDetails = false;
 
   bool get _showTabs => widget.allJuz.isNotEmpty && widget.allJuz.length > 1;
 
@@ -60,6 +65,9 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
     } else {
       print('📖 Single juz mode: ${widget.juz.number}');
     }
+
+    // Load initial juz details
+    _loadJuzDetails(_currentJuz);
   }
 
   @override
@@ -75,16 +83,94 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
   Juz get _currentJuz =>
       _showTabs ? widget.allJuz[_currentJuzIndex] : widget.juz;
 
-  int _getTotalVersesInJuz(int juzNumber) {
-    final juzData = quran.getSurahAndVersesFromJuz(juzNumber);
-    int total = 0;
-    for (var verseRange in juzData.values) {
-      // Calculate actual number of verses from range [start, end]
-      final startVerse = verseRange.first;
-      final endVerse = verseRange.last;
-      total += (endVerse - startVerse + 1);
+  // Load detail juz dari multiple surah JSON files
+  Future<List<JuzSurahData>> _loadJuzDetails(Juz juz) async {
+    // Check cache first
+    if (_juzDetailsCache.containsKey(juz.number)) {
+      print('📦 Using cached data for juz ${juz.number}');
+      return _juzDetailsCache[juz.number]!;
     }
-    return total;
+
+    if (mounted) {
+      setState(() => _isLoadingDetails = true);
+    }
+
+    final List<JuzSurahData> juzData = [];
+
+    try {
+      // Juz bisa mencakup beberapa surah
+      for (
+        int surahNum = juz.startSurah;
+        surahNum <= juz.endSurah;
+        surahNum++
+      ) {
+        final String jsonString = await rootBundle.loadString(
+          'assets/quran/surah/$surahNum.json',
+        );
+        final Map<String, dynamic> surahData = json.decode(jsonString);
+
+        // Determine verse range for this surah in the juz
+        int startVerse;
+        int endVerse;
+
+        if (surahNum == juz.startSurah && surahNum == juz.endSurah) {
+          // Juz starts and ends in the same surah
+          startVerse = juz.startAyah;
+          endVerse = juz.endAyah;
+        } else if (surahNum == juz.startSurah) {
+          // First surah of juz
+          startVerse = juz.startAyah;
+          endVerse = surahData['jumlahAyat'];
+        } else if (surahNum == juz.endSurah) {
+          // Last surah of juz
+          startVerse = 1;
+          endVerse = juz.endAyah;
+        } else {
+          // Middle surah (all verses)
+          startVerse = 1;
+          endVerse = surahData['jumlahAyat'];
+        }
+
+        // Filter ayahs based on verse range
+        final List<dynamic> allAyahs = surahData['ayat'];
+        final List<dynamic> filteredAyahs = allAyahs.where((ayah) {
+          final verseNum = ayah['nomorAyat'] as int;
+          return verseNum >= startVerse && verseNum <= endVerse;
+        }).toList();
+
+        juzData.add(
+          JuzSurahData(
+            surahNumber: surahNum,
+            surahName: surahData['namaLatin'],
+            surahNameArabic: surahData['nama'],
+            startVerse: startVerse,
+            endVerse: endVerse,
+            ayahs: filteredAyahs,
+          ),
+        );
+
+        print(
+          '✅ Loaded Surah $surahNum: verses $startVerse-$endVerse (${filteredAyahs.length} ayahs)',
+        );
+      }
+
+      // Cache the result
+      _juzDetailsCache[juz.number] = juzData;
+
+      print('✅ Loaded juz ${juz.number} details (${juzData.length} surahs)');
+    } catch (e) {
+      print('❌ Error loading juz ${juz.number} details: $e');
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingDetails = false);
+      }
+    }
+
+    return juzData;
+  }
+
+  int _getTotalVersesInJuz(List<JuzSurahData> juzData) {
+    return juzData.fold(0, (sum, surah) => sum + surah.ayahs.length);
   }
 
   void _onPageChanged(int index) {
@@ -92,6 +178,9 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
       _currentJuzIndex = index;
     });
     _tabController.animateTo(index);
+
+    // Load new juz details
+    _loadJuzDetails(_currentJuz);
 
     print('📖 Changed to juz: ${_currentJuz.number}');
   }
@@ -145,7 +234,8 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
   }
 
   Widget _buildHeader(bool isTablet, bool isDesktop) {
-    final totalVerses = _getTotalVersesInJuz(_currentJuz.number);
+    final juzData = _juzDetailsCache[_currentJuz.number];
+    final totalVerses = juzData != null ? _getTotalVersesInJuz(juzData) : 0;
 
     return Container(
       padding: EdgeInsets.all(isTablet ? 14 : 10),
@@ -209,7 +299,9 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                   ),
                 ),
                 Text(
-                  '$totalVerses Ayat • ${_currentJuz.startSurahName} - ${_currentJuz.endSurahName}',
+                  totalVerses > 0
+                      ? '$totalVerses Ayat • ${_currentJuz.startSurahName} - ${_currentJuz.endSurahName}'
+                      : '${_currentJuz.startSurahName} - ${_currentJuz.endSurahName}',
                   style: TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: isTablet ? 14 : 13,
@@ -276,6 +368,7 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
           fontWeight: FontWeight.w500,
         ),
         dividerColor: Colors.transparent,
+        tabAlignment: TabAlignment.start,
         onTap: (index) {
           _pageController.animateToPage(
             index,
@@ -285,35 +378,40 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
         },
         tabs: widget.allJuz.map((juz) {
           return Tab(
-            child: Row(
-              children: [
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppTheme.primaryBlue.withOpacity(0.1),
-                        AppTheme.accentGreen.withOpacity(0.1),
-                      ],
+            height: 48,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          AppTheme.primaryBlue.withOpacity(0.1),
+                          AppTheme.accentGreen.withOpacity(0.1),
+                        ],
+                      ),
+                      shape: BoxShape.circle,
                     ),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${juz.number}',
-                      style: TextStyle(
-                        fontFamily: 'Poppins',
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppTheme.primaryBlue,
+                    child: Center(
+                      child: Text(
+                        '${juz.number}',
+                        style: TextStyle(
+                          fontFamily: 'Poppins',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppTheme.primaryBlue,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text('Juz ${juz.number}'),
-              ],
+                  const SizedBox(width: 8),
+                  Text('Juz ${juz.number}'),
+                ],
+              ),
             ),
           );
         }).toList(),
@@ -324,8 +422,28 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
   Widget _buildAyahsList(Juz juz, bool isTablet, bool isDesktop) {
     _verseKeys.clear();
 
-    // Get juz data: Map<int surahNumber, List<int> verses>
-    final juzData = quran.getSurahAndVersesFromJuz(juz.number);
+    // Get cached juz data
+    final juzData = _juzDetailsCache[juz.number];
+
+    if (_isLoadingDetails || juzData == null) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(color: AppTheme.primaryBlue),
+            const SizedBox(height: 16),
+            Text(
+              'Loading juz ${juz.number}...',
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                color: AppTheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return ListView.builder(
       key: ValueKey('juz_${juz.number}'),
@@ -337,20 +455,7 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
       physics: const BouncingScrollPhysics(),
       itemCount: juzData.length,
       itemBuilder: (context, surahIndex) {
-        final surahNumber = juzData.keys.elementAt(surahIndex);
-        final verseRange = juzData[surahNumber]!;
-
-        // Generate full list of verses from range [start, end]
-        final startVerse = verseRange.first;
-        final endVerse = verseRange.last;
-        final verses = List.generate(
-          endVerse - startVerse + 1,
-          (i) => startVerse + i,
-        );
-
-        print(
-          '📝 Surah $surahNumber: Range $verseRange -> Full verses: $verses',
-        );
+        final surahData = juzData[surahIndex];
 
         return Column(
           children: [
@@ -376,7 +481,7 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '$surahNumber',
+                      '${surahData.surahNumber}',
                       style: TextStyle(
                         fontFamily: 'Poppins',
                         fontSize: 14,
@@ -391,7 +496,7 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          quran.getSurahName(surahNumber),
+                          surahData.surahName,
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 16,
@@ -400,7 +505,7 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                           ),
                         ),
                         Text(
-                          '${verses.length} Ayat • Ayat ${verses.first} - ${verses.last}',
+                          '${surahData.ayahs.length} Ayat • Ayat ${surahData.startVerse} - ${surahData.endVerse}',
                           style: TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 12,
@@ -411,7 +516,7 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
                     ),
                   ),
                   Text(
-                    quran.getSurahNameArabic(surahNumber),
+                    surahData.surahNameArabic,
                     style: TextStyle(
                       fontFamily: 'AmiriQuran',
                       fontSize: 20,
@@ -423,34 +528,29 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
               ),
             ),
 
-            // Verses - Loop through ALL verses
-            ...verses.map((verseNumber) {
-              final verseKey = '${surahNumber}_$verseNumber';
+            // Ayahs
+            ...surahData.ayahs.map((ayah) {
+              final verseNumber = ayah['nomorAyat'] as int;
+              final verseKey = '${surahData.surahNumber}_$verseNumber';
               _verseKeys[verseKey] = GlobalKey();
 
-              final arabicText = quran.getVerse(
-                surahNumber,
-                verseNumber,
-                verseEndSymbol: false,
-              );
-              final translation = quran.getVerseTranslation(
-                surahNumber,
-                verseNumber,
-                translation: quran.Translation.indonesian,
-              );
-              final verseEndSymbol = quran.getVerseEndSymbol(verseNumber);
+              final arabicText = ayah['teksArab'] as String;
+              final translation = ayah['teksIndonesia'] as String;
+              final transliteration = ayah['teksLatin'] as String? ?? '';
+              final verseEndSymbol = _toArabicNumber(verseNumber);
 
               return AyahCard(
-                surahNumber:
-                    surahNumber, // ← Fixed: Use actual surahNumber from juz data
+                surahNumber: surahData.surahNumber,
                 key: _verseKeys[verseKey],
                 verseNumber: verseNumber,
                 arabicText: arabicText,
                 translation: translation,
+                transliteration: transliteration,
                 verseEndSymbol: verseEndSymbol,
                 onPlayVerse: () {
-                  // TODO: Implement audio playback for specific verse in juz
-                  print('🎵 Play Surah $surahNumber, Ayah $verseNumber');
+                  print(
+                    '🎵 Play Surah ${surahData.surahNumber}, Ayah $verseNumber',
+                  );
                 },
                 isTablet: isTablet,
                 isDesktop: isDesktop,
@@ -462,4 +562,33 @@ class _JuzDetailPageState extends ConsumerState<JuzDetailPage>
       },
     );
   }
+
+  // Helper function to convert number to Arabic numerals
+  String _toArabicNumber(int number) {
+    const arabicNumbers = ['٠', '١', '٢', '٣', '٤', '٥', '٦', '٧', '٨', '٩'];
+    return number
+        .toString()
+        .split('')
+        .map((digit) => arabicNumbers[int.parse(digit)])
+        .join('');
+  }
+}
+
+// Helper class to store juz surah data
+class JuzSurahData {
+  final int surahNumber;
+  final String surahName;
+  final String surahNameArabic;
+  final int startVerse;
+  final int endVerse;
+  final List<dynamic> ayahs;
+
+  JuzSurahData({
+    required this.surahNumber,
+    required this.surahName,
+    required this.surahNameArabic,
+    required this.startVerse,
+    required this.endVerse,
+    required this.ayahs,
+  });
 }

@@ -1,5 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:quran/quran.dart' as quran;
+import 'package:flutter/services.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/quran/juz.dart';
 import 'package:test_flutter/features/quran/pages/juz_detail_page.dart';
@@ -12,7 +13,7 @@ class JuzTab extends StatefulWidget {
 }
 
 class _JuzTabState extends State<JuzTab> {
-  final List<Juz> _juzList = [];
+  List<Juz> _juzList = [];
   bool _isLoading = true;
 
   @override
@@ -21,55 +22,89 @@ class _JuzTabState extends State<JuzTab> {
     _loadJuzData();
   }
 
-  void _loadJuzData() {
+  Future<void> _loadJuzData() async {
     setState(() {
       _isLoading = true;
     });
 
     try {
-      for (int i = 1; i <= quran.totalJuzCount; i++) {
-        final juzData = quran.getSurahAndVersesFromJuz(i);
+      // Load juz.json from assets
+      final String jsonString = await rootBundle.loadString(
+        'assets/quran/juz.json',
+      );
+      final List<dynamic> juzData = json.decode(jsonString);
 
-        // Get first and last surah-verse from juz
-        final firstEntry = juzData.entries.first;
-        final lastEntry = juzData.entries.last;
+      final List<Juz> juzList = juzData.map((item) {
+        return Juz(
+          number: item['juz'],
+          startSurah: item['start']['surah_number'],
+          startAyah: item['start']['ayah'],
+          endSurah: item['end']['surah_number'],
+          endAyah: item['end']['ayah'],
+          startSurahName: item['start']['surah_name'],
+          endSurahName: item['end']['surah_name'],
+        );
+      }).toList();
 
-        final firstSurah = firstEntry.key;
-        final firstVerse = firstEntry.value.first;
-
-        final lastSurah = lastEntry.key;
-        final lastVerse = lastEntry.value.last;
-
-        _juzList.add(
-          Juz(
-            number: i,
-            startSurah: firstSurah,
-            startAyah: firstVerse,
-            endSurah: lastSurah,
-            endAyah: lastVerse,
-            startSurahName: quran.getSurahName(firstSurah),
-            endSurahName: quran.getSurahName(lastSurah),
+      if (mounted) {
+        setState(() {
+          _juzList = juzList;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('❌ Error loading juz data: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error loading juz data: $e'),
+            backgroundColor: Colors.red.shade400,
+            behavior: SnackBarBehavior.floating,
           ),
         );
       }
-    } catch (e) {
-      print('Error loading juz data: $e');
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
 
-  int _getTotalVersesInJuz(int juzNumber) {
-    final juzData = quran.getSurahAndVersesFromJuz(juzNumber);
+  Future<int> _getTotalVersesInJuz(Juz juz) async {
     int total = 0;
-    for (var verseRange in juzData.values) {
-      // Calculate actual number of verses from range [start, end]
-      final startVerse = verseRange.first;
-      final endVerse = verseRange.last;
-      total += (endVerse - startVerse + 1);
+
+    try {
+      // If juz starts and ends in the same surah
+      if (juz.startSurah == juz.endSurah) {
+        total = juz.endAyah - juz.startAyah + 1;
+      } else {
+        // Count verses from first surah
+        final firstSurahJson = await rootBundle.loadString(
+          'assets/quran/surah/${juz.startSurah}.json',
+        );
+        final firstSurahData = json.decode(firstSurahJson);
+        final firstSurahTotalAyat = firstSurahData['jumlahAyat'] as int;
+        total += (firstSurahTotalAyat - juz.startAyah + 1);
+
+        // Count verses from middle surahs (if any)
+        for (
+          int surahNum = juz.startSurah + 1;
+          surahNum < juz.endSurah;
+          surahNum++
+        ) {
+          final surahJson = await rootBundle.loadString(
+            'assets/quran/surah/$surahNum.json',
+          );
+          final surahData = json.decode(surahJson);
+          total += surahData['jumlahAyat'] as int;
+        }
+
+        // Count verses from last surah
+        total += juz.endAyah;
+      }
+    } catch (e) {
+      print('❌ Error calculating verses for juz ${juz.number}: $e');
     }
+
     return total;
   }
 
@@ -104,8 +139,6 @@ class _JuzTabState extends State<JuzTab> {
   }
 
   Widget _buildJuzItem(Juz juz, bool isTablet, bool isDesktop) {
-    final totalVerses = _getTotalVersesInJuz(juz.number);
-
     return InkWell(
       onTap: () {
         Navigator.push(
@@ -200,16 +233,6 @@ class _JuzTabState extends State<JuzTab> {
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    '$totalVerses Ayat',
-                    style: TextStyle(
-                      fontFamily: 'Poppins',
-                      fontSize: isTablet ? 13 : 12,
-                      color: AppTheme.accentGreen,
-                      fontWeight: FontWeight.w500,
-                    ),
                   ),
                 ],
               ),

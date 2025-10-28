@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:test_flutter/features/artikel/pages/artikel_detail_page.dart';
 import 'package:test_flutter/features/artikel/pages/artikel_page.dart';
+import 'package:test_flutter/features/auth/pages/forgot_password.dart';
 import 'package:test_flutter/features/auth/pages/login_page.dart';
+import 'package:test_flutter/features/auth/pages/reset_password.dart';
 import 'package:test_flutter/features/auth/pages/signup_page.dart';
 import 'package:test_flutter/features/auth/pages/splash_screen.dart';
 import 'package:test_flutter/features/auth/pages/welcome_page.dart';
 import 'package:test_flutter/features/compass/pages/compass_page.dart';
 import 'package:test_flutter/features/home/pages/home_page.dart';
+import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
 import 'package:test_flutter/features/monitoring/pages/monitoring_page.dart';
 import 'package:test_flutter/features/profile/pages/profile_page.dart';
 import 'package:test_flutter/features/puasa/pages/puasa_page.dart';
@@ -14,6 +17,7 @@ import 'package:test_flutter/features/quran/pages/quran_page.dart';
 import 'package:test_flutter/features/quran/pages/surah_detail_page.dart';
 import 'package:test_flutter/features/sedekah/pages/sedekah_page.dart';
 import 'package:test_flutter/features/sholat/pages/sholat_page.dart';
+import 'package:test_flutter/features/syahadat/pages/syahadat_page.dart';
 import 'package:test_flutter/features/tahajud/pages/tahajud_page.dart';
 
 class AppRoutes {
@@ -21,6 +25,8 @@ class AppRoutes {
   static const String welcome = '/welcome';
   static const String login = '/login';
   static const String signup = '/signup';
+  static const String forgotPassword = '/forgot-password';
+  static const String resetPassword = '/reset-password';
   static const String home = '/home';
   static const String qiblaCompass = '/qibla-compass';
   static const String quran = '/quran';
@@ -35,6 +41,8 @@ class AppRoutes {
   static const String alarmSettings = '/alarm-settings';
   static const String profile = '/profile';
   static const String article = '/article';
+  static const String syahadat = '/syahadat';
+  static const String komunitas = '/komunitas';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -46,15 +54,28 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const LoginPage());
       case signup:
         return MaterialPageRoute(builder: (_) => const SignupPage());
+      case forgotPassword:
+        return MaterialPageRoute(builder: (_) => const ForgotPasswordPage());
+      case resetPassword:
+        final args = settings.arguments as Map<String, String>?;
+        return MaterialPageRoute(
+          builder: (_) => ResetPasswordPage(
+            token: args?['token'] ?? '',
+            email: args?['email'] ?? '',
+          ),
+        );
       case home:
-        return MaterialPageRoute(builder: (_) => const HomePage());
+        return MaterialPageRoute(builder: (_) => HomePage());
       case qiblaCompass:
         return MaterialPageRoute(builder: (_) => const CompassPage());
       case quran:
         return MaterialPageRoute(builder: (_) => const QuranPage());
       case surahDetail:
         return MaterialPageRoute(
-          builder: (_) => SurahDetailPage(surah: settings.arguments as dynamic, allSurahs: []),
+          builder: (_) => SurahDetailPage(
+            surah: settings.arguments as dynamic,
+            allSurahs: [],
+          ),
         );
       case sholat:
         return MaterialPageRoute(builder: (_) => const SholatPage());
@@ -75,6 +96,10 @@ class AppRoutes {
         );
       case profile:
         return MaterialPageRoute(builder: (_) => const ProfilePage());
+      case syahadat:
+        return MaterialPageRoute(builder: (_) => const SyahadatPage());
+      case komunitas:
+        return MaterialPageRoute(builder: (_) => const KomunitasPage());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

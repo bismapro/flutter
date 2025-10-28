@@ -83,7 +83,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         ref.read(profileProvider.notifier).resetStatus();
 
         // Navigate back with success result
-        Navigator.pop(context, true);
+        Navigator.pushReplacementNamed(context, '/profile');
       } else if (next.status == ProfileStatus.error && next.message != null) {
         showMessageToast(
           context,
@@ -108,7 +108,13 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: isLoading ? null : () => Navigator.pop(context),
+          onPressed: isLoading
+              ? null
+              : () => Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/profile',
+                  (route) => false,
+                ),
         ),
       ),
       body: SafeArea(

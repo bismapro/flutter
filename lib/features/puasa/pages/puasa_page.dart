@@ -208,6 +208,16 @@ class _PuasaPageState extends ConsumerState<PuasaPage>
                   children: [
                     Row(
                       children: [
+                        // Back button
+                        IconButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          icon: const Icon(Icons.arrow_back_rounded),
+                          color: AppTheme.onSurface,
+                          tooltip: 'Kembali',
+                        ),
+                        const SizedBox(width: 12),
                         Container(
                           padding: EdgeInsets.all(isTablet ? 14 : 12),
                           decoration: BoxDecoration(
