@@ -456,7 +456,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             const SizedBox(width: 12),
             Flexible(
               child: Text(
-                'Quick Access',
+                'All Features',
                 style: TextStyle(
                   fontSize: _t(context, 20),
                   fontWeight: FontWeight.bold,
@@ -477,61 +477,82 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           crossAxisSpacing: _px(context, 16),
           childAspectRatio: _getChildAspectRatio(context),
           children: [
-            // _buildEnhancedFeatureButton(
-            //   context,
-            //   FlutterIslamicIcons.quran2,
-            //   'Al-Quran',
-            //   AppTheme.accentGreen,
-            //   onTap: () => Navigator.pushNamed(context, '/quran'),
-            // ),
-            // _buildEnhancedFeatureButton(
-            //   context,
-            //   FlutterIslamicIcons.prayingPerson,
-            //   'Sholat',
-            //   AppTheme.accentGreen,
-            //   onTap: () => Navigator.pushNamed(context, '/sholat'),
-            // ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.ramadan,
-              'Puasa',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/puasa'),
+              FlutterIslamicIcons.family, // 🧑‍👩‍👧
+              'Monitoring',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/monitoring'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.qibla,
-              'Qibla',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/qibla-compass'),
-            ),
-            _buildEnhancedFeatureButton(
-              context,
-              FlutterIslamicIcons.zakat,
-              'Sedekah',
-              AppTheme.accentGreen,
-              onTap: () => Navigator.pushNamed(context, '/zakat'),
-            ),
-            // _buildEnhancedFeatureButton(
-            //   context,
-            //   FlutterIslamicIcons.family,
-            //   'Monitoring',
-            //   AppTheme.accentGreen,
-            //   onTap: () => Navigator.pushNamed(context, '/monitoring'),
-            // ),
-            _buildEnhancedFeatureButton(
-              context,
-              FlutterIslamicIcons.prayer,
+              FlutterIslamicIcons.prayer, // 🙏
               'Tahajud',
-              AppTheme.accentGreen,
+              AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/tahajud'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              Icons.article,
+              FlutterIslamicIcons.prayingPerson, // 🙇‍♂️
+              'Sholat',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/sholat'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.zakat, // 💰
+              'Sedekah',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/zakat'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.ramadan, // 🌙
+              'Puasa',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/puasa'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.kaaba, // 🕋
+              'Haji',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/haji'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.quran2, // 📖
+              'Al-Quran',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/quran'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.allah, // ☪️ (kalimat syahadat)
+              'Syahadat',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/syahadat'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              FlutterIslamicIcons.qibla, // 🧭
+              'Qibla',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/qibla-compass'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              Icons.article, // 📄
               'Artikel',
-              AppTheme.accentGreen,
+              AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/article'),
+            ),
+            _buildEnhancedFeatureButton(
+              context,
+              Icons.forum_outlined, // 👥
+              'Komunitas',
+              AppTheme.primaryBlueLight,
+              onTap: () => Navigator.pushNamed(context, '/komunitas'),
             ),
           ],
         ),

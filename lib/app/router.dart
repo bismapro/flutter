@@ -16,6 +16,7 @@ import 'package:test_flutter/features/quran/pages/quran_page.dart';
 import 'package:test_flutter/features/quran/pages/surah_detail_page.dart';
 import 'package:test_flutter/features/sedekah/pages/sedekah_page.dart';
 import 'package:test_flutter/features/sholat/pages/sholat_page.dart';
+import 'package:test_flutter/features/syahadat/pages/syahadat_page.dart';
 import 'package:test_flutter/features/tahajud/pages/tahajud_page.dart';
 
 class AppRoutes {
@@ -39,6 +40,7 @@ class AppRoutes {
   static const String alarmSettings = '/alarm-settings';
   static const String profile = '/profile';
   static const String article = '/article';
+  static const String syahadat = '/syahadat';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -92,6 +94,8 @@ class AppRoutes {
         );
       case profile:
         return MaterialPageRoute(builder: (_) => const ProfilePage());
+      case syahadat:
+        return MaterialPageRoute(builder: (_) => const SyahadatPage());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(

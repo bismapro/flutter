@@ -104,8 +104,9 @@ flutter:
     - .env
     - assets/images/background/
     - assets/images/logo/
-    - assets/audio/
-    - assets/translations/
+    - assets/audio/adzan.mp3
+    - assets/audio/syahadat.mp3
+    # - assets/translations/
     # - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
