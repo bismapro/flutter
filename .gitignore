@@ -46,3 +46,5 @@ app.*.map.json
 
 client_secret/
 *.json
+
+!assets/quran
