@@ -106,6 +106,8 @@ flutter:
     - assets/images/logo/
     - assets/audio/adzan.mp3
     - assets/audio/syahadat.mp3
+    - assets/quran/
+    - assets/quran/surah/
     # - assets/translations/
     # - images/a_dot_ham.jpeg
 

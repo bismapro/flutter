@@ -9,6 +9,7 @@ class AyahCard extends ConsumerWidget {
   final String arabicText;
   final String translation;
   final String verseEndSymbol;
+  final String? transliteration; // Tambahkan parameter transliteration
   final VoidCallback onPlayVerse;
   final bool isTablet;
   final bool isDesktop;
@@ -21,6 +22,7 @@ class AyahCard extends ConsumerWidget {
     required this.arabicText,
     required this.translation,
     required this.verseEndSymbol,
+    this.transliteration, // Parameter opsional
     required this.onPlayVerse,
     this.isTablet = false,
     this.isDesktop = false,
@@ -57,8 +59,8 @@ class AyahCard extends ConsumerWidget {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppTheme.accentGreen.withValues(alpha:0.2),
-                    AppTheme.accentGreen.withValues(alpha:0.1),
+                    AppTheme.accentGreen.withValues(alpha: 0.2),
+                    AppTheme.accentGreen.withValues(alpha: 0.1),
                   ],
                 ),
                 shape: BoxShape.circle,
@@ -249,8 +251,8 @@ class AyahCard extends ConsumerWidget {
           color: isBookmarked
               ? AppTheme.accentGreen
               : isPlaying
-              ? AppTheme.accentGreen.withValues(alpha:0.5)
-              : AppTheme.primaryBlue.withValues(alpha:0.1),
+              ? AppTheme.accentGreen.withValues(alpha: 0.5)
+              : AppTheme.primaryBlue.withValues(alpha: 0.1),
           width: isBookmarked
               ? 2
               : isPlaying
@@ -260,10 +262,10 @@ class AyahCard extends ConsumerWidget {
         boxShadow: [
           BoxShadow(
             color: isBookmarked
-                ? AppTheme.accentGreen.withValues(alpha:0.2)
+                ? AppTheme.accentGreen.withValues(alpha: 0.2)
                 : isPlaying
-                ? AppTheme.accentGreen.withValues(alpha:0.15)
-                : AppTheme.primaryBlue.withValues(alpha:0.08),
+                ? AppTheme.accentGreen.withValues(alpha: 0.15)
+                : AppTheme.primaryBlue.withValues(alpha: 0.08),
             blurRadius: 20,
             offset: const Offset(0, 4),
             spreadRadius: -5,
@@ -286,17 +288,17 @@ class AyahCard extends ConsumerWidget {
                   gradient: LinearGradient(
                     colors: isBookmarked
                         ? [
-                            AppTheme.accentGreen.withValues(alpha:0.2),
-                            AppTheme.accentGreen.withValues(alpha:0.1),
+                            AppTheme.accentGreen.withValues(alpha: 0.2),
+                            AppTheme.accentGreen.withValues(alpha: 0.1),
                           ]
                         : isPlaying
                         ? [
-                            AppTheme.accentGreen.withValues(alpha:0.2),
-                            AppTheme.accentGreen.withValues(alpha:0.1),
+                            AppTheme.accentGreen.withValues(alpha: 0.2),
+                            AppTheme.accentGreen.withValues(alpha: 0.1),
                           ]
                         : [
-                            AppTheme.primaryBlue.withValues(alpha:0.15),
-                            AppTheme.accentGreen.withValues(alpha:0.1),
+                            AppTheme.primaryBlue.withValues(alpha: 0.15),
+                            AppTheme.accentGreen.withValues(alpha: 0.1),
                           ],
                   ),
                   borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
@@ -346,8 +348,8 @@ class AyahCard extends ConsumerWidget {
                     height: isTablet ? 42 : 40,
                     decoration: BoxDecoration(
                       color: isBookmarked
-                          ? AppTheme.accentGreen.withValues(alpha:0.15)
-                          : AppTheme.primaryBlue.withValues(alpha:0.1),
+                          ? AppTheme.accentGreen.withValues(alpha: 0.15)
+                          : AppTheme.primaryBlue.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(isTablet ? 12 : 10),
                     ),
                     child: IconButton(
@@ -374,11 +376,13 @@ class AyahCard extends ConsumerWidget {
 
           SizedBox(height: isTablet ? 20 : 16),
 
-          // Arabic Text with end symbol
+          // Arabic Text with end symbol on the LEFT (start of Arabic text)
           Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            textDirection: TextDirection.rtl,
             children: [
+              // Arabic text
               Flexible(
                 child: Text(
                   arabicText,
@@ -397,22 +401,88 @@ class AyahCard extends ConsumerWidget {
                   textDirection: TextDirection.rtl,
                 ),
               ),
-              const SizedBox(width: 8),
-              Text(
-                verseEndSymbol,
-                style: TextStyle(
-                  fontFamily: 'AmiriQuran',
-                  fontSize: isDesktop
-                      ? 30
-                      : isTablet
-                      ? 28
-                      : 26,
-                  color: AppTheme.primaryBlue,
-                  fontWeight: FontWeight.w400,
+              SizedBox(width: isTablet ? 12 : 10),
+              // Verse number on the left (which is the start in RTL)
+              Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isTablet ? 12 : 8,
+                  vertical: isTablet ? 2 : 3,
+                ),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      AppTheme.primaryBlue.withOpacity(0.15),
+                      AppTheme.accentGreen.withOpacity(0.1),
+                    ],
+                  ),
+                  borderRadius: BorderRadius.circular(isTablet ? 10 : 8),
+                  border: Border.all(
+                    color: AppTheme.primaryBlue.withOpacity(0.2),
+                    width: 1,
+                  ),
+                ),
+                child: Text(
+                  verseEndSymbol,
+                  style: TextStyle(
+                    fontFamily: 'AmiriQuran',
+                    fontSize: isDesktop
+                        ? 22
+                        : isTablet
+                        ? 20
+                        : 18,
+                    color: AppTheme.primaryBlue,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],
           ),
+
+          // Transliteration (Latin)
+          if (transliteration != null && transliteration!.isNotEmpty) ...[
+            SizedBox(height: isTablet ? 16 : 12),
+
+            Container(
+              padding: EdgeInsets.all(isTablet ? 14 : 12),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryBlue.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(isTablet ? 14 : 12),
+                border: Border.all(
+                  color: AppTheme.primaryBlue.withValues(alpha: 0.1),
+                  width: 1,
+                ),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.text_fields_rounded,
+                    size: isTablet ? 18 : 16,
+                    color: AppTheme.primaryBlue.withValues(alpha: 0.7),
+                  ),
+                  SizedBox(width: isTablet ? 10 : 8),
+                  Expanded(
+                    child: Text(
+                      transliteration!,
+                      style: TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: isDesktop
+                            ? 16
+                            : isTablet
+                            ? 15
+                            : 14,
+                        height: 1.6,
+                        color: AppTheme.onSurface.withValues(alpha: 0.75),
+                        fontWeight: FontWeight.w400,
+                        fontStyle: FontStyle.italic,
+                      ),
+                      textAlign: TextAlign.left,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
 
           SizedBox(height: isTablet ? 20 : 16),
 
@@ -422,9 +492,9 @@ class AyahCard extends ConsumerWidget {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  AppTheme.primaryBlue.withValues(alpha:0.0),
-                  AppTheme.primaryBlue.withValues(alpha:0.2),
-                  AppTheme.primaryBlue.withValues(alpha:0.0),
+                  AppTheme.primaryBlue.withValues(alpha: 0.0),
+                  AppTheme.primaryBlue.withValues(alpha: 0.2),
+                  AppTheme.primaryBlue.withValues(alpha: 0.0),
                 ],
               ),
             ),
@@ -443,7 +513,7 @@ class AyahCard extends ConsumerWidget {
                   ? 16
                   : 15,
               height: 1.7,
-              color: AppTheme.onSurface.withValues(alpha:0.9),
+              color: AppTheme.onSurface.withValues(alpha: 0.9),
               fontWeight: FontWeight.w400,
             ),
             textAlign: TextAlign.left,
