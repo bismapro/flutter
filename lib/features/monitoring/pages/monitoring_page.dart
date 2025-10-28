@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/router.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
+import 'package:test_flutter/core/widgets/toast.dart';
 import 'child_detail_page.dart';
 
 class MonitoringPage extends ConsumerStatefulWidget {
@@ -18,7 +19,6 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
 
-  // isPremium akan ditentukan dari authProvider nantinya
   String userRole = 'parent'; // 'parent' atau 'child'
 
   // Sample data anak
@@ -131,7 +131,6 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
   }
 
   Widget _wrapMaxWidth(Widget child) {
-    // Supaya di layar lebar kontennya tidak terlalu stretched
     return Center(
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 1100),
@@ -154,6 +153,47 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
     if (!isAuthenticated) return _buildLoginRequired();
     if (!isPremium) return _buildPremiumRequired();
 
+    // Main content when authenticated and premium
+    return Scaffold(
+      backgroundColor: AppTheme.backgroundWhite,
+      body: Container(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              AppTheme.primaryBlue.withValues(alpha: 0.03),
+              AppTheme.backgroundWhite,
+            ],
+            stops: const [0.0, 0.3],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(isPremium),
+              const SizedBox(height: 16),
+              _buildTabBar(),
+              const SizedBox(height: 16),
+              Expanded(
+                child: FadeTransition(
+                  opacity: _fadeAnimation,
+                  child: TabBarView(
+                    controller: _tabController,
+                    children: [
+                      _buildDashboardTab(),
+                      _buildChildrenTab(),
+                      _buildNotificationsTab(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+      floatingActionButton: _buildFloatingActionButton(),
+    );
   }
 
   // ========= Halaman Auth & Premium =========
@@ -350,8 +390,10 @@ class _MonitoringPageState extends ConsumerState<MonitoringPage>
                       ],
                     ),
                     child: ElevatedButton(
-                      onPressed: () =>
-                          Navigator.pushNamed(context, '/subscription'),
+                      onPressed: () => showMessageToast(
+                        context,
+                        message: 'Fitur dalam pengembangan',
+                      ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
                         foregroundColor: Colors.white,
