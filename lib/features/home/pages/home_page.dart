@@ -22,8 +22,11 @@ import 'package:test_flutter/features/sholat/pages/sholat_page.dart';
 import 'package:test_flutter/core/utils/responsive_helper.dart';
 import '../../../app/theme.dart';
 
+// GlobalKey untuk akses state
+final GlobalKey<_HomePageState> homePageKey = GlobalKey<_HomePageState>();
+
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  HomePage({Key? key}) : super(key: homePageKey);
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -32,13 +35,23 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
 
-  final List<Widget> _pages = const [
-    HomeTabContent(),
-    SholatPage(),
-    QuranPage(),
-    MonitoringPage(),
-    KomunitasPage(),
-  ];
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _pages = [
+      const HomeTabContent(),
+      const SholatPage(),
+      const QuranPage(),
+      const MonitoringPage(),
+      const KomunitasPage(),
+    ];
+  }
+
+  void navigateToTab(int index) {
+    setState(() => _currentIndex = index);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -93,8 +106,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       ResponsiveHelper.isExtraLargeScreen(c);
 
   Timer? _timer;
-
-  // ...existing code...
 
   @override
   void initState() {
@@ -157,6 +168,10 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     await ref
         .read(homeProvider.notifier)
         .fetchJadwalSholat(forceRefresh: true, useCurrentLocation: true);
+  }
+
+  void _navigateToTab(int index) {
+    homePageKey.currentState?.navigateToTab(index);
   }
 
   @override
@@ -433,7 +448,7 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
       ),
       physics: const BouncingScrollPhysics(),
       children: [
-        // Quick Access header (tanpa tombol See All)
+        // Quick Access header
         Row(
           children: [
             Container(
@@ -468,7 +483,9 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
             ),
           ],
         ),
-        // Grid menu (menggantikan horizontal list)
+        SizedBox(height: _px(context, 16)),
+
+        // Grid menu
         GridView.count(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
@@ -479,80 +496,80 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           children: [
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.family, // 🧑‍👩‍👧
+              FlutterIslamicIcons.family,
               'Monitoring',
               AppTheme.primaryBlueLight,
-              onTap: () => Navigator.pushNamed(context, '/monitoring'),
+              onTap: () => _navigateToTab(3),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.prayer, // 🙏
+              FlutterIslamicIcons.prayer,
               'Tahajud',
               AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/tahajud'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.prayingPerson, // 🙇‍♂️
+              FlutterIslamicIcons.prayingPerson,
               'Sholat',
               AppTheme.primaryBlueLight,
-              onTap: () => Navigator.pushNamed(context, '/sholat'),
+              onTap: () => _navigateToTab(1),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.zakat, // 💰
+              FlutterIslamicIcons.zakat,
               'Sedekah',
               AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/zakat'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.ramadan, // 🌙
+              FlutterIslamicIcons.ramadan,
               'Puasa',
               AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/puasa'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.kaaba, // 🕋
+              FlutterIslamicIcons.kaaba,
               'Haji',
               AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/haji'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.quran2, // 📖
+              FlutterIslamicIcons.quran2,
               'Al-Quran',
               AppTheme.primaryBlueLight,
-              onTap: () => Navigator.pushNamed(context, '/quran'),
+              onTap: () => _navigateToTab(2),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.allah, // ☪️ (kalimat syahadat)
+              FlutterIslamicIcons.allah,
               'Syahadat',
               AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/syahadat'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              FlutterIslamicIcons.qibla, // 🧭
+              FlutterIslamicIcons.qibla,
               'Qibla',
               AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/qibla-compass'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              Icons.article, // 📄
+              Icons.article,
               'Artikel',
               AppTheme.primaryBlueLight,
               onTap: () => Navigator.pushNamed(context, '/article'),
             ),
             _buildEnhancedFeatureButton(
               context,
-              Icons.forum_outlined, // 👥
+              Icons.forum_outlined,
               'Komunitas',
               AppTheme.primaryBlueLight,
-              onTap: () => Navigator.pushNamed(context, '/komunitas'),
+              onTap: () => _navigateToTab(4),
             ),
           ],
         ),
@@ -609,20 +626,20 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     );
   }
 
-  // Method helper untuk menentukan jumlah kolom grid
+  // ...existing code... (method lainnya tetap sama)
+
   // Method helper untuk menentukan jumlah kolom grid
   int _getGridColumns(BuildContext context) {
     final w = ResponsiveHelper.getScreenWidth(context);
     if (w < 360) return 3;
-    if (w < ResponsiveHelper.mediumScreenSize) return 4; // <600
-    if (w < ResponsiveHelper.largeScreenSize) return 5; // <900
+    if (w < ResponsiveHelper.mediumScreenSize) return 4;
+    if (w < ResponsiveHelper.largeScreenSize) return 5;
     return 6;
   }
 
-  // Method helper untuk aspect ratio yang lebih baik
   double _getChildAspectRatio(BuildContext context) {
     final w = ResponsiveHelper.getScreenWidth(context);
-    if (w < 360) return 0.85; // Lebih tinggi untuk screen kecil
+    if (w < 360) return 0.85;
     if (w < ResponsiveHelper.mediumScreenSize) return 0.90;
     if (w < ResponsiveHelper.largeScreenSize) return 0.95;
     return 1.0;
@@ -634,27 +651,22 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     HomeStatus status,
     String? error,
   ) {
-    // Show loading state only when no articles and loading
     if (status == HomeStatus.loading && articles.isEmpty) {
       return _buildArticlesLoadingState(context);
     }
 
-    // Show error state only when no articles and error occurred
     if (status == HomeStatus.error && articles.isEmpty) {
       return _buildArticlesErrorState(context, error ?? 'Unknown error');
     }
 
-    // Show empty state when no articles available
     if (articles.isEmpty) {
       return _buildArticlesEmptyState(context);
     }
 
     final storageUrl = AppConfig.storageUrl;
 
-    // Show articles (even if offline/error, as long as we have cached data)
     return Column(
       children: [
-        // Articles list
         ...articles.take(3).map((article) {
           return _buildEnhancedArticleCard(
             article: article,
@@ -782,7 +794,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     );
   }
 
-  // ...existing code...
   Widget _buildArticlesLoadingState(BuildContext context) {
     return Column(
       children: List.generate(3, (index) {
@@ -878,7 +889,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
 
     final w = ResponsiveHelper.getScreenWidth(context);
 
-    // Adjust sizes based on screen width
     final iconContainerSize = w < 360 ? px(52) : px(64);
     final iconSize = w < 360 ? px(24) : px(28);
     final fontSize = w < 360 ? ts(11) : ts(13);
@@ -993,7 +1003,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
     final imgW = px(100);
     final imgH = px(90);
 
-    // Determine if this is a video article
     final isVideo = article.tipe.toLowerCase() == 'video';
 
     return Container(
@@ -1024,7 +1033,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
           padding: EdgeInsets.all(px(12)),
           child: Row(
             children: [
-              // Image/Thumbnail
               Container(
                 width: imgW,
                 height: imgH,
@@ -1042,7 +1050,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                   borderRadius: BorderRadius.circular(12),
                   child: Stack(
                     children: [
-                      // Image/Thumbnail
                       Image.network(
                         imageUrl,
                         width: imgW,
@@ -1062,7 +1069,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                         },
                       ),
 
-                      // Video play button overlay
                       if (isVideo)
                         Positioned.fill(
                           child: Container(
@@ -1087,7 +1093,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                           ),
                         ),
 
-                      // Category badge
                       Positioned(
                         top: 6,
                         left: 6,
@@ -1135,7 +1140,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    // Title with video indicator
                     Row(
                       children: [
                         Expanded(
@@ -1180,7 +1184,6 @@ class _HomeTabContentState extends ConsumerState<HomeTabContent> {
                             color: AppTheme.onSurfaceVariant,
                           ),
                         ),
-
                         const Spacer(),
                         Icon(
                           Icons.arrow_forward_ios_rounded,

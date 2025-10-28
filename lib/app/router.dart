@@ -9,6 +9,7 @@ import 'package:test_flutter/features/auth/pages/splash_screen.dart';
 import 'package:test_flutter/features/auth/pages/welcome_page.dart';
 import 'package:test_flutter/features/compass/pages/compass_page.dart';
 import 'package:test_flutter/features/home/pages/home_page.dart';
+import 'package:test_flutter/features/komunitas/pages/komunitas_page.dart';
 import 'package:test_flutter/features/monitoring/pages/monitoring_page.dart';
 import 'package:test_flutter/features/profile/pages/profile_page.dart';
 import 'package:test_flutter/features/puasa/pages/puasa_page.dart';
@@ -41,6 +42,7 @@ class AppRoutes {
   static const String profile = '/profile';
   static const String article = '/article';
   static const String syahadat = '/syahadat';
+  static const String komunitas = '/komunitas';
 
   static Route<dynamic> generateRoute(RouteSettings settings) {
     switch (settings.name) {
@@ -63,7 +65,7 @@ class AppRoutes {
           ),
         );
       case home:
-        return MaterialPageRoute(builder: (_) => const HomePage());
+        return MaterialPageRoute(builder: (_) => HomePage());
       case qiblaCompass:
         return MaterialPageRoute(builder: (_) => const CompassPage());
       case quran:
@@ -96,6 +98,8 @@ class AppRoutes {
         return MaterialPageRoute(builder: (_) => const ProfilePage());
       case syahadat:
         return MaterialPageRoute(builder: (_) => const SyahadatPage());
+      case komunitas:
+        return MaterialPageRoute(builder: (_) => const KomunitasPage());
       default:
         return MaterialPageRoute(
           builder: (_) => Scaffold(
