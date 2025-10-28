@@ -120,7 +120,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                                 alignment: Alignment.centerLeft,
                                 child: IconButton(
                                   onPressed: () {
-                                    Navigator.of(context).pop();
+                                    Navigator.pushReplacementNamed(context, '/home');
                                   },
                                   icon: const Icon(Icons.arrow_back_rounded),
                                   color: const Color(0xFF2D3748),
@@ -294,11 +294,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               : 'Login untuk mengedit profil',
                           enabled: isAuthenticated && displayUser != null,
                           onTap: () async {
-                            final result = await Navigator.push(
+                            final result = await Navigator.pushAndRemoveUntil(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => const EditProfilePage(),
                               ),
+                              (route) => false,
                             );
                             // Refresh if profile was updated
                             if (result == true) {
@@ -314,11 +315,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               ? 'Ubah password untuk keamanan akun'
                               : 'Login untuk mengubah password',
                           enabled: isAuthenticated && displayUser != null,
-                          onTap: () => Navigator.push(
+                          onTap: () => Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ChangePasswordPage(),
                             ),
+                            (route) => false,
                           ),
                         ),
                         _buildMenuItem(
@@ -329,11 +331,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                               ? 'Tambah atau edit anggota keluarga'
                               : 'Login untuk mengelola keluarga',
                           enabled: isAuthenticated && displayUser != null,
-                          onTap: () => Navigator.push(
+                          onTap: () => Navigator.pushAndRemoveUntil(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const ManageFamilyPage(),
                             ),
+                            (route) => false,
                           ),
                         ),
                         _buildMenuItem(

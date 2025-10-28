@@ -152,6 +152,7 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
           "email": user['email']?.toString() ?? '',
           "role": user['role']?.toString() ?? '',
           "phone": user['phone']?.toString() ?? '',
+          "auth_method": user['auth_method']?.toString() ?? '',
         });
 
         logger.fine(
@@ -215,6 +216,7 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
           "email": user['email']?.toString() ?? '',
           "role": user['role']?.toString() ?? '',
           "phone": user['phone']?.toString() ?? '',
+          "auth_method": user['auth_method']?.toString() ?? '',
         });
 
         logger.fine(
@@ -292,6 +294,7 @@ class AuthStateNotifier extends StateNotifier<Map<String, dynamic>> {
           "email": user['email']?.toString() ?? '',
           "role": user['role']?.toString() ?? 'user', //default role user
           "phone": user['phone']?.toString() ?? '',
+          "auth_method": user['auth_method']?.toString() ?? '',
         });
       }
 

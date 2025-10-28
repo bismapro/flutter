@@ -43,12 +43,10 @@ class ProfileService {
       );
 
       final responseData = response.data as Map<String, dynamic>;
-      final data = responseData['data'] as Map<String, dynamic>;
 
       return {
         'status': responseData['status'],
         'message': responseData['message'],
-        'data': data,
       };
     } on DioException catch (e) {
       final error = ApiClient.parseDioError(e);
