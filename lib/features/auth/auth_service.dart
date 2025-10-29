@@ -63,8 +63,17 @@ class AuthService {
         },
       };
     } on DioException catch (e) {
-      final error = ApiClient.parseDioError(e);
-      throw Exception(error);
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+
+        throw Exception(
+          data['errors'] ??
+              data['message'] ??
+              'Terjadi kesalahan ketika melakukan registrasi.',
+        );
+      } else {
+        throw Exception('Terjadi kesalahan ketika melakukan registrasi.');
+      }
     }
   }
 
@@ -102,6 +111,74 @@ class AuthService {
     } on DioException catch (e) {
       final error = ApiClient.parseDioError(e);
       throw Exception(error);
+    }
+  }
+
+  // Forgot Password
+  static Future<Map<String, dynamic>> forgotPassword(String email) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/forgot-password',
+        data: {'email': email},
+      );
+
+      final responseData = response.data as Map<String, dynamic>;
+
+      return {
+        'status': responseData['status'],
+        'message': responseData['message'],
+      };
+    } on DioException catch (e) {
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+
+        throw Exception(
+          data['errors'] ??
+              data['message'] ??
+              'Terjadi kesalahan saat mengirim link reset password.',
+        );
+      } else {
+        throw Exception('Terjadi kesalahan saat mengirim link reset password.');
+      }
+    }
+  }
+
+  // Reset Password
+  static Future<Map<String, dynamic>> resetPassword({
+    required String token,
+    required String email,
+    required String password,
+    required String passwordConfirmation,
+  }) async {
+    try {
+      final response = await ApiClient.dio.post(
+        '/reset-password',
+        data: {
+          'token': token,
+          'email': email,
+          'password': password,
+          'password_confirmation': passwordConfirmation,
+        },
+      );
+
+      final responseData = response.data as Map<String, dynamic>;
+
+      return {
+        'status': responseData['status'],
+        'message': responseData['message'],
+      };
+    } on DioException catch (e) {
+      if (e.response?.data != null) {
+        final data = e.response!.data;
+
+        throw Exception(
+          data['errors'] ??
+              data['message'] ??
+              'Terjadi kesalahan saat mereset password.',
+        );
+      } else {
+        throw Exception('Terjadi kesalahan saat mereset password.');
+      }
     }
   }
 }

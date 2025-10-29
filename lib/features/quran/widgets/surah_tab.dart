@@ -1,8 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:test_flutter/app/theme.dart';
 import 'package:test_flutter/data/models/quran/surah.dart';
 import 'package:test_flutter/features/quran/pages/surah_detail_page.dart';
-import 'package:test_flutter/features/quran/services/quran_service.dart';
 
 class SurahTab extends StatefulWidget {
   const SurahTab({super.key});
@@ -17,10 +18,11 @@ class _SurahTabState extends State<SurahTab> {
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
   List<Surah>? _cachedUpdatedSurahs;
+
   @override
   void initState() {
     super.initState();
-    _loadSurahs();
+    _loadSurahsFromJson();
   }
 
   @override
@@ -29,26 +31,36 @@ class _SurahTabState extends State<SurahTab> {
     super.dispose();
   }
 
-  Future<void> _loadSurahs() async {
+  Future<void> _loadSurahsFromJson() async {
     try {
-      await Future.delayed(const Duration(milliseconds: 500));
-      final surahs = QuranService.getAllSurahs();
+      // Load JSON file from assets
+      final String jsonString = await rootBundle.loadString(
+        'assets/quran/surah.json',
+      );
+      final Map<String, dynamic> jsonData = json.decode(jsonString);
 
-      // Pre-compute updated surahs with latin names
-      final updatedSurahs = surahs
-          .map(
-            (s) => s.copyWith(
-              namaLatin: QuranService.getSurahNameLatin(s.nomor),
-              arti: QuranService.getSurahMeaning(s.nomor),
-            ),
-          )
-          .toList();
+      // Parse surat_list
+      final List<dynamic> suratList = jsonData['surat_list'];
+
+      // Convert to Surah objects
+      final List<Surah> surahs = suratList.map((item) {
+        return Surah(
+          nomor: item['nomor'],
+          nama: item['nama'],
+          namaLatin: item['namaLatin'],
+          jumlahAyat: item['jumlahAyat'],
+          tempatTurun: item['tempatTurun'],
+          arti: item['arti'],
+          deskripsi: item['deskripsi'],
+          audioFull: Map<String, String>.from(item['audioFull']),
+        );
+      }).toList();
 
       if (mounted) {
         setState(() {
           _surahs = surahs;
           _filteredSurahs = surahs;
-          _cachedUpdatedSurahs = updatedSurahs; // ← Cache it
+          _cachedUpdatedSurahs = surahs;
           _isLoading = false;
         });
       }
@@ -78,12 +90,9 @@ class _SurahTabState extends State<SurahTab> {
         _filteredSurahs = _surahs;
       } else {
         _filteredSurahs = _surahs.where((surah) {
-          final latinName = QuranService.getSurahNameLatin(surah.nomor);
-          final meaning = QuranService.getSurahMeaning(surah.nomor);
-
           return surah.nama.toLowerCase().contains(query.toLowerCase()) ||
-              latinName.toLowerCase().contains(query.toLowerCase()) ||
-              meaning.toLowerCase().contains(query.toLowerCase());
+              surah.namaLatin.toLowerCase().contains(query.toLowerCase()) ||
+              surah.arti.toLowerCase().contains(query.toLowerCase());
         }).toList();
       }
     });
@@ -248,23 +257,15 @@ class _SurahTabState extends State<SurahTab> {
   }
 
   Widget _buildSurahCard(Surah surah, bool isTablet, bool isDesktop) {
-    final latinName = QuranService.getSurahNameLatin(surah.nomor);
-    final meaning = QuranService.getSurahMeaning(surah.nomor);
-
     return GestureDetector(
       onTap: () {
-        // Use cached data - NO delay!
-        print('📖 Opening Surah: ${surah.nomor} - $latinName');
+        print('📖 Opening Surah: ${surah.nomor} - ${surah.namaLatin}');
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => SurahDetailPage(
-              surah: surah.copyWith(
-                namaLatin: latinName,
-                arti: meaning,
-                nomor: surah.nomor,
-              ),
-              allSurahs: _cachedUpdatedSurahs ?? [], // ← Use cache
+              surah: surah,
+              allSurahs: _cachedUpdatedSurahs ?? [],
             ),
           ),
         );
@@ -350,7 +351,7 @@ class _SurahTabState extends State<SurahTab> {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Text(
-                      latinName,
+                      surah.namaLatin,
                       style: TextStyle(
                         fontSize: isDesktop
                             ? 19

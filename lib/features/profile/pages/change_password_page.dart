@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:test_flutter/core/utils/storage_helper.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/features/profile/profile_provider.dart';
 import 'package:test_flutter/features/profile/profile_state.dart';
@@ -20,10 +21,30 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
   bool _showCurrentPassword = false;
   bool _showNewPassword = false;
   bool _showConfirmPassword = false;
+  bool _isGoogleAuth = false;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    _checkAuthMethod();
+  }
+
+  Future<void> _checkAuthMethod() async {
+    try {
+      final user = await StorageHelper.getUser();
+
+      setState(() {
+        // Check if auth_method is 'google' (case-insensitive)
+        _isGoogleAuth = user?['auth_method']?.toLowerCase() == 'google';
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isGoogleAuth = false;
+        _isLoading = false;
+      });
+    }
   }
 
   @override
@@ -57,7 +78,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
 
     // Watch profile state
     final profileState = ref.watch(profileProvider);
-    final isLoading = profileState.status == ProfileStatus.loading;
+    final isProfileLoading = profileState.status == ProfileStatus.loading;
 
     // Listen to state changes for showing messages
     ref.listen<ProfileState>(profileProvider, (previous, next) {
@@ -77,17 +98,35 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
         _confirmPasswordController.clear();
 
         // Navigate back after successful password change
-        Navigator.pop(context, true);
+        Navigator.pushReplacementNamed(context, '/profile');
       } else if (next.status == ProfileStatus.error && next.message != null) {
         showMessageToast(
           context,
-          message: next.message!,
+          message: next.message!.replaceFirst('Exception: ', ''),
           type: ToastType.error,
           duration: const Duration(seconds: 4),
         );
         ref.read(profileProvider.notifier).clearMessage();
       }
     });
+
+    // Show loading while checking auth method
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        appBar: AppBar(
+          title: const Text(
+            'Ubah Password',
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
+          backgroundColor: Colors.white,
+          foregroundColor: const Color(0xFF2D3748),
+          elevation: 0,
+          centerTitle: true,
+        ),
+        body: const Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -102,7 +141,13 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
         centerTitle: true,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
-          onPressed: isLoading ? null : () => Navigator.pop(context),
+          onPressed: isProfileLoading
+              ? null
+              : () => Navigator.pushNamedAndRemoveUntil(
+                  context,
+                  '/profile',
+                  (route) => false,
+                ),
         ),
       ),
       body: SafeArea(
@@ -113,15 +158,60 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // Google Auth Warning (if applicable)
+                if (_isGoogleAuth) ...[
+                  Container(
+                    width: double.infinity,
+                    padding: EdgeInsets.all(isTablet ? 24 : 20),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFA726).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFFA726).withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.lock_outline,
+                              color: const Color(0xFF4A5568),
+                              size: isTablet ? 18 : 16,
+                            ),
+                            SizedBox(width: isTablet ? 8 : 6),
+                            Expanded(
+                              child: Text(
+                                'Fitur ubah password tidak tersedia untuk akun Google',
+                                style: TextStyle(
+                                  fontSize: isTablet ? 14 : 12,
+                                  color: const Color(0xFF4A5568),
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(height: isTablet ? 32 : 24),
+                ],
+
                 // Header Info
                 Container(
                   width: double.infinity,
                   padding: EdgeInsets.all(isTablet ? 24 : 20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF1E88E5).withValues(alpha: 0.1),
+                    color: _isGoogleAuth
+                        ? Colors.grey[100]
+                        : const Color(0xFF1E88E5).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: const Color(0xFF1E88E5).withValues(alpha: 0.2),
+                      color: _isGoogleAuth
+                          ? Colors.grey[300]!
+                          : const Color(0xFF1E88E5).withValues(alpha: 0.2),
                     ),
                   ),
                   child: Column(
@@ -131,7 +221,9 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                         children: [
                           Icon(
                             Icons.security,
-                            color: const Color(0xFF1E88E5),
+                            color: _isGoogleAuth
+                                ? Colors.grey[400]
+                                : const Color(0xFF1E88E5),
                             size: isTablet ? 28 : 24,
                           ),
                           SizedBox(width: isTablet ? 16 : 12),
@@ -141,7 +233,9 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                               style: TextStyle(
                                 fontSize: isTablet ? 20 : 18,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1E88E5),
+                                color: _isGoogleAuth
+                                    ? Colors.grey[600]
+                                    : const Color(0xFF1E88E5),
                               ),
                             ),
                           ),
@@ -149,10 +243,14 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       ),
                       SizedBox(height: isTablet ? 12 : 8),
                       Text(
-                        'Pastikan password baru Anda kuat dan tidak mudah ditebak. Gunakan kombinasi huruf besar, huruf kecil, angka, dan simbol.',
+                        _isGoogleAuth
+                            ? 'Password akun Google Anda dikelola oleh Google. Silakan gunakan pengaturan akun Google untuk mengubah password.'
+                            : 'Pastikan password baru Anda kuat dan tidak mudah ditebak. Gunakan kombinasi huruf besar, huruf kecil, angka, dan simbol.',
                         style: TextStyle(
                           fontSize: isTablet ? 16 : 14,
-                          color: const Color(0xFF4A5568),
+                          color: _isGoogleAuth
+                              ? Colors.grey[600]
+                              : const Color(0xFF4A5568),
                           height: 1.5,
                         ),
                       ),
@@ -168,13 +266,14 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   label: 'Password Saat Ini',
                   icon: Icons.lock_outline,
                   isVisible: _showCurrentPassword,
-                  enabled: !isLoading,
+                  enabled: !isProfileLoading && !_isGoogleAuth,
                   onVisibilityToggle: () {
                     setState(() {
                       _showCurrentPassword = !_showCurrentPassword;
                     });
                   },
                   validator: (value) {
+                    if (_isGoogleAuth) return null;
                     if (value == null || value.isEmpty) {
                       return 'Password saat ini harus diisi';
                     }
@@ -194,13 +293,14 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   label: 'Password Baru',
                   icon: Icons.lock,
                   isVisible: _showNewPassword,
-                  enabled: !isLoading,
+                  enabled: !isProfileLoading && !_isGoogleAuth,
                   onVisibilityToggle: () {
                     setState(() {
                       _showNewPassword = !_showNewPassword;
                     });
                   },
                   validator: (value) {
+                    if (_isGoogleAuth) return null;
                     if (value == null || value.isEmpty) {
                       return 'Password baru harus diisi';
                     }
@@ -228,13 +328,14 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                   label: 'Konfirmasi Password Baru',
                   icon: Icons.lock_reset,
                   isVisible: _showConfirmPassword,
-                  enabled: !isLoading,
+                  enabled: !isProfileLoading && !_isGoogleAuth,
                   onVisibilityToggle: () {
                     setState(() {
                       _showConfirmPassword = !_showConfirmPassword;
                     });
                   },
                   validator: (value) {
+                    if (_isGoogleAuth) return null;
                     if (value == null || value.isEmpty) {
                       return 'Konfirmasi password harus diisi';
                     }
@@ -249,113 +350,127 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                 SizedBox(height: isTablet ? 32 : 24),
 
                 // Password Strength Indicator
-                Container(
-                  padding: EdgeInsets.all(isTablet ? 20 : 16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: Colors.grey[200]!),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Tips Password Kuat:',
-                        style: TextStyle(
-                          fontSize: isTablet ? 16 : 14,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF2D3748),
+                if (!_isGoogleAuth)
+                  Container(
+                    padding: EdgeInsets.all(isTablet ? 20 : 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[50],
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.grey[200]!),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Tips Password Kuat:',
+                          style: TextStyle(
+                            fontSize: isTablet ? 16 : 14,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF2D3748),
+                          ),
                         ),
-                      ),
-                      SizedBox(height: isTablet ? 12 : 8),
-                      _buildPasswordTip('✓ Minimal 8 karakter', isTablet),
-                      _buildPasswordTip(
-                        '✓ Mengandung huruf besar dan kecil',
-                        isTablet,
-                      ),
-                      _buildPasswordTip('✓ Mengandung angka', isTablet),
-                      _buildPasswordTip(
-                        '✓ Mengandung simbol (!@#\$%^&*)',
-                        isTablet,
-                      ),
-                      _buildPasswordTip(
-                        '✓ Berbeda dari password sebelumnya',
-                        isTablet,
-                      ),
-                    ],
+                        SizedBox(height: isTablet ? 12 : 8),
+                        _buildPasswordTip('✓ Minimal 8 karakter', isTablet),
+                        _buildPasswordTip(
+                          '✓ Mengandung huruf besar dan kecil',
+                          isTablet,
+                        ),
+                        _buildPasswordTip('✓ Mengandung angka', isTablet),
+                        _buildPasswordTip(
+                          '✓ Mengandung simbol (!@#\$%^&*)',
+                          isTablet,
+                        ),
+                        _buildPasswordTip(
+                          '✓ Berbeda dari password sebelumnya',
+                          isTablet,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
 
                 SizedBox(height: isTablet ? 40 : 32),
 
                 // Change Password Button
-                SizedBox(
-                  width: double.infinity,
-                  height: isTablet ? 56 : 48,
-                  child: ElevatedButton(
-                    onPressed: isLoading ? null : _changePassword,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1E88E5),
-                      foregroundColor: Colors.white,
-                      disabledBackgroundColor: Colors.grey[300],
-                      disabledForegroundColor: Colors.grey[500],
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                if (!_isGoogleAuth)
+                  SizedBox(
+                    width: double.infinity,
+                    height: isTablet ? 56 : 48,
+                    child: ElevatedButton(
+                      onPressed: isProfileLoading ? null : _changePassword,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1E88E5),
+                        foregroundColor: Colors.white,
+                        disabledBackgroundColor: Colors.grey[300],
+                        disabledForegroundColor: Colors.grey[500],
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: isProfileLoading ? 0 : 2,
                       ),
-                      elevation: isLoading ? 0 : 2,
+                      child: isProfileLoading
+                          ? Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                SizedBox(
+                                  width: isTablet ? 20 : 18,
+                                  height: isTablet ? 20 : 18,
+                                  child: const CircularProgressIndicator(
+                                    color: Colors.white,
+                                    strokeWidth: 2,
+                                  ),
+                                ),
+                                SizedBox(width: isTablet ? 12 : 10),
+                                Text(
+                                  'Mengubah Password...',
+                                  style: TextStyle(
+                                    fontSize: isTablet ? 18 : 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.lock_reset,
+                                  size: isTablet ? 22 : 20,
+                                ),
+                                SizedBox(width: isTablet ? 10 : 8),
+                                Text(
+                                  'Ubah Password',
+                                  style: TextStyle(
+                                    fontSize: isTablet ? 18 : 16,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
                     ),
-                    child: isLoading
-                        ? Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              SizedBox(
-                                width: isTablet ? 20 : 18,
-                                height: isTablet ? 20 : 18,
-                                child: const CircularProgressIndicator(
-                                  color: Colors.white,
-                                  strokeWidth: 2,
-                                ),
-                              ),
-                              SizedBox(width: isTablet ? 12 : 10),
-                              Text(
-                                'Mengubah Password...',
-                                style: TextStyle(
-                                  fontSize: isTablet ? 18 : 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          )
-                        : Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.lock_reset, size: isTablet ? 22 : 20),
-                              SizedBox(width: isTablet ? 10 : 8),
-                              Text(
-                                'Ubah Password',
-                                style: TextStyle(
-                                  fontSize: isTablet ? 18 : 16,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ],
-                          ),
                   ),
-                ),
 
-                SizedBox(height: isTablet ? 20 : 16),
+                if (!_isGoogleAuth) SizedBox(height: isTablet ? 20 : 16),
 
-                // Cancel Button
+                // Cancel/Back Button
                 SizedBox(
                   width: double.infinity,
                   height: isTablet ? 56 : 48,
                   child: OutlinedButton(
-                    onPressed: isLoading ? null : () => Navigator.pop(context),
+                    onPressed: isProfileLoading
+                        ? null
+                        : () => Navigator.pushReplacementNamed(
+                            context,
+                            '/profile',
+                          ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF1E88E5),
+                      foregroundColor: _isGoogleAuth
+                          ? const Color(0xFF4A5568)
+                          : const Color(0xFF1E88E5),
                       side: BorderSide(
-                        color: isLoading
+                        color: isProfileLoading
                             ? Colors.grey[300]!
+                            : _isGoogleAuth
+                            ? const Color(0xFF4A5568)
                             : const Color(0xFF1E88E5),
                       ),
                       shape: RoundedRectangleBorder(
@@ -363,7 +478,7 @@ class _ChangePasswordPageState extends ConsumerState<ChangePasswordPage> {
                       ),
                     ),
                     child: Text(
-                      'Batal',
+                      _isGoogleAuth ? 'Kembali' : 'Batal',
                       style: TextStyle(
                         fontSize: isTablet ? 18 : 16,
                         fontWeight: FontWeight.w600,

@@ -241,145 +241,166 @@ class _SedekahPageState extends ConsumerState<SedekahPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        Stack(
+                          alignment: Alignment.center,
                           children: [
-                            Container(
-                              padding: EdgeInsets.all(_px(context, 10)),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppTheme.primaryBlue.withValues(alpha: 0.1),
-                                    AppTheme.accentGreen.withValues(alpha: 0.1),
-                                  ],
-                                ),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Icon(
-                                Icons.volunteer_activism_rounded,
-                                color: AppTheme.primaryBlue,
-                                size: _px(context, 26),
+                            // Back button (left)
+                            Align(
+                              alignment: Alignment.centerLeft,
+                              child: IconButton(
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                },
+                                icon: const Icon(Icons.arrow_back_rounded),
+                                color: AppTheme.onSurface,
+                                tooltip: 'Kembali',
                               ),
                             ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      Text(
-                                        'Tracker Sedekah',
-                                        style: TextStyle(
-                                          fontSize: _ts(context, 26),
-                                          fontWeight: FontWeight.bold,
-                                          color: AppTheme.onSurface,
-                                          letterSpacing: -0.5,
+                            // Title (center)
+                            Column(
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(_px(context, 8)),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            AppTheme.primaryBlue.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                            AppTheme.accentGreen.withValues(
+                                              alpha: 0.1,
+                                            ),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: Icon(
+                                        Icons.volunteer_activism_rounded,
+                                        color: AppTheme.primaryBlue,
+                                        size: _px(context, 20),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      'Tracker Sedekah',
+                                      style: TextStyle(
+                                        fontSize: _ts(context, 24),
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.onSurface,
+                                        letterSpacing: -0.5,
+                                      ),
+                                    ),
+                                    if (!isAuthenticated) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.grey.shade200,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.person_off_outlined,
+                                              size: 10,
+                                              color: Colors.grey.shade600,
+                                            ),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              'Guest',
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
+                                                color: Colors.grey.shade700,
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      if (!isAuthenticated) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.grey.shade200,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
-                                            ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.person_off_outlined,
-                                                size: 12,
-                                                color: Colors.grey.shade600,
-                                              ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'Guest',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.grey.shade700,
-                                                ),
-                                              ),
-                                            ],
+                                    ] else if (isOffline) ...[
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 6,
+                                          vertical: 3,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.orange.shade100,
+                                          borderRadius: BorderRadius.circular(
+                                            6,
                                           ),
                                         ),
-                                      ] else if (isOffline) ...[
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 8,
-                                            vertical: 4,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: Colors.orange.shade100,
-                                            borderRadius: BorderRadius.circular(
-                                              6,
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(
+                                              Icons.cloud_off,
+                                              size: 10,
+                                              color: Colors.orange.shade700,
                                             ),
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.cloud_off,
-                                                size: 12,
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              'Offline',
+                                              style: TextStyle(
+                                                fontSize: 9,
+                                                fontWeight: FontWeight.bold,
                                                 color: Colors.orange.shade700,
                                               ),
-                                              const SizedBox(width: 4),
-                                              Text(
-                                                'Offline',
-                                                style: TextStyle(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: Colors.orange.shade700,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                          ],
                                         ),
-                                      ],
+                                      ),
                                     ],
+                                  ],
+                                ),
+                                SizedBox(height: _px(context, 4)),
+                                Text(
+                                  isAuthenticated
+                                      ? 'Catat amal sedekah Anda'
+                                      : 'Login untuk mencatat sedekah',
+                                  style: TextStyle(
+                                    fontSize: _ts(context, 13),
+                                    color: AppTheme.onSurfaceVariant,
                                   ),
-                                  SizedBox(height: _px(context, 4)),
-                                  Text(
-                                    isAuthenticated
-                                        ? 'Catat amal sedekah Anda'
-                                        : 'Login untuk mencatat sedekah',
-                                    style: TextStyle(
-                                      fontSize: _ts(context, 14),
-                                      color: AppTheme.onSurfaceVariant,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
-                            // Refresh button (only for authenticated)
+                            // Refresh button (right) - only for authenticated
                             if (isAuthenticated &&
                                 status != SedekahStatus.loading &&
                                 status != SedekahStatus.refreshing)
-                              Container(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: [
-                                      AppTheme.primaryBlue.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                      AppTheme.accentGreen.withValues(
-                                        alpha: 0.1,
-                                      ),
-                                    ],
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppTheme.primaryBlue.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                        AppTheme.accentGreen.withValues(
+                                          alpha: 0.1,
+                                        ),
+                                      ],
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
                                   ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: IconButton(
-                                  onPressed: _refreshData,
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  color: AppTheme.primaryBlue,
+                                  child: IconButton(
+                                    onPressed: _refreshData,
+                                    icon: const Icon(Icons.refresh_rounded),
+                                    color: AppTheme.primaryBlue,
+                                    tooltip: 'Refresh',
+                                  ),
                                 ),
                               ),
                           ],

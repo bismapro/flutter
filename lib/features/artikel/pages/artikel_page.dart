@@ -154,6 +154,18 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                     // Header Row
                     Row(
                       children: [
+                        // Back button
+                        IconButton(
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                          },
+                          icon: const Icon(Icons.arrow_back_rounded),
+                          color: const Color(0xFF2D3748),
+                          tooltip: 'Kembali',
+                        ),
+                        SizedBox(width: _px(context, 8)),
+
+                        // Icon badge
                         Container(
                           padding: EdgeInsets.all(_px(context, 12)),
                           decoration: BoxDecoration(
@@ -170,25 +182,32 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                                 ? Icons.play_circle_outline_rounded
                                 : Icons.article_rounded,
                             color: AppTheme.accentGreen,
-                            size: _px(context, 28),
+                            size: _px(context, 24),
                           ),
                         ),
                         SizedBox(width: _px(context, 16)),
+
+                        // Title and subtitle
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Row(
                                 children: [
-                                  Text(
-                                    _selectedType == 'video'
-                                        ? 'Video Islami'
-                                        : 'Artikel Islami',
-                                    style: TextStyle(
-                                      fontSize: _ts(context, 28),
-                                      fontWeight: FontWeight.bold,
-                                      color: AppTheme.onSurface,
-                                      letterSpacing: -0.5,
+                                  Flexible(
+                                    child: Text(
+                                      _selectedType == 'video'
+                                          ? 'Video Islami'
+                                          : 'Artikel Islami',
+                                      style: TextStyle(
+                                        fontSize: _ts(context, 22),
+                                        fontWeight: FontWeight.bold,
+                                        color: AppTheme.onSurface,
+                                        letterSpacing: -0.5,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
                                     ),
                                   ),
                                   if (isOffline) ...[
@@ -225,16 +244,18 @@ class _ArtikelPageState extends ConsumerState<ArtikelPage> {
                                   ],
                                 ],
                               ),
+                              SizedBox(height: _px(context, 2)),
                               Text(
                                 'Pelajari Islam lebih dalam',
                                 style: TextStyle(
-                                  fontSize: _ts(context, 15),
+                                  fontSize: _ts(context, 14),
                                   color: AppTheme.onSurfaceVariant,
                                 ),
                               ),
                             ],
                           ),
                         ),
+
                         // Refresh button
                         if (status != ArtikelStatus.loading &&
                             status != ArtikelStatus.refreshing)

@@ -84,13 +84,11 @@ class _LoginPageState extends ConsumerState<LoginPage>
     final isLarge = ResponsiveHelper.isLargeScreen(context);
     final isXL = ResponsiveHelper.isExtraLargeScreen(context);
 
-    // Watch auth state
-    final authState = ref.watch(authProvider);
-    final isLoading = authState['status'] == AuthState.loading;
-    final error = authState['error'];
+    ref.listen(authProvider, (previous, next) {
+      final status = next['status'];
+      final error = next['error'];
 
-    if (authState['status'] == AuthState.error && error != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (status == AuthState.error && error != null) {
         showMessageToast(
           context,
           message: error.toString(),
@@ -98,22 +96,25 @@ class _LoginPageState extends ConsumerState<LoginPage>
           duration: const Duration(seconds: 4),
         );
         ref.read(authProvider.notifier).clearError();
-      });
-    }
-
-    if (authState['status'] == AuthState.authenticated) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
+      } else if (status == AuthState.authenticated) {
         showMessageToast(
           context,
-          message:
-              authState['message']?.toString() ??
-              'Login berhasil! Selamat datang kembali.',
+          message: 'Login berhasil! Selamat datang kembali.',
           type: ToastType.success,
           duration: const Duration(seconds: 3),
         );
-        Navigator.of(context).pushReplacementNamed('/home');
-      });
-    }
+
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            Navigator.of(context).pushReplacementNamed('/home');
+          }
+        });
+      }
+    });
+
+    // Watch auth state for UI updates
+    final authState = ref.watch(authProvider);
+    final isLoading = authState['status'] == AuthState.loading;
 
     // Dimensi responsif
     final logoSize = isSmall
@@ -450,30 +451,36 @@ class _LoginPageState extends ConsumerState<LoginPage>
                                 SizedBox(height: 8),
 
                                 // Forgot Password
-                                // Align(
-                                //   alignment: Alignment.centerRight,
-                                //   child: TextButton(
-                                //     onPressed: () {},
-                                //     style: TextButton.styleFrom(
-                                //       padding: const EdgeInsets.symmetric(
-                                //         horizontal: 8,
-                                //         vertical: 4,
-                                //       ),
-                                //     ),
-                                //     child: Text(
-                                //       "Lupa Kata Sandi?",
-                                //       style: TextStyle(
-                                //         color: AppTheme.primaryBlue,
-                                //         fontWeight: FontWeight.w600,
-                                //         fontSize:
-                                //             ResponsiveHelper.adaptiveTextSize(
-                                //               context,
-                                //               14,
-                                //             ),
-                                //       ),
-                                //     ),
-                                //   ),
-                                // ),
+                                Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton(
+                                    onPressed: () {
+                                      Navigator.of(
+                                        context,
+                                      ).pushReplacementNamed(
+                                        '/forgot-password',
+                                      );
+                                    },
+                                    style: TextButton.styleFrom(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 8,
+                                        vertical: 4,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      "Lupa Kata Sandi?",
+                                      style: TextStyle(
+                                        color: AppTheme.primaryBlue,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize:
+                                            ResponsiveHelper.adaptiveTextSize(
+                                              context,
+                                              14,
+                                            ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
                                 SizedBox(height: _gapSmall(context)),
 
                                 // Login Button
@@ -693,7 +700,10 @@ class _LoginPageState extends ConsumerState<LoginPage>
                               ),
                               GestureDetector(
                                 onTap: () {
-                                  Navigator.pushNamed(context, '/signup');
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    '/signup',
+                                  );
                                 },
                                 child: Text(
                                   " Daftar",

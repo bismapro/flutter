@@ -1,8 +1,11 @@
+// ignore_for_file: use_build_context_synchronously
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:test_flutter/app/theme.dart';
+import 'package:test_flutter/core/utils/logger.dart';
 import 'package:test_flutter/core/widgets/toast.dart';
 import 'package:test_flutter/data/models/artikel/artikel.dart';
 import 'package:test_flutter/features/artikel/artikel_provider.dart';
@@ -65,22 +68,68 @@ class _ArtikelDetailPageState extends ConsumerState<ArtikelDetailPage> {
       return;
     }
 
-    final uri = Uri.parse(videoUrl);
+    Uri? uri;
     try {
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri);
-      } else {
+      uri = Uri.parse(videoUrl);
+    } catch (e) {
+      logger.fine('Invalid video URL: $videoUrl');
+      showMessageToast(context, message: 'URL video tidak valid');
+      return;
+    }
+
+    try {
+      // Prefer launching in an external application
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+
+      if (!launched) {
+        // If it's a YouTube short link or youtube.com with query param, try to construct a watch URL
+        if (uri.host.contains('youtu.be') || uri.host.contains('youtube.com')) {
+          String? videoId;
+          if (uri.host.contains('youtu.be')) {
+            if (uri.pathSegments.isNotEmpty) videoId = uri.pathSegments.last;
+          } else {
+            // For youtube.com links prefer the 'v' query parameter
+            videoId = uri.queryParameters['v'];
+            // If no 'v' param, try to use last path segment (edge cases)
+            if ((videoId == null || videoId.isEmpty) &&
+                uri.pathSegments.isNotEmpty &&
+                uri.pathSegments.last != 'watch') {
+              videoId = uri.pathSegments.last;
+            }
+          }
+
+          if (videoId != null && videoId.isNotEmpty) {
+            final watchUri = Uri.parse(
+              'https://www.youtube.com/watch?v=$videoId',
+            );
+            // Try external app first, then browser
+            if (await launchUrl(watchUri, mode: LaunchMode.externalApplication))
+              return;
+            if (await launchUrl(watchUri, mode: LaunchMode.platformDefault))
+              return;
+          }
+        }
+
+        // Try opening the original URI in the platform default mode (usually browser)
+        if (await launchUrl(uri, mode: LaunchMode.platformDefault)) return;
+
+        // All attempts failed
         showMessageToast(
           context,
           message: 'Terjadi kesalahan saat membuka video.',
         );
       }
-    } on PlatformException {
+    } on PlatformException catch (e) {
+      logger.fine('PlatformException: $e');
       showMessageToast(
         context,
         message: 'Terjadi kesalahan saat membuka video.',
       );
     } catch (e) {
+      logger.fine('Error launching video URL: $e');
       showMessageToast(
         context,
         message: 'Terjadi kesalahan saat membuka video.',
